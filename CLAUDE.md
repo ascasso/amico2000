@@ -1,0 +1,127 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+This is a browser-based emulator for the **AMICO 2000**, an Italian home computer (ASEL Milano, 1978) that the project owner's father built from a kit. This is a preservation and memorial project recreating a machine that was later discarded.
+
+## Running the Emulator
+
+No build step is required. To run:
+
+```bash
+# Open index.html directly in a browser, or use a local server to avoid CORS issues:
+python3 -m http.server 8000
+# Then open http://localhost:8000
+```
+
+## Testing the Emulator
+
+- Open the browser console (F12) to access debug commands
+- Use `debug.mem(0x0000, 16)` to dump memory
+- Use `debug.state()` to show CPU state
+- Access emulator internals directly: `amico.cpu.PC`, `amico.cpu.A`, etc.
+
+## Code Architecture
+
+The project consists of four modular JavaScript files:
+
+### 1. cpu6502.js (~900 lines)
+Complete 6502 CPU interpreter implementing:
+- All 56 opcodes with 151 instruction variants
+- All addressing modes
+- BCD arithmetic
+- Interrupt handling (IRQ, NMI, BRK)
+- Memory-mapped I/O via callbacks (`readCallback`, `writeCallback`)
+- Cycle-accurate timing for proper execution speed
+
+**Key architectural details:**
+- Memory is a flat 64KB Uint8Array
+- I/O callbacks allow the machine emulator to intercept reads/writes to specific addresses
+- Interrupts are polled before each instruction fetch (see `_checkInterrupts()`)
+- Stack lives at $0100-$01FF (standard 6502)
+
+### 2. amico2000.js (~350 lines)
+Machine emulation layer that connects CPU to hardware:
+- Manages 8255 PIA (Programmable Interface Adapter) for I/O
+- Implements display multiplexing (refreshes 6 digits sequentially)
+- Keyboard matrix scanning (4 rows × 6 columns)
+- ROM/RAM memory mapping
+
+**Key architectural details:**
+- The 8255 PIA is memory-mapped at $FD00-$FD03:
+  - $FD00 (Port A): Display segments (output) / Keyboard column data (input)
+  - $FD01 (Port B): Digit select bits 0-5 / Keyboard row scan bits 0-3
+  - $FD02 (Port C): Expansion port (unused)
+  - $FD03: Control register
+- Display updates are decoupled from PIA writes for performance - buffered and updated once per frame
+- Keyboard scanning matches the ROM's timing expectations (port B values: 1, 3, 5 for rows 0, 1, 2)
+
+### 3. display.js (~200 lines)
+SVG-based seven-segment display renderer:
+- 6 displays arranged as: [A3][A2][A1][A0] : [D1][D0]
+- Authentic red LED appearance with glow effects
+- Runs at 60fps via `requestAnimationFrame`, independent of CPU speed
+
+**Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second.
+
+### 4. main.js (~300 lines)
+Application initialization and UI:
+- Contains the Monitor ROM data (MONITOR_ROM constant at top of file)
+- Keyboard event handling (both physical keyboard and on-screen buttons)
+- ROM file loading via file input
+- Debug console commands exposed via global `debug` object
+
+**Memory Map:**
+```
+$0000-$07FF: 2KB RAM (expandable)
+$FB00-$FCFF: Cassette ROM (optional, not yet implemented)
+$FD00-$FD03: 8255 PIA I/O ports
+$FE00-$FFFF: Monitor ROM (512 bytes)
+```
+
+## Important Implementation Notes
+
+### Performance
+The display update system is decoupled from PIA writes. The emulator runs the CPU at ~1MHz, but display updates happen once per frame (60Hz). This prevents performance issues from excessive DOM manipulation.
+
+### Interrupt Handling
+The CPU properly polls for pending NMI/IRQ before each instruction fetch. This matches real 6502 behavior and is critical for correct emulation.
+
+### Keyboard Scanning
+The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
+
+### ROM Data
+The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loading ROM files:
+- `prom.ic9` goes at $FE00 (Monitor ROM, 512 bytes)
+- `prom.ic10` goes at $FB00 (Cassette ROM, 512 bytes)
+- Other .bin files load as programs at $0000
+
+## Known Limitations
+
+1. **Browser Tab Throttling**: Modern browsers throttle `requestAnimationFrame` when tabs are backgrounded, causing the emulator to pause/slow down
+2. **Cassette Interface**: Not yet implemented - file-based LOAD/SAVE would intercept cassette ROM calls
+3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
+
+## Keyboard Mappings
+
+| Amico Key | PC Key |
+|-----------|--------|
+| 0-9, A-F  | 0-9, A-F |
+| AD        | ↑ (Arrow Up) |
+| DA        | ↓ (Arrow Down) |
+| PC        | P |
+| REG       | R |
+| +         | + or = |
+| GO        | Enter or G |
+| RES       | Escape or Backspace |
+
+## Historical Context
+
+The AMICO 2000 was published in "Sperimentare" magazine starting December 1978, designed by ASEL (Milano) and sold as a kit. Features included:
+- MOS 6502 CPU @ 1MHz
+- 1KB RAM (expandable to 2KB)
+- 512 bytes Monitor ROM
+- 6 seven-segment LED displays
+- Hexadecimal keypad (23 keys)
