@@ -94,9 +94,11 @@ The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scan
 
 ### ROM Data
 The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loading ROM files:
-- `prom.ic9` goes at $FE00 (Monitor ROM, 512 bytes)
-- `prom.ic10` goes at $FB00 (Cassette ROM, 512 bytes)
+- `prom.ic9` goes at $FE00 (Monitor ROM, 512 bytes) - **required**
+- `prom.ic10` goes at $FB00 (Cassette ROM, 512 bytes) - optional
 - Other .bin files load as programs at $0000
+
+**Note on hardware PROMs**: The original AMICO 2000 used `prom.ic6` and `prom.ic7` for address decoding logic (generating chip-select signals). These are **not needed** in the emulator as address decoding is implemented in software through the CPU's memory read/write callbacks.
 
 ## Development Guidelines
 

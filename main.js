@@ -15,6 +15,10 @@
 // ============================================================================
 // Monitor ROM Data ($FE00-$FFFF, 512 bytes)
 // Original ASEL Amico 2000 monitor - prom.ic9
+//
+// NOTE: The original hardware also had prom.ic6 and prom.ic7 for address
+// decoding logic (chip-select generation). These are NOT needed in emulation
+// as address decoding is handled by software memory callbacks.
 // ============================================================================
 const MONITOR_ROM = new Uint8Array([
     // $FE00 - Actual ASEL Amico 2000 Monitor ROM (prom.ic9)
