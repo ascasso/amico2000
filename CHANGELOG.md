@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Implemented partial address decoding for 8255 PIA ($FD00-$FDFF now aliases to $FD00-$FD03) to match real 6502 hardware behavior and prevent incompatibility with software that relies on common partial decoding practices
 
-## [0.1.0] - 2024-12-13
+## [0.1.0] - 2025-12-13
 
 ### Added
 - Initial release of AMICO 2000 emulator

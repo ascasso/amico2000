@@ -8,7 +8,7 @@
  * 
  * Author: Andrea Scasso / Claude
  * License: MIT
- * Date: December 2024
+ * Date: December 2025
  * 
  * =============================================================================
  */
