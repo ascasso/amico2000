@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMICO 2000 Emulator</title>
+    <style>
+        /* ================================================================
+           AMICO 2000 Emulator - Authentic 1978 Italian Style
+           ================================================================ */
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: #eee;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin: 0;
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+        
+        .header .subtitle {
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        /* Main Panel */
+        .amico-panel {
+            background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 100%);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 2px solid #444;
+        }
+        
+        /* Display Section */
+        .display-section {
+            background: #0a0a0a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 2px solid #333;
+        }
+        
+        .amico-display {
+            width: 100%;
+            max-width: 520px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        /* Keyboard Section */
+        .keyboard-section {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        /* Hex Keypad */
+        .hex-keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        
+        /* Function Keys */
+        .func-keypad {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        /* Key Buttons */
+        .key {
+            width: 55px;
+            height: 55px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 
+                0 4px 0 rgba(0, 0, 0, 0.3),
+                0 6px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .key:active {
+            transform: translateY(3px);
+            box-shadow: 
+                0 1px 0 rgba(0, 0, 0, 0.3),
+                0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Red keys for hex digits */
+        .key-hex {
+            background: linear-gradient(180deg, #cc3333 0%, #991111 100%);
+            color: white;
+        }
+        
+        .key-hex:hover {
+            background: linear-gradient(180deg, #dd4444 0%, #aa2222 100%);
+        }
+        
+        /* Blue keys for functions */
+        .key-func {
+            background: linear-gradient(180deg, #3366cc 0%, #224488 100%);
+            color: white;
+        }
+        
+        .key-func:hover {
+            background: linear-gradient(180deg, #4477dd 0%, #335599 100%);
+        }
+        
+        /* Special keys */
+        .key-go {
+            background: linear-gradient(180deg, #33aa33 0%, #228822 100%);
+        }
+        
+        .key-go:hover {
+            background: linear-gradient(180deg, #44bb44 0%, #339933 100%);
+        }
+        
+        .key-res {
+            background: linear-gradient(180deg, #cc6633 0%, #994411 100%);
+        }
+        
+        .key-res:hover {
+            background: linear-gradient(180deg, #dd7744 0%, #aa5522 100%);
+        }
+        
+        /* Controls Section */
+        .controls-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .control-btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .control-btn-primary:hover {
+            background: #5CBF60;
+        }
+        
+        .control-btn-secondary {
+            background: #555;
+            color: white;
+        }
+        
+        .control-btn-secondary:hover {
+            background: #666;
+        }
+        
+        /* Status Section */
+        .status-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #111;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        .status-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .status-item {
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .status-label {
+            color: #888;
+        }
+        
+        /* Info Panel */
+        .info-panel {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .info-panel h3 {
+            margin-top: 0;
+            color: #ff6b6b;
+        }
+        
+        .info-panel table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .info-panel td {
+            padding: 4px 10px;
+        }
+        
+        .info-panel td:first-child {
+            color: #aaa;
+            width: 120px;
+        }
+        
+        .key-hint {
+            display: inline-block;
+            background: #333;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        
+        /* Indicators */
+        .indicators {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+        
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #330;
+            border: 1px solid #555;
+        }
+        
+        .led.on {
+            background: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+        
+        .led.red.on {
+            background: #f00;
+            box-shadow: 0 0 10px #f00;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .footer a {
+            color: #888;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .keyboard-section {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .key {
+                width: 50px;
+                height: 50px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🇮🇹 AMICO 2000</h1>
+            <div class="subtitle">Advanced MIcro COmputer - ASEL Milano, 1978</div>
+        </div>
+        
+        <div class="amico-panel">
+            <!-- Indicators -->
+            <div class="indicators">
+                <div class="indicator">
+                    <div class="led" id="led-power"></div>
+                    <span>PWR</span>
+                </div>
+                <div class="indicator">
+                    <div class="led red" id="led-run"></div>
+                    <span>RUN</span>
+                </div>
+            </div>
+            
+            <!-- Display -->
+            <div class="display-section">
+                <div id="display"></div>
+            </div>
+            
+            <!-- Keyboard -->
+            <div class="keyboard-section">
+                <!-- Hex Keypad -->
+                <div class="hex-keypad">
+                    <button class="key key-hex" data-key="0">0</button>
+                    <button class="key key-hex" data-key="1">1</button>
+                    <button class="key key-hex" data-key="2">2</button>
+                    <button class="key key-hex" data-key="3">3</button>
+                    <button class="key key-hex" data-key="4">4</button>
+                    <button class="key key-hex" data-key="5">5</button>
+                    <button class="key key-hex" data-key="6">6</button>
+                    <button class="key key-hex" data-key="7">7</button>
+                    <button class="key key-hex" data-key="8">8</button>
+                    <button class="key key-hex" data-key="9">9</button>
+                    <button class="key key-hex" data-key="a">A</button>
+                    <button class="key key-hex" data-key="b">B</button>
+                    <button class="key key-hex" data-key="c">C</button>
+                    <button class="key key-hex" data-key="d">D</button>
+                    <button class="key key-hex" data-key="e">E</button>
+                    <button class="key key-hex" data-key="f">F</button>
+                </div>
+                
+                <!-- Function Keypad -->
+                <div class="func-keypad">
+                    <button class="key key-func" data-key="ad">AD</button>
+                    <button class="key key-func" data-key="pc">PC</button>
+                    <button class="key key-func" data-key="da">DA</button>
+                    <button class="key key-func" data-key="reg">REG</button>
+                    <button class="key key-func" data-key="+">+</button>
+                    <button class="key key-func key-go" data-key="go">GO</button>
+                    <button class="key key-func key-res" data-key="res">RES</button>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="controls-section">
+                <button class="control-btn control-btn-primary" id="btn-run">▶ Run</button>
+                <button class="control-btn control-btn-secondary" id="btn-step">Step</button>
+                <button class="control-btn control-btn-secondary" id="btn-reset">Reset</button>
+                <button class="control-btn control-btn-secondary" id="btn-load">Load ROM</button>
+            </div>
+            
+            <!-- Status -->
+            <div class="status-section">
+                <div class="status-row">
+                    <span class="status-item"><span class="status-label">PC:</span> <span id="reg-pc">0000</span></span>
+                    <span class="status-item"><span class="status-label">A:</span> <span id="reg-a">00</span></span>
+                    <span class="status-item"><span class="status-label">X:</span> <span id="reg-x">00</span></span>
+                    <span class="status-item"><span class="status-label">Y:</span> <span id="reg-y">00</span></span>
+                    <span class="status-item"><span class="status-label">SP:</span> <span id="reg-sp">FD</span></span>
+                    <span class="status-item"><span class="status-label">Flags:</span> <span id="reg-flags">--I-----</span></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Panel -->
+        <div class="info-panel">
+            <h3>📖 Keyboard Shortcuts</h3>
+            <table>
+                <tr>
+                    <td>Hex keys</td>
+                    <td>0-9, A-F</td>
+                </tr>
+                <tr>
+                    <td>AD (Address)</td>
+                    <td>↑ Arrow Up</td>
+                </tr>
+                <tr>
+                    <td>DA (Data)</td>
+                    <td>↓ Arrow Down</td>
+                </tr>
+                <tr>
+                    <td>PC</td>
+                    <td>P</td>
+                </tr>
+                <tr>
+                    <td>REG</td>
+                    <td>R</td>
+                </tr>
+                <tr>
+                    <td>+ (Increment)</td>
+                    <td>+ or =</td>
+                </tr>
+                <tr>
+                    <td>GO (Run)</td>
+                    <td>Enter</td>
+                </tr>
+                <tr>
+                    <td>RES (Reset)</td>
+                    <td>Escape or Backspace</td>
+                </tr>
+            </table>
+            
+            <h3 style="margin-top: 20px;">🖥️ About</h3>
+            <p>
+                The <strong>AMICO 2000</strong> (Advanced MIcro COmputer) was an Italian home computer 
+                designed by ASEL in Milan and published in the magazine "Sperimentare" starting December 1978.
+                Based on the MOS 6502 processor running at 1MHz, it featured 1KB of RAM, 
+                a hexadecimal keypad, and 6 seven-segment LED displays.
+            </p>
+            <p>
+                This emulator runs the original monitor ROM, allowing you to enter and execute
+                6502 machine code programs just like on the original hardware.
+            </p>
+        </div>
+        
+        <div class="footer">
+            Emulator by Andrea Scasso | Original design by ASEL Milano, 1978<br>
+            <a href="https://www.computerhistory.it" target="_blank">ComputerHistory.it</a>
+        </div>
+    </div>
+    
+    <!-- Hidden file input for ROM loading -->
+    <input type="file" id="rom-file" accept=".bin,.rom" style="display: none">
+    
+    <!-- Scripts -->
+    <script src="js/cpu6502.js"></script>
+    <script src="js/amico2000.js"></script>
+    <script src="js/display.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
