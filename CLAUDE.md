@@ -1,4 +1,4 @@
-# CLAUDE.md
+Is # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -97,6 +97,46 @@ The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loa
 - `prom.ic9` goes at $FE00 (Monitor ROM, 512 bytes)
 - `prom.ic10` goes at $FB00 (Cassette ROM, 512 bytes)
 - Other .bin files load as programs at $0000
+
+## Development Guidelines
+
+### Code Comments
+All new code and code changes should include clear, meaningful comments:
+
+**What to comment:**
+- **Why, not what**: Explain the reasoning behind implementation choices, not what the code obviously does
+- **Hardware behavior**: Document how the code maps to real AMICO 2000 or 6502 hardware behavior
+- **Non-obvious logic**: Clarify complex algorithms, bit manipulations, or timing-critical code
+- **Edge cases**: Explain handling of special cases or boundary conditions
+- **Performance choices**: Note why a particular approach was chosen for efficiency
+
+**What NOT to comment:**
+- Self-explanatory code (e.g., `i++; // increment i`)
+- Redundant descriptions that just restate the code
+- Commented-out code (remove it; git preserves history)
+
+**Examples of good comments:**
+```javascript
+// The 8255 PIA uses partial address decoding, so $FD00-$FDFF all map to $FD00-$FD03
+// This matches real hardware behavior where not all address lines are decoded
+
+// Decouple display updates from PIA writes to avoid thousands of DOM updates per second
+// Real hardware updates at ~500Hz, but we batch updates at 60fps
+
+// Scan keyboard matrix using port B values 1, 3, 5 to match ROM's TESTAS routine expectations
+```
+
+### Changelog Maintenance
+**IMPORTANT**: Whenever you make any changes to the codebase, you MUST update CHANGELOG.md:
+- Add entries under the `[Unreleased]` section
+- Use the appropriate category: `Added`, `Changed`, `Fixed`, `Removed`, `Deprecated`, or `Security`
+- Write clear, user-facing descriptions of what changed and why
+
+### GitHub Issue References
+When implementing changes based on a GitHub issue:
+- Reference the issue number in the CHANGELOG.md entry (e.g., "Fixed display flickering (#42)")
+- Include the issue reference in relevant code comments (e.g., `// Fix for #42: Handle edge case when...`)
+- This maintains traceability between issues, code changes, and release notes
 
 ## Known Limitations
 
