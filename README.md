@@ -131,7 +131,7 @@ Features:
 - **Original Design**: ASEL Milano, 1978
 - **Documentation**: Sperimentare magazine
 - **Preservation**: [ComputerHistory.it](https://www.computerhistory.it)
-- **Emulator**: Andrea Scasso, 2024
+- **Emulator**: Andrea Scasso, 2025
 
 ## 📄 License
 
