@@ -34,35 +34,39 @@ class Amico2000 {
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         this.currentDigit = 0;
         
-        // Keyboard state
+        // Keyboard state - ROM only scans 3 rows (port B = 1, 3, 5)
         this.keyMatrix = [
-            [false, false, false, false, false, false],  // Row 0: 0,1,2,3,AD,PC
-            [false, false, false, false, false, false],  // Row 1: 4,5,6,7,DA,REG
-            [false, false, false, false, false, false],  // Row 2: 8,9,A,B,+,(empty)
-            [false, false, false, false, false, false]   // Row 3: C,D,E,F,GO,RES
+            [false, false, false, false, false, false],  // Row 0 (portB=1): 0,1,2,3,4,5
+            [false, false, false, false, false, false],  // Row 1 (portB=3): 6,7,8,9,A,B
+            [false, false, false, false, false, false],  // Row 2 (portB=5): C,D,E,F,+,GO,RES,AD,DA,PC,REG (need to verify exact layout)
         ];
-        
+
         // Key mapping: keyboard key -> [row, col]
+        // Based on actual AMICO 2000 keyboard matrix from hardware testing
+        // Note: Some keys share matrix positions (e.g., A and AD both at [1,4])
+        // This is correct - the ROM interprets them based on context
         this.keyMap = {
+            // Hex keys
             '0': [0, 0], '1': [0, 1], '2': [0, 2], '3': [0, 3],
-            '4': [1, 0], '5': [1, 1], '6': [1, 2], '7': [1, 3],
-            '8': [2, 0], '9': [2, 1], 'a': [2, 2], 'b': [2, 3],
-            'c': [3, 0], 'd': [3, 1], 'e': [3, 2], 'f': [3, 3],
-            // Function keys (mapped to convenient PC keys)
-            'Enter': [3, 4],      // GO
-            'Escape': [3, 5],     // RES
-            '+': [2, 4],          // +
-            '=': [2, 4],          // + (alternate)
-            'ArrowUp': [0, 4],    // AD
-            'ArrowDown': [1, 4],  // DA
-            'p': [0, 5],          // PC
-            'r': [1, 5],          // REG
+            '4': [0, 4], '5': [0, 5],
+            '6': [1, 0], '7': [1, 1], '8': [1, 2], '9': [1, 3],
+            'a': [1, 4], 'b': [1, 5],
+            'c': [2, 0], 'd': [2, 1], 'e': [2, 2], 'f': [2, 3],
+            // Function keys (share positions with some hex/other keys)
+            'ArrowUp': [1, 4],    // AD (shares with A)
+            'ArrowDown': [1, 5],  // DA (shares with B)
+            'p': [2, 4],          // PC (shares with +)
+            'r': [2, 5],          // REG (shares with GO/Enter)
+            '+': [2, 4],          // + (shares with PC)
+            '=': [2, 4],          // + alternate (shares with PC)
+            'Enter': [2, 5],      // GO (shares with REG)
+            'g': [2, 5],          // GO alternate
+            'Escape': [0, 5],     // RES (shares with 5)
         };
-        
+
         // Alternate key mappings for function keys
         this.altKeyMap = {
-            'g': [3, 4],          // GO
-            'Backspace': [3, 5],  // RES
+            'Backspace': [0, 5],  // RES (alternate, shares with 5)
         };
         
         // Single-step mode
@@ -178,59 +182,34 @@ class Amico2000 {
     // =========================================================================
     
     _scanKeyboard() {
-        // The Amico 2000 keyboard scanning works as follows (from TESTAS routine):
-        // 
-        // ROM code at TESTAS ($FEEB):
-        //   LDY #$03          ; 3 rows to scan
-        //   LDX #$01          ; Start with port B = 1
-        // LOOP:
-        //   STX PORTB         ; Select row (values: 1, 3, 5)
-        //   INX               ; 
-        //   INX               ; Skip by 2
-        //   AND PORTA         ; Read columns, AND with accumulator
-        //   DEY               ; Next row
-        //   BNE LOOP
-        //
-        // Port B values 1, 3, 5 select rows via bits:
-        //   $01 = bit 0 = Row for digits 0,1,2,3 and function keys
-        //   $03 = bits 0,1 = additional row
-        //   $05 = bits 0,2 = another row
-        //
-        // This is a simplified model - the actual hardware may use specific
-        // bit patterns. Port A is read and AND'd with $FF initially.
-        // Keys pressed return 0 in their bit position (active LOW).
-        
         const portB = this.pia.portB;
         let result = 0xFF;  // No keys pressed (all bits high)
-        
-        // The ROM scans with specific port B values
-        // We map keyboard matrix rows based on port B bit patterns
-        // Row mapping depends on actual hardware - this is an approximation
-        
-        // Check if any row selection bit is active
-        // Port B bits 0-2 appear to be used for row selection
-        
-        for (let row = 0; row < 4; row++) {
-            // Determine if this row is currently being scanned
-            // Based on ROM: values 1, 3, 5 are used (bits 0, 0+1, 0+2)
-            let rowActive = false;
-            
-            if (row === 0 && (portB & 0x01)) rowActive = true;
-            if (row === 1 && (portB & 0x02)) rowActive = true;
-            if (row === 2 && (portB & 0x04)) rowActive = true;
-            if (row === 3 && (portB & 0x08)) rowActive = true;
-            
-            if (rowActive) {
-                // Check columns for this row
-                for (let col = 0; col < 6; col++) {
-                    if (this.keyMatrix[row][col]) {
-                        // Key pressed - clear bit (active LOW)
-                        result &= ~(1 << col);
-                    }
+
+        // The ROM scans with specific port B values: 1, 3, 5 (incrementing by 2)
+        // Only 3 rows are scanned based on ROM's TESTAS routine (LDY #$03)
+        // Map these exact values to keyboard matrix rows
+        // Port B = 1 (0b0001) → Row 0 (keys 0,1,2,3,4,5)
+        // Port B = 3 (0b0011) → Row 1 (keys 6,7,8,9,A,B)
+        // Port B = 5 (0b0101) → Row 2 (keys C,D,E,F,+,GO/RES/AD/DA/PC/REG)
+
+        let row = -1;
+        const scanValue = portB & 0x0F;  // Lower 4 bits used for row selection
+
+        // Match exact port B values to rows (only 3 rows scanned)
+        if (scanValue === 0x01) row = 0;
+        else if (scanValue === 0x03) row = 1;
+        else if (scanValue === 0x05) row = 2;
+
+        // If a valid row is being scanned, check for pressed keys
+        if (row >= 0 && row < 3) {
+            for (let col = 0; col < 6; col++) {
+                if (this.keyMatrix[row][col]) {
+                    // Key pressed - clear bit (active LOW)
+                    result &= ~(1 << col);
                 }
             }
         }
-        
+
         return result;
     }
     

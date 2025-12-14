@@ -156,19 +156,30 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load monitor ROM
     amico.loadMonitorROM(MONITOR_ROM);
-    
-    // Initialize
+
+    // Initialize and start (CPU runs continuously like real hardware)
     amico.reset();
-    
+    amico.start();
+    isRunning = true;
+
     // Setup UI
     setupKeyboard();
     setupControls();
     setupFileLoader();
-    
-    // Turn on power LED
+
+    // Turn on power LED and run LED
     document.getElementById('led-power').classList.add('on');
-    
-    console.log('AMICO 2000 Emulator initialized');
+    document.getElementById('led-run').classList.add('on');
+
+    // Update run button state
+    updateRunButton();
+
+    console.log('AMICO 2000 Emulator initialized and running');
+    console.log('Initial CPU state:');
+    console.log('  PC:', amico.cpu.PC.toString(16).toUpperCase());
+    console.log('  A:', amico.cpu.A.toString(16).toUpperCase());
+    console.log('  X:', amico.cpu.X.toString(16).toUpperCase());
+    console.log('  Y:', amico.cpu.Y.toString(16).toUpperCase());
     console.log('Press RES (Escape) to reset, then use hex keys to enter addresses and data');
 });
 
@@ -181,20 +192,25 @@ function setupKeyboard() {
     document.addEventListener('keydown', (e) => {
         // Prevent default for our mapped keys
         const key = e.key;
-        if (amico.keyMap[key] || amico.altKeyMap[key] || 
+        // Only lowercase hex letter keys (A-F), preserve case for special keys (ArrowUp, Enter, etc.)
+        const normalizedKey = (key.length === 1) ? key.toLowerCase() : key;
+
+        if (amico.keyMap[normalizedKey] || amico.altKeyMap[normalizedKey] ||
             (key >= '0' && key <= '9') ||
             (key >= 'a' && key <= 'f') ||
             (key >= 'A' && key <= 'F')) {
             e.preventDefault();
-            amico.keyDown(key.toLowerCase());
-            highlightButton(key.toLowerCase());
+            amico.keyDown(normalizedKey);
+            highlightButton(normalizedKey);
         }
     });
-    
+
     document.addEventListener('keyup', (e) => {
         const key = e.key;
-        amico.keyUp(key.toLowerCase());
-        unhighlightButton(key.toLowerCase());
+        // Only lowercase hex letter keys, preserve case for special keys
+        const normalizedKey = (key.length === 1) ? key.toLowerCase() : key;
+        amico.keyUp(normalizedKey);
+        unhighlightButton(normalizedKey);
     });
     
     // On-screen keyboard buttons
