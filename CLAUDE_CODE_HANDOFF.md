@@ -43,7 +43,7 @@ This is a web-based emulator for the **AMICO 2000**, an Italian home computer fr
 - ❌ Cassette interface not implemented (file-based)
 - ❌ Single-step debugging UI not complete
 
-### Recent Fixes (December 2024)
+### Recent Fixes (December 2025)
 
 1. **Performance**: Display updates decoupled from PIA writes - now updates once per frame instead of thousands of times per second
 2. **Interrupt handling**: CPU now properly polls for pending NMI/IRQ before each instruction fetch
