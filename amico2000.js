@@ -141,21 +141,26 @@ class Amico2000 {
     
     _updateDisplay() {
         // The Amico 2000 multiplexes the display
-        // Port B lower bits select which digit is active (active LOW)
+        // Port B bits select which digit is active
         // Port A contains the segment pattern
-        
+
         // Decode digit select from port B
-        // In the original, bits 0-5 of port B select digits (active low)
-        const digitSelect = this.pia.portB & 0x3F;
-        
-        // Find which digit is selected (only one at a time in normal operation)
-        for (let i = 0; i < 6; i++) {
+        const digitSelect = this.pia.portB;
+
+        // Mask off bit 7 (decimal point) as original hardware didn't use it
+        const segmentPattern = this.pia.portA & 0x7F;
+
+        // The ROM uses bits 1-6 of port B for digit selection (shifted by 1)
+        // This is because bit 0 is reserved or used for other purposes
+        // Display layout: [A3][A2][A1][A0] : [D1][D0]
+        // Bit 1 → A3, Bit 2 → A2, Bit 3 → A1, Bit 4 → A0, Bit 5 → D1, Bit 6 → D0
+        for (let i = 1; i <= 6; i++) {
             if ((digitSelect & (1 << i)) === 0) {  // Active LOW
-                this.display[i] = this.pia.portA;
-                this.currentDigit = i;
+                this.display[i - 1] = segmentPattern;  // Map bit 1->display[0], bit 2->display[1], etc.
+                this.currentDigit = i - 1;
             }
         }
-        
+
         // NOTE: Do NOT call onDisplayUpdate here!
         // The display is updated thousands of times per second due to multiplexing.
         // The UI callback is invoked once per frame in _runFrame() instead.

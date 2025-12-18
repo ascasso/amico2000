@@ -219,29 +219,18 @@ class DisplayRenderer {
     
     /**
      * Convert hex digit to segment pattern
-     * Matches the original Amico 2000 ROM lookup table
+     * Uses authentic ASEL AMICO 2000 ROM segment table from address $FFEA
      */
     _hexToSegments(hex) {
-        // Segment pattern: .GFEDCBA (bit 7 = DP, bit 0 = A)
+        // Authentic Amico 2000 segment table from ROM address $FFEA
+        // These are the exact patterns the original designers intended
+        // Note: Bit 7 (decimal point) is masked off as the original hardware
+        // didn't use it - all digits display without decimal points
         const patterns = [
-            0x7E,  // 0: ABCDEF
-            0x30,  // 1: BC
-            0x6D,  // 2: ABDEG
-            0x79,  // 3: ABCDG
-            0x33,  // 4: BCFG
-            0x5B,  // 5: ACDFG
-            0x5F,  // 6: ACDEFG
-            0x70,  // 7: ABC
-            0x7F,  // 8: ABCDEFG
-            0x7B,  // 9: ABCDFG
-            0x77,  // A: ABCEFG
-            0x1F,  // B: CDEFG
-            0x4E,  // C: ADEF
-            0x3D,  // D: BCDEG
-            0x4F,  // E: ADEFG
-            0x47   // F: AEFG
+            0xBF, 0x86, 0xDB, 0xCF, 0xE6, 0xED, 0xFD, 0x87,
+            0xFF, 0xEF, 0xF7, 0xFC, 0xB9, 0xDE, 0xF9, 0xF1
         ];
-        return patterns[hex & 0xF];
+        return patterns[hex & 0xF] & 0x7F;  // Mask off bit 7 (DP)
     }
 }
 
