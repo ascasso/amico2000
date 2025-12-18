@@ -38,12 +38,12 @@ This is a web-based emulator for the **AMICO 2000**, an Italian home computer fr
 - ✅ Machine emulation framework complete
 - ✅ Display rendering complete (decoupled from CPU loop - 60fps)
 - ✅ Keyboard input complete (ROM-accurate scanning pattern)
-- ⚠️ ROM data in main.js is a placeholder (needs real ROM)
+- ✅ ROM data in main.js contains real ROM)
 - ⚠️ Keyboard row/column mapping may need fine-tuning based on actual behavior
 - ❌ Cassette interface not implemented (file-based)
 - ❌ Single-step debugging UI not complete
 
-### Recent Fixes (December 2024)
+### Recent Fixes (December 2025)
 
 1. **Performance**: Display updates decoupled from PIA writes - now updates once per frame instead of thousands of times per second
 2. **Interrupt handling**: CPU now properly polls for pending NMI/IRQ before each instruction fetch

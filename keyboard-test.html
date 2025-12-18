@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AMICO 2000 Keyboard Matrix Tester</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #222; color: #0f0; }
+        .grid { display: grid; grid-template-columns: repeat(6, 80px); gap: 5px; margin: 20px 0; }
+        .cell {
+            border: 1px solid #0f0;
+            padding: 10px;
+            text-align: center;
+            background: #333;
+        }
+        .header { background: #444; font-weight: bold; }
+        #log {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 10px;
+            height: 200px;
+            overflow-y: scroll;
+            margin-top: 20px;
+        }
+        button { background: #0a0; border: none; padding: 10px 20px; color: #000; cursor: pointer; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>AMICO 2000 Keyboard Matrix Layout Detector</h1>
+
+    <p>This will help us find the correct keyboard matrix layout.</p>
+    <p><strong>Instructions:</strong></p>
+    <ol>
+        <li>Open the emulator in another tab</li>
+        <li>Press a key on the emulator</li>
+        <li>Check the console - note the row,col from "Keyboard scan" message</li>
+        <li>Enter that key and position below</li>
+    </ol>
+
+    <h2>Expected Matrix (3 rows × 6 columns):</h2>
+    <div class="grid">
+        <div class="cell header">Row\Col</div>
+        <div class="cell header">0</div>
+        <div class="cell header">1</div>
+        <div class="cell header">2</div>
+        <div class="cell header">3</div>
+        <div class="cell header">4</div>
+        <div class="cell header">5</div>
+
+        <div class="cell header">Row 0<br>(portB=1)</div>
+        <div class="cell" id="r0c0">?</div>
+        <div class="cell" id="r0c1">?</div>
+        <div class="cell" id="r0c2">?</div>
+        <div class="cell" id="r0c3">?</div>
+        <div class="cell" id="r0c4">?</div>
+        <div class="cell" id="r0c5">?</div>
+
+        <div class="cell header">Row 1<br>(portB=3)</div>
+        <div class="cell" id="r1c0">?</div>
+        <div class="cell" id="r1c1">?</div>
+        <div class="cell" id="r1c2">?</div>
+        <div class="cell" id="r1c3">?</div>
+        <div class="cell" id="r1c4">?</div>
+        <div class="cell" id="r1c5">?</div>
+
+        <div class="cell header">Row 2<br>(portB=5)</div>
+        <div class="cell" id="r2c0">?</div>
+        <div class="cell" id="r2c1">?</div>
+        <div class="cell" id="r2c2">?</div>
+        <div class="cell" id="r2c3">?</div>
+        <div class="cell" id="r2c4">?</div>
+        <div class="cell" id="r2c5">?</div>
+    </div>
+
+    <h3>Fill in the matrix:</h3>
+    <div>
+        <label>Key: <input type="text" id="keyInput" maxlength="3" placeholder="e.g., 0, A, AD"></label>
+        <label>Row: <input type="number" id="rowInput" min="0" max="2" style="width: 50px;"></label>
+        <label>Col: <input type="number" id="colInput" min="0" max="5" style="width: 50px;"></label>
+        <button onclick="addKey()">Add to Matrix</button>
+        <button onclick="generateCode()">Generate keyMap Code</button>
+        <button onclick="clearMatrix()">Clear</button>
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        const matrix = {};
+
+        function addKey() {
+            const key = document.getElementById('keyInput').value.trim();
+            const row = parseInt(document.getElementById('rowInput').value);
+            const col = parseInt(document.getElementById('colInput').value);
+
+            if (!key || isNaN(row) || isNaN(col)) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const cellId = `r${row}c${col}`;
+            const cell = document.getElementById(cellId);
+            if (cell) {
+                cell.textContent = key;
+                cell.style.background = '#060';
+                matrix[key] = [row, col];
+                log(`Added: ${key} -> [${row}, ${col}]`);
+
+                // Clear inputs
+                document.getElementById('keyInput').value = '';
+                document.getElementById('rowInput').value = '';
+                document.getElementById('colInput').value = '';
+                document.getElementById('keyInput').focus();
+            }
+        }
+
+        function generateCode() {
+            let code = 'this.keyMap = {\n';
+            for (const [key, pos] of Object.entries(matrix)) {
+                const keyStr = key.length === 1 ? `'${key}'` : `'${key}'`;
+                code += `    ${keyStr}: [${pos[0]}, ${pos[1]}],\n`;
+            }
+            code += '};';
+
+            log('Generated code:');
+            log(code);
+            console.log(code);
+            alert('Code copied to console! Check browser console.');
+        }
+
+        function clearMatrix() {
+            if (confirm('Clear all entries?')) {
+                for (let r = 0; r < 3; r++) {
+                    for (let c = 0; c < 6; c++) {
+                        const cell = document.getElementById(`r${r}c${c}`);
+                        if (cell) {
+                            cell.textContent = '?';
+                            cell.style.background = '#333';
+                        }
+                    }
+                }
+                Object.keys(matrix).forEach(k => delete matrix[k]);
+                log('Matrix cleared');
+            }
+        }
+
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += msg + '<br>';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('colInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addKey();
+        });
+    </script>
+</body>
+</html>

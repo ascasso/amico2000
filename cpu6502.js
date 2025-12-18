@@ -8,7 +8,7 @@
  * 
  * Author: Andrea Scasso / Claude
  * License: MIT
- * Date: December 2024
+ * Date: December 2025
  * 
  * Features:
  * - Complete 6502 instruction set (56 opcodes, 151 instruction variants)
