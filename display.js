@@ -171,13 +171,13 @@ class DisplayRenderer {
     _updateDigit(digitIndex, pattern) {
         const digit = this.digits[digitIndex];
         if (!digit || !digit.segments) return;
-        
-        for (const [name, path] of Object.entries(digit.segments)) {
+
+        for (const path of Object.values(digit.segments)) {
             const bit = parseInt(path.getAttribute('data-bit'));
             const isOn = (pattern & (1 << bit)) !== 0;
-            
+
             path.setAttribute('fill', isOn ? this.colorOn : this.colorOff);
-            
+
             if (isOn) {
                 path.setAttribute('filter', 'url(#glow)');
             } else {
