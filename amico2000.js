@@ -150,14 +150,21 @@ class Amico2000 {
         // Mask off bit 7 (decimal point) as original hardware didn't use it
         const segmentPattern = this.pia.portA & 0x7F;
 
-        // The ROM uses bits 1-6 of port B for digit selection (shifted by 1)
-        // This is because bit 0 is reserved or used for other purposes
+        // Filter out keyboard scan patterns (port B = 1, 3, 5, 7 in lower 4 bits)
+        // During keyboard scanning, lower bits have specific patterns we must ignore
+        const portBLower = digitSelect & 0x0F;
+        if (portBLower === 0x01 || portBLower === 0x03 || portBLower === 0x05 || portBLower === 0x07) {
+            // Keyboard scanning in progress, don't update display
+            return;
+        }
+
+        // Display multiplexing uses bits 0-5 of port B (active LOW)
         // Display layout: [A3][A2][A1][A0] : [D1][D0]
-        // Bit 1 → A3, Bit 2 → A2, Bit 3 → A1, Bit 4 → A0, Bit 5 → D1, Bit 6 → D0
-        for (let i = 1; i <= 6; i++) {
+        // Bit 0 → A3, Bit 1 → A2, Bit 2 → A1, Bit 3 → A0, Bit 4 → D1, Bit 5 → D0
+        for (let i = 0; i < 6; i++) {
             if ((digitSelect & (1 << i)) === 0) {  // Active LOW
-                this.display[i - 1] = segmentPattern;  // Map bit 1->display[0], bit 2->display[1], etc.
-                this.currentDigit = i - 1;
+                this.display[i] = segmentPattern;
+                this.currentDigit = i;
             }
         }
 
