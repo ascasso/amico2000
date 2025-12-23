@@ -217,7 +217,9 @@ class Amico2000 {
             for (let col = 0; col < 6; col++) {
                 if (this.keyMatrix[row][col]) {
                     // Key pressed - clear bit (active LOW)
-                    result &= ~(1 << col);
+                    // Columns are reversed and shifted: adjust bit position to match ROM expectations
+                    const bitPos = (4 - col + 6) % 6;
+                    result &= ~(1 << bitPos);
                 }
             }
         }
