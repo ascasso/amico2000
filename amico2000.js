@@ -141,31 +141,31 @@ class Amico2000 {
     
     _updateDisplay() {
         // The Amico 2000 multiplexes the display
-        // Port B bits select which digit is active
+        // Port B contains both mode selection and digit index
         // Port A contains the segment pattern
 
-        // Decode digit select from port B
-        const digitSelect = this.pia.portB;
-
-        // Mask off bit 7 (decimal point) as original hardware didn't use it
+        const portB = this.pia.portB;
         const segmentPattern = this.pia.portA & 0x7F;
 
-        // Filter out keyboard scan patterns (port B = 1, 3, 5, 7 in lower 4 bits)
-        // During keyboard scanning, lower bits have specific patterns we must ignore
-        const portBLower = digitSelect & 0x0F;
-        if (portBLower === 0x01 || portBLower === 0x03 || portBLower === 0x05 || portBLower === 0x07) {
-            // Keyboard scanning in progress, don't update display
+        // Bit 0 of port B distinguishes keyboard scan (0) from display mode (1)
+        // Keyboard scan: portB & 0x01 == 0 (values: 0x00, 0x02, 0x04, 0x06...)
+        // Display mode: portB & 0x01 == 1 (values: 0x09, 0x0B, 0x0D, 0x0F, 0x11, 0x13, 0x15)
+        if ((portB & 0x01) === 0) {
+            // Keyboard scanning mode, don't update display
             return;
         }
 
-        // Display multiplexing uses bits 0-5 of port B (active LOW)
-        // Display layout: [A3][A2][A1][A0] : [D1][D0]
-        // Bit 0 → A3, Bit 1 → A2, Bit 2 → A1, Bit 3 → A0, Bit 4 → D1, Bit 5 → D0
-        for (let i = 0; i < 6; i++) {
-            if ((digitSelect & (1 << i)) === 0) {  // Active LOW
-                this.display[i] = segmentPattern;
-                this.currentDigit = i;
-            }
+        // In display mode, bits 1-4 encode a counter value
+        // The ROM uses values 0x09-0x15, which when shifted give indices 4-10
+        // We need to subtract 4 to get digit indices 0-5
+        const digitIndex = ((portB >> 1) & 0x0F) - 4;
+
+        // Update the display if digit index is valid (0-5)
+        // Ignore blank patterns (0x00) - the ROM blanks digits between updates to prevent
+        // ghosting, but we want persistence of vision in the emulator
+        if (digitIndex >= 0 && digitIndex < 6 && segmentPattern !== 0) {
+            this.display[digitIndex] = segmentPattern;
+            this.currentDigit = digitIndex;
         }
 
         // NOTE: Do NOT call onDisplayUpdate here!
