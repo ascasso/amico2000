@@ -42,26 +42,27 @@ class Amico2000 {
         ];
 
         // Key mapping: keyboard key -> [row, col]
-        // Based on actual AMICO 2000 keyboard matrix from hardware testing
-        // Note: Some keys share matrix positions (e.g., A and AD both at [1,4])
-        // This is correct - the ROM interprets them based on context
+        // ROM expects keys in descending order for rows 0-1, partial layout for row 2:
+        // Row 0 (portB=1): bit 0=6, bit 1=5, bit 2=4, bit 3=3, bit 4=2, bit 5=1
+        // Row 1 (portB=3): bit 0=D, bit 1=C, bit 2=B, bit 3=A, bit 4=9, bit 5=8
+        // Row 2 (portB=5): bit 0=0, bit 1=?, bit 2=7, bit 3=+, bit 4=E, bit 5=F
         this.keyMap = {
-            // Hex keys
-            '0': [0, 0], '1': [0, 1], '2': [0, 2], '3': [0, 3],
-            '4': [0, 4], '5': [0, 5],
-            '6': [1, 0], '7': [1, 1], '8': [1, 2], '9': [1, 3],
-            'a': [1, 4], 'b': [1, 5],
-            'c': [2, 0], 'd': [2, 1], 'e': [2, 2], 'f': [2, 3],
-            // Function keys (share positions with some hex/other keys)
-            'ArrowUp': [1, 4],    // AD (shares with A)
-            'ArrowDown': [1, 5],  // DA (shares with B)
-            'p': [2, 4],          // PC (shares with +)
-            'r': [2, 5],          // REG (shares with GO/Enter)
-            '+': [2, 4],          // + (shares with PC)
-            '=': [2, 4],          // + alternate (shares with PC)
-            'Enter': [2, 5],      // GO (shares with REG)
-            'g': [2, 5],          // GO alternate
-            'Escape': [0, 5],     // RES (shares with 5)
+            // Hex keys - mapped to match ROM's expected layout
+            '0': [2, 0], '1': [0, 5], '2': [0, 4], '3': [0, 3],
+            '4': [0, 2], '5': [0, 1], '6': [0, 0],
+            '7': [2, 2], '8': [1, 5], '9': [1, 4],
+            'a': [1, 3], 'b': [1, 2], 'c': [1, 1], 'd': [1, 0],
+            'e': [2, 4], 'f': [2, 5],
+            // Function keys - separate positions in row 2
+            'ArrowUp': [2, 1],    // AD
+            'ArrowDown': [2, 3],  // DA (shares with +/GO)
+            'p': [2, 3],          // PC (shares with +/GO/DA)
+            'r': [2, 1],          // REG (shares with AD)
+            '+': [2, 3],          // +
+            '=': [2, 3],          // + alternate
+            'Enter': [2, 3],      // GO
+            'g': [2, 3],          // GO alternate
+            'Escape': [2, 1],     // RES (shares with AD/REG)
         };
 
         // Alternate key mappings for function keys
@@ -217,9 +218,7 @@ class Amico2000 {
             for (let col = 0; col < 6; col++) {
                 if (this.keyMatrix[row][col]) {
                     // Key pressed - clear bit (active LOW)
-                    // Columns are reversed and shifted: adjust bit position to match ROM expectations
-                    const bitPos = (4 - col + 6) % 6;
-                    result &= ~(1 << bitPos);
+                    result &= ~(1 << col);
                 }
             }
         }
