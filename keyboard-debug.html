@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMICO 2000 Keyboard Matrix Debugger</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+        }
+        h1 { color: #ff4400; }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 100px);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .test-button {
+            background: #333;
+            border: 2px solid #666;
+            color: #fff;
+            padding: 15px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #444;
+            border-color: #ff4400;
+        }
+        .test-button:active {
+            background: #ff4400;
+        }
+        #status {
+            background: #000;
+            border: 2px solid #00ff00;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 100px;
+        }
+        .instructions {
+            background: #222;
+            border: 2px solid #666;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .row-label {
+            background: #444;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>AMICO 2000 Keyboard Matrix Debugger</h1>
+
+    <div class="instructions">
+        <h3>Instructions:</h3>
+        <ol>
+            <li>This tool helps test each position in the keyboard matrix</li>
+            <li>Click a button to activate that matrix position for 200ms</li>
+            <li>Watch the AMICO 2000 emulator to see what happens</li>
+            <li>Use this to find where keys 7 and E are connected</li>
+        </ol>
+        <p><strong>Note:</strong> The main emulator must be running in another tab/window</p>
+    </div>
+
+    <h2>Keyboard Matrix Test Grid</h2>
+    <div id="testGrid"></div>
+
+    <div id="status">
+        <strong>Status:</strong> Ready<br>
+        <span id="statusText"></span>
+    </div>
+
+    <div class="instructions">
+        <h3>Known Matrix Layout (from testing):</h3>
+        <pre>
+Row 0 (portB=1):  [6]  [5]  [4]  [3]  [2]  [1]
+Row 1 (portB=3):  [D]  [C]  [B]  [A]  [9]  [8]
+Row 2 (portB=5):  [0]  [?]  [+]  [?]  [?]  [F]
+
+Known function keys:
+- [2,1] = AD (address mode)
+- [2,3] = DA (data mode)
+
+Unknown: Where are keys 7 and E?
+        </pre>
+    </div>
+
+    <script>
+        // Create test grid
+        const grid = document.getElementById('testGrid');
+        const statusText = document.getElementById('statusText');
+
+        const rowNames = ['Row 0 (portB=1)', 'Row 1 (portB=3)', 'Row 2 (portB=5)'];
+        const knownKeys = {
+            '0,0': '6', '0,1': '5', '0,2': '4', '0,3': '3', '0,4': '2', '0,5': '1',
+            '1,0': 'D', '1,1': 'C', '1,2': 'B', '1,3': 'A', '1,4': '9', '1,5': '8',
+            '2,0': '0', '2,1': 'AD?', '2,2': '+', '2,3': 'DA?', '2,4': '?', '2,5': 'F'
+        };
+
+        for (let row = 0; row < 3; row++) {
+            // Row label
+            const label = document.createElement('div');
+            label.className = 'row-label';
+            label.textContent = rowNames[row];
+            label.style.gridColumn = '1 / -1';
+            grid.appendChild(label);
+
+            // Column buttons
+            for (let col = 0; col < 6; col++) {
+                const button = document.createElement('button');
+                button.className = 'test-button';
+                const key = knownKeys[`${row},${col}`] || '?';
+                button.innerHTML = `[${row},${col}]<br>${key}`;
+                button.onclick = () => testPosition(row, col, key);
+                grid.appendChild(button);
+            }
+        }
+
+        function testPosition(row, col, label) {
+            statusText.innerHTML = `Testing position [${row},${col}] (${label})<br>Activating for 200ms...`;
+
+            // Try to access the emulator in the opener/parent window
+            let amico = null;
+            if (window.opener && window.opener.amico) {
+                amico = window.opener.amico;
+            } else if (window.parent && window.parent.amico) {
+                amico = window.parent.amico;
+            }
+
+            if (!amico) {
+                statusText.innerHTML = `ERROR: Cannot find emulator!<br>Make sure the main emulator is running.<br>You may need to open this in a popup or use browser console instead.`;
+                return;
+            }
+
+            // Activate the key
+            amico.keyMatrix[row][col] = true;
+
+            setTimeout(() => {
+                amico.keyMatrix[row][col] = false;
+                statusText.innerHTML = `Tested position [${row},${col}] (${label})<br>Check the emulator display for result.`;
+            }, 200);
+        }
+
+        // Add console helper
+        console.log('%cKeyboard Matrix Tester Loaded', 'color: #ff4400; font-size: 16px; font-weight: bold;');
+        console.log('To test a position from console:');
+        console.log('  testPosition(row, col, "label")');
+        console.log('Example: testPosition(2, 4, "test")');
+        window.testPosition = testPosition;
+    </script>
+</body>
+</html>
