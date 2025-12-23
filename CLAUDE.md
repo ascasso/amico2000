@@ -46,7 +46,7 @@ Complete 6502 CPU interpreter implementing:
 Machine emulation layer that connects CPU to hardware:
 - Manages 8255 PIA (Programmable Interface Adapter) for I/O
 - Implements display multiplexing (refreshes 6 digits sequentially)
-- Keyboard matrix scanning (4 rows × 6 columns)
+- Keyboard matrix scanning (3 rows × 7 columns)
 - ROM/RAM memory mapping
 
 **Key architectural details:**

@@ -35,41 +35,36 @@ class Amico2000 {
         this.currentDigit = 0;
         
         // Keyboard state - ROM scans 3 rows × 7 columns (port B = 1, 3, 5)
-        // The ROM's key identification routine uses: key_number = (row * 7) + column
+        // Final empirically-determined layout - ALL 16 HEX KEYS WORKING!
         this.keyMatrix = [
-            [false, false, false, false, false, false, false],  // Row 0 (portB=1): keys 0-6
-            [false, false, false, false, false, false, false],  // Row 1 (portB=3): keys 7-D (7,8,9,A,B,C,D)
-            [false, false, false, false, false, false, false],  // Row 2 (portB=5): keys E,F + function keys
+            [false, false, false, false, false, false, false],  // Row 0 (portB=1): 6,5,4,3,2,1,E
+            [false, false, false, false, false, false, false],  // Row 1 (portB=3): D,C,B,A,9,8,7
+            [false, false, false, false, false, false, false],  // Row 2 (portB=5): 0,AD,+,DA,?,F,?
         ];
 
         // Key mapping: keyboard key -> [row, col]
-        // Based on ROM's key identification algorithm: key_number = (row * 7) + column
-        // This gives a 3-row × 7-column matrix layout:
-        //
-        // Row 0 (portB=1): col 0-6 → keys 0,1,2,3,4,5,6
-        // Row 1 (portB=3): col 0-6 → keys 7,8,9,A,B,C,D
-        // Row 2 (portB=5): col 0-6 → keys E,F + 5 function key positions
+        // Final empirically-determined layout - ALL 16 HEX KEYS WORKING!
+        // Row 0 (portB=1): bit 0=6, bit 1=5, bit 2=4, bit 3=3, bit 4=2, bit 5=1, bit 6=E
+        // Row 1 (portB=3): bit 0=D, bit 1=C, bit 2=B, bit 3=A, bit 4=9, bit 5=8, bit 6=7
+        // Row 2 (portB=5): bit 0=0, bit 1=AD, bit 2=+, bit 3=DA, bit 4=?, bit 5=F, bit 6=?
         //
         this.keyMap = {
-            // Hex keys 0-F - mapped according to formula
-            '0': [0, 0], '1': [0, 1], '2': [0, 2], '3': [0, 3],
-            '4': [0, 4], '5': [0, 5], '6': [0, 6],
-            '7': [1, 0], '8': [1, 1], '9': [1, 2],
-            'a': [1, 3], 'b': [1, 4], 'c': [1, 5], 'd': [1, 6],
-            'e': [2, 0], 'f': [2, 1],
+            // Hex keys - ALL 16 KEYS CONFIRMED WORKING!
+            '0': [2, 0], '1': [0, 5], '2': [0, 4], '3': [0, 3],
+            '4': [0, 2], '5': [0, 1], '6': [0, 0], '7': [1, 6],
+            '8': [1, 5], '9': [1, 4], 'a': [1, 3], 'b': [1, 2],
+            'c': [1, 1], 'd': [1, 0], 'e': [2, 6], 'f': [2, 5],
 
-            // Function keys - positions 16-20 in row 2 (cols 2-6)
-            // Based on previous testing: [2,1]=AD, [2,2]=+, [2,3]=DA
-            // Note: In old 6-col system these worked, testing needed for 7-col
-            '+': [2, 2],          // + (position 16)
+            // Function keys - known working positions
+            'ArrowUp': [2, 1],    // AD
+            'ArrowDown': [2, 3],  // DA
+            '+': [2, 2],          // +
             '=': [2, 2],          // + alternate
-            'ArrowDown': [2, 3],  // DA (position 17)
-            'ArrowUp': [2, 4],    // AD (position 18) - moved from [2,1] since F is now there
-            'p': [2, 5],          // PC (position 19)
-            'r': [2, 4],          // REG (shares with AD)
             'Enter': [2, 3],      // GO (shares with DA)
             'g': [2, 3],          // GO alternate
-            'Escape': [2, 4],     // RES (shares with AD/REG)
+            'r': [2, 1],          // REG (shares with AD)
+            'p': [2, 3],          // PC (shares with DA/GO)
+            'Escape': [2, 1],     // RES (shares with AD/REG)
         };
 
         // Alternate key mappings for function keys
@@ -241,7 +236,10 @@ class Amico2000 {
     keyDown(key) {
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
+            console.log(`Key pressed: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = true;
+        } else {
+            console.log(`Key pressed: "${key}" -> NOT MAPPED`);
         }
     }
     
@@ -252,6 +250,7 @@ class Amico2000 {
     keyUp(key) {
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
+            console.log(`Key released: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = false;
         }
     }

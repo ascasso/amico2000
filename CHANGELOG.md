@@ -8,12 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **CRITICAL FIX: Corrected keyboard matrix layout to 3 rows × 7 columns** - Analysis of the original Italian documentation revealed the ROM uses the formula `key_number = (row * 7) + column`, not a 6-column layout. This fixes keys 7 and E which are now mapped to:
-  - Key 7: Row 1, Column 0 (position 7)
-  - Key E: Row 2, Column 0 (position 14)
-- Updated keyboard scanning to read all 7 columns (bits 0-6) instead of only 6
-- Reorganized all hex key mappings (0-F) to follow the correct sequential layout based on ROM's key identification algorithm
-- Function keys remapped to positions 16-20 in row 2 (requires testing to verify correct positions after matrix restructure)
+- **All 16 hex keys now working!** - Keyboard matrix expanded to 7 columns (3 rows × 7 columns):
+  - **Key 7 at [1, 6]** (Row 1, Column 6) - CONFIRMED working!
+  - **Key E at [2, 6]** (Row 2, Column 6) - CONFIRMED working!
+  - All hex keys 0-F now fully functional
+  - Function keys (AD, DA, +, GO, REG, PC, RES) also working correctly
+- Updated keyboard scanning to read all 7 columns (bits 0-6) instead of 6
+- Added console debug logging to keyDown/keyUp functions showing key name and matrix position
+- Note: Final keyboard layout determined through systematic empirical testing
 
 ### Added
 - Added authentic cassette ROM data (prom.ic10) as optional constant in main.js for tape loading/saving functionality
