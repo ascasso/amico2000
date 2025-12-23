@@ -161,8 +161,7 @@ portB=5   0      AD?      +      DA?      ?       F     (Row 2)
 ├── NEXT_SESSION.md              # This file - session handoff
 ├── KEYBOARD_TESTING_GUIDE.md    # Step-by-step guide for finding keys 7 and E
 ├── keyboard-debug.html          # Visual keyboard matrix testing tool
-├── keyboard-matrix-test.js      # Console-based testing helper
-└── Sperimentare_1980_05_supplemento.pdf  # Original manual (NOT YET IN REPO)
+└── keyboard-matrix-test.js      # Console-based testing helper
 ```
 
 ## Memory Map
