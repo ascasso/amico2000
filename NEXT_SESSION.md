@@ -74,7 +74,7 @@ Add some example programs to demonstrate the emulator.
 
 ## Technical Reference
 
-### Final Keyboard Matrix Layout
+### Final Keyboard Matrix Layout (Empirically Confirmed)
 ```
 SCAN    BIT 0   BIT 1   BIT 2   BIT 3   BIT 4   BIT 5   BIT 6
 portB=1   6       5       4       3       2       1       E       (Row 0)
@@ -83,12 +83,30 @@ portB=5   0      AD       +      DA       ?       F       ?       (Row 2)
          [x,0]  [x,1]   [x,2]   [x,3]   [x,4]   [x,5]   [x,6]
 ```
 
+**IMPORTANT: Discrepancy with ROM Analysis**
+
+The layout above was determined through systematic empirical testing and is **confirmed working** with all 16 hex keys functioning correctly. However, it differs significantly from the ROM analysis documented in GEMINI3.md:
+
+**GEMINI3.md ROM Analysis (DOES NOT MATCH ACTUAL HARDWARE):**
+```
+portB=01   6   7   8   9   A   B   C
+portB=03   D   E   F  AD  DA   +  RUN
+portB=05   0   1   2   3   4   5  REG
+```
+
+**Why the discrepancy?**
+- The GEMINI3.md layout appears to be based on ROM disassembly showing the logical key numbering algorithm
+- The actual hardware may have intermediate decoding circuitry (diodes, additional logic) that remaps the physical matrix
+- Different hardware revision or regional variant
+- The ROM's key identification algorithm (multiply by 7, bit shifting) produces logical key numbers, but the physical wiring is different
+
+**Conclusion:** The empirically-determined layout is the ground truth for this emulator. All ROM analysis documents should be treated as reference material, not absolute specifications. When in doubt, test on real hardware or through systematic empirical testing.
+
 **Notes:**
 - Position [2,4] is unmapped (marked with ?)
 - Positions [2,1] and [2,3] are shared between hex and function keys
 - Column 6 (7th column) contains keys 7 and E
-- This layout was determined empirically, not from ROM documentation
-- ROM documentation suggested a different layout, but empirical testing was more reliable
+- This layout was verified by testing all keys and confirming correct display output
 
 ### Memory Map
 ```
@@ -118,6 +136,7 @@ $FD03 (Control): 8255 configuration register
 ├── CHANGELOG.md                 # Project changelog
 ├── NEXT_SESSION.md              # This file - session handoff
 ├── README.md                    # User documentation
+├── GEMINI3.md                   # ROM analysis & technical specs (reference only - see notes above)
 ├── KEYBOARD_TESTING_GUIDE.md    # Testing guide (no longer needed)
 ├── keyboard-debug.html          # Testing tool (no longer needed)
 └── keyboard-matrix-test.js      # Testing helper (no longer needed)
