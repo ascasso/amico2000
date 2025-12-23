@@ -45,22 +45,22 @@ class Amico2000 {
         // ROM expects keys in descending order for rows 0-1, partial layout for row 2:
         // Row 0 (portB=1): bit 0=6, bit 1=5, bit 2=4, bit 3=3, bit 4=2, bit 5=1
         // Row 1 (portB=3): bit 0=D, bit 1=C, bit 2=B, bit 3=A, bit 4=9, bit 5=8
-        // Row 2 (portB=5): bit 0=0, bit 1=?, bit 2=7, bit 3=+, bit 4=E, bit 5=F
+        // Row 2 (portB=5): bit 0=0, bit 1=AD/REG/RES, bit 2=+, bit 3=7/DA/GO/PC, bit 4=E, bit 5=F
         this.keyMap = {
             // Hex keys - mapped to match ROM's expected layout
             '0': [2, 0], '1': [0, 5], '2': [0, 4], '3': [0, 3],
             '4': [0, 2], '5': [0, 1], '6': [0, 0],
-            '7': [2, 2], '8': [1, 5], '9': [1, 4],
+            '7': [2, 3], '8': [1, 5], '9': [1, 4],
             'a': [1, 3], 'b': [1, 2], 'c': [1, 1], 'd': [1, 0],
             'e': [2, 4], 'f': [2, 5],
-            // Function keys - separate positions in row 2
+            // Function keys - mapped to actual positions
             'ArrowUp': [2, 1],    // AD
-            'ArrowDown': [2, 3],  // DA (shares with +/GO)
-            'p': [2, 3],          // PC (shares with +/GO/DA)
-            'r': [2, 1],          // REG (shares with AD)
-            '+': [2, 3],          // +
-            '=': [2, 3],          // + alternate
-            'Enter': [2, 3],      // GO
+            'ArrowDown': [2, 3],  // DA (shares with 7/GO/PC)
+            'p': [2, 3],          // PC (shares with 7/DA/GO)
+            'r': [2, 1],          // REG (shares with AD/RES)
+            '+': [2, 2],          // +
+            '=': [2, 2],          // + alternate
+            'Enter': [2, 3],      // GO (shares with 7/DA/PC)
             'g': [2, 3],          // GO alternate
             'Escape': [2, 1],     // RES (shares with AD/REG)
         };
