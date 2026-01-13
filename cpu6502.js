@@ -44,9 +44,14 @@ class CPU6502 {
             V: 0,   // Overflow
             N: 0    // Negative
         };
-        
+
         // Memory (64KB)
+        // Initialize to $FF instead of $00 to match real hardware behavior where
+        // RAM typically powers up with bits high or random values. Using $FF prevents
+        // issues with indirect jumps reading uninitialized RAM (common pattern in 6502 ROMs).
+        // $FF as address = $FFFF (ROM), $FF as opcode = invalid (clear error).
         this.memory = new Uint8Array(65536);
+        this.memory.fill(0xFF);
         
         // I/O callbacks for memory-mapped devices
         this.readCallbacks = new Map();

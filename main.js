@@ -418,30 +418,68 @@ window.debug = {
         const data = amico.getMemoryRange(start, length);
         let hex = '';
         let ascii = '';
-        
+
         for (let i = 0; i < data.length; i++) {
             hex += data[i].toString(16).padStart(2, '0').toUpperCase() + ' ';
             ascii += (data[i] >= 32 && data[i] < 127) ? String.fromCharCode(data[i]) : '.';
         }
-        
+
         console.log(`$${start.toString(16).padStart(4, '0')}: ${hex} ${ascii}`);
     },
-    
+
     // Disassemble at PC
     dis: () => {
         const pc = amico.cpu.PC;
         const byte = amico.cpu.read(pc);
         console.log(`$${pc.toString(16).padStart(4, '0')}: ${byte.toString(16).padStart(2, '0')}`);
     },
-    
+
     // Show CPU state
     state: () => {
         console.log(amico.cpu.stateToString());
     },
-    
+
     // Set breakpoint (simple)
     breakAt: (addr) => {
         console.log(`Breakpoint at $${addr.toString(16).padStart(4, '0')} (not implemented yet)`);
+    },
+
+    // Track PC to see if CPU is stuck in a loop
+    trackPC: (duration = 2000) => {
+        const pcHistory = [];
+        const startTime = Date.now();
+        const interval = setInterval(() => {
+            pcHistory.push(amico.cpu.PC.toString(16).padStart(4, '0').toUpperCase());
+            if (pcHistory.length > 20) pcHistory.shift();
+        }, 100);
+
+        setTimeout(() => {
+            clearInterval(interval);
+            console.log('PC history over', duration, 'ms:');
+            console.log(pcHistory.join(' -> '));
+
+            // Count unique PCs to detect tight loops
+            const unique = new Set(pcHistory);
+            if (unique.size <= 3) {
+                console.log('⚠️  CPU appears to be in a tight loop!');
+                console.log('Unique PCs:', Array.from(unique).join(', '));
+            } else {
+                console.log('✓ CPU is running normally');
+            }
+        }, duration);
+
+        console.log('Tracking PC for', duration, 'ms...');
+    },
+
+    // Enable/disable keyboard scan debugging
+    enableKeyboardDebug: () => {
+        window.debugKeyboard = true;
+        console.log('Keyboard scan debugging enabled');
+    },
+
+    disableKeyboardDebug: () => {
+        window.debugKeyboard = false;
+        console.log('Keyboard scan debugging disabled');
     }
 };
 
