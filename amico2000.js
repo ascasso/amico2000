@@ -226,6 +226,11 @@ class Amico2000 {
             }
         }
 
+        // DEBUG: Log keyboard scans when keys are detected
+        if (result !== 0xFF && window.debugKeyboard) {
+            console.log(`[SCAN] portB=${portB.toString(16).padStart(2,'0')} row=${row} result=${result.toString(16).padStart(2,'0')} (bit cleared for pressed key)`);
+        }
+
         return result;
     }
     

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added comprehensive debugging tools in main.js console: `debug.trackPC()` to monitor PC register over time and detect tight loops, `debug.enableKeyboardDebug()` to log keyboard scans when keys are detected
+- Added keyboard scan debugging in amico2000.js `_scanKeyboard()` that logs portB value, row, and result when keys are pressed (controlled by window.debugKeyboard flag)
+
 ### Fixed
 - **All 16 hex keys now working!** - Keyboard matrix expanded to 7 columns (3 rows × 7 columns):
   - **Key 7 at [1, 6]** (Row 1, Column 6) - CONFIRMED working!
