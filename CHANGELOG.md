@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-01-12
+
+### 🎉 Major Milestone: Emulator Fully Functional
+
+This release marks the completion of the core AMICO 2000 emulator. All critical functionality is working correctly.
+
 ### Added
 - Added comprehensive debugging tools in main.js console: `debug.trackPC()` to monitor PC register over time and detect tight loops, `debug.enableKeyboardDebug()` to log keyboard scans when keys are detected
 - Added keyboard scan debugging in amico2000.js `_scanKeyboard()` that logs portB value, row, and result when keys are pressed (controlled by window.debugKeyboard flag)

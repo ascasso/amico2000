@@ -2,6 +2,8 @@
 
 A browser-based emulator for the Italian AMICO 2000 home computer (ASEL Milano, 1978).
 
+The AMICO 2000 lives again. 🇮🇹💾✨
+
 ## 🚀 Quick Start
 
 1. Open `index.html` in any modern web browser
