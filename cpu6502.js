@@ -8,7 +8,7 @@
  * 
  * Author: Andrea Scasso / Claude
  * License: MIT
- * Date: December 2024
+ * Date: December 2025
  * 
  * Features:
  * - Complete 6502 instruction set (56 opcodes, 151 instruction variants)
@@ -44,9 +44,14 @@ class CPU6502 {
             V: 0,   // Overflow
             N: 0    // Negative
         };
-        
+
         // Memory (64KB)
+        // Initialize to $FF instead of $00 to match real hardware behavior where
+        // RAM typically powers up with bits high or random values. Using $FF prevents
+        // issues with indirect jumps reading uninitialized RAM (common pattern in 6502 ROMs).
+        // $FF as address = $FFFF (ROM), $FF as opcode = invalid (clear error).
         this.memory = new Uint8Array(65536);
+        this.memory.fill(0xFF);
         
         // I/O callbacks for memory-mapped devices
         this.readCallbacks = new Map();
@@ -75,12 +80,20 @@ class CPU6502 {
      */
     read(address) {
         address &= 0xFFFF;
-        
-        // Check for I/O callback
-        if (this.readCallbacks.has(address)) {
-            return this.readCallbacks.get(address)(address) & 0xFF;
+
+        // Check for PIA partial address decoding ($FD00-$FDFF maps to $FD00-$FD03)
+        // This matches real 6502 hardware where partial decoding was common to save on logic chips
+        let callbackAddress = address;
+        if ((address & 0xFF00) === 0xFD00) {
+            // Map any address in $FDxx to one of the 4 PIA registers
+            callbackAddress = 0xFD00 | (address & 0x0003);
         }
-        
+
+        // Check for I/O callback
+        if (this.readCallbacks.has(callbackAddress)) {
+            return this.readCallbacks.get(callbackAddress)(address) & 0xFF;
+        }
+
         return this.memory[address];
     }
     
@@ -90,13 +103,21 @@ class CPU6502 {
     write(address, value) {
         address &= 0xFFFF;
         value &= 0xFF;
-        
+
+        // Check for PIA partial address decoding ($FD00-$FDFF maps to $FD00-$FD03)
+        // This matches real 6502 hardware where partial decoding was common to save on logic chips
+        let callbackAddress = address;
+        if ((address & 0xFF00) === 0xFD00) {
+            // Map any address in $FDxx to one of the 4 PIA registers
+            callbackAddress = 0xFD00 | (address & 0x0003);
+        }
+
         // Check for I/O callback
-        if (this.writeCallbacks.has(address)) {
-            this.writeCallbacks.get(address)(address, value);
+        if (this.writeCallbacks.has(callbackAddress)) {
+            this.writeCallbacks.get(callbackAddress)(address, value);
             return;
         }
-        
+
         this.memory[address] = value;
     }
     
@@ -148,18 +169,18 @@ class CPU6502 {
     }
     
     push16(value) {
-        this.push((value >> 8) & 0xFF);  // High byte first
-        this.push(value & 0xFF);          // Then low byte
+        this.push(value & 0xFF);          // Low byte first
+        this.push((value >> 8) & 0xFF);  // High byte second
     }
-    
+
     pull() {
         this.SP = (this.SP + 1) & 0xFF;
         return this.read(0x0100 + this.SP);
     }
-    
+
     pull16() {
-        const lo = this.pull();
-        const hi = this.pull();
+        const hi = this.pull();  // High byte first (was pushed second, so on top)
+        const lo = this.pull();  // Low byte second (was pushed first, so below)
         return (hi << 8) | lo;
     }
     

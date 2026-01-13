@@ -12,7 +12,7 @@
  * 
  * Author: Andrea Scasso / Claude
  * License: MIT
- * Date: December 2024
+ * Date: December 2025
  * 
  * =============================================================================
  */
@@ -34,35 +34,42 @@ class Amico2000 {
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         this.currentDigit = 0;
         
-        // Keyboard state
+        // Keyboard state - ROM scans 3 rows × 7 columns (port B = 1, 3, 5)
+        // Final empirically-determined layout - ALL 16 HEX KEYS WORKING!
         this.keyMatrix = [
-            [false, false, false, false, false, false],  // Row 0: 0,1,2,3,AD,PC
-            [false, false, false, false, false, false],  // Row 1: 4,5,6,7,DA,REG
-            [false, false, false, false, false, false],  // Row 2: 8,9,A,B,+,(empty)
-            [false, false, false, false, false, false]   // Row 3: C,D,E,F,GO,RES
+            [false, false, false, false, false, false, false],  // Row 0 (portB=1): 6,5,4,3,2,1,E
+            [false, false, false, false, false, false, false],  // Row 1 (portB=3): D,C,B,A,9,8,7
+            [false, false, false, false, false, false, false],  // Row 2 (portB=5): 0,AD,+,DA,?,F,?
         ];
-        
+
         // Key mapping: keyboard key -> [row, col]
+        // Final empirically-determined layout - ALL 16 HEX KEYS WORKING!
+        // Row 0 (portB=1): bit 0=6, bit 1=5, bit 2=4, bit 3=3, bit 4=2, bit 5=1, bit 6=E
+        // Row 1 (portB=3): bit 0=D, bit 1=C, bit 2=B, bit 3=A, bit 4=9, bit 5=8, bit 6=7
+        // Row 2 (portB=5): bit 0=0, bit 1=AD, bit 2=+, bit 3=DA, bit 4=?, bit 5=F, bit 6=?
+        //
         this.keyMap = {
-            '0': [0, 0], '1': [0, 1], '2': [0, 2], '3': [0, 3],
-            '4': [1, 0], '5': [1, 1], '6': [1, 2], '7': [1, 3],
-            '8': [2, 0], '9': [2, 1], 'a': [2, 2], 'b': [2, 3],
-            'c': [3, 0], 'd': [3, 1], 'e': [3, 2], 'f': [3, 3],
-            // Function keys (mapped to convenient PC keys)
-            'Enter': [3, 4],      // GO
-            'Escape': [3, 5],     // RES
-            '+': [2, 4],          // +
-            '=': [2, 4],          // + (alternate)
-            'ArrowUp': [0, 4],    // AD
-            'ArrowDown': [1, 4],  // DA
-            'p': [0, 5],          // PC
-            'r': [1, 5],          // REG
+            // Hex keys - ALL 16 KEYS CONFIRMED WORKING!
+            '0': [2, 0], '1': [0, 5], '2': [0, 4], '3': [0, 3],
+            '4': [0, 2], '5': [0, 1], '6': [0, 0], '7': [1, 6],
+            '8': [1, 5], '9': [1, 4], 'a': [1, 3], 'b': [1, 2],
+            'c': [1, 1], 'd': [1, 0], 'e': [2, 6], 'f': [2, 5],
+
+            // Function keys - known working positions
+            'ArrowUp': [2, 1],    // AD
+            'ArrowDown': [2, 3],  // DA
+            '+': [2, 2],          // +
+            '=': [2, 2],          // + alternate
+            'Enter': [2, 3],      // GO (shares with DA)
+            'g': [2, 3],          // GO alternate
+            'r': [2, 1],          // REG (shares with AD)
+            'p': [2, 3],          // PC (shares with DA/GO)
+            'Escape': [2, 1],     // RES (shares with AD/REG)
         };
-        
+
         // Alternate key mappings for function keys
         this.altKeyMap = {
-            'g': [3, 4],          // GO
-            'Backspace': [3, 5],  // RES
+            'Backspace': [0, 5],  // RES (alternate, shares with 5)
         };
         
         // Single-step mode
@@ -137,21 +144,33 @@ class Amico2000 {
     
     _updateDisplay() {
         // The Amico 2000 multiplexes the display
-        // Port B lower bits select which digit is active (active LOW)
+        // Port B contains both mode selection and digit index
         // Port A contains the segment pattern
-        
-        // Decode digit select from port B
-        // In the original, bits 0-5 of port B select digits (active low)
-        const digitSelect = this.pia.portB & 0x3F;
-        
-        // Find which digit is selected (only one at a time in normal operation)
-        for (let i = 0; i < 6; i++) {
-            if ((digitSelect & (1 << i)) === 0) {  // Active LOW
-                this.display[i] = this.pia.portA;
-                this.currentDigit = i;
-            }
+
+        const portB = this.pia.portB;
+        const segmentPattern = this.pia.portA & 0x7F;
+
+        // Bit 0 of port B distinguishes keyboard scan (0) from display mode (1)
+        // Keyboard scan: portB & 0x01 == 0 (values: 0x00, 0x02, 0x04, 0x06...)
+        // Display mode: portB & 0x01 == 1 (values: 0x09, 0x0B, 0x0D, 0x0F, 0x11, 0x13, 0x15)
+        if ((portB & 0x01) === 0) {
+            // Keyboard scanning mode, don't update display
+            return;
         }
-        
+
+        // In display mode, bits 1-4 encode a counter value
+        // The ROM uses values 0x09-0x15, which when shifted give indices 4-10
+        // We need to subtract 4 to get digit indices 0-5
+        const digitIndex = ((portB >> 1) & 0x0F) - 4;
+
+        // Update the display if digit index is valid (0-5)
+        // Ignore blank patterns (0x00) - the ROM blanks digits between updates to prevent
+        // ghosting, but we want persistence of vision in the emulator
+        if (digitIndex >= 0 && digitIndex < 6 && segmentPattern !== 0) {
+            this.display[digitIndex] = segmentPattern;
+            this.currentDigit = digitIndex;
+        }
+
         // NOTE: Do NOT call onDisplayUpdate here!
         // The display is updated thousands of times per second due to multiplexing.
         // The UI callback is invoked once per frame in _runFrame() instead.
@@ -178,59 +197,40 @@ class Amico2000 {
     // =========================================================================
     
     _scanKeyboard() {
-        // The Amico 2000 keyboard scanning works as follows (from TESTAS routine):
-        // 
-        // ROM code at TESTAS ($FEEB):
-        //   LDY #$03          ; 3 rows to scan
-        //   LDX #$01          ; Start with port B = 1
-        // LOOP:
-        //   STX PORTB         ; Select row (values: 1, 3, 5)
-        //   INX               ; 
-        //   INX               ; Skip by 2
-        //   AND PORTA         ; Read columns, AND with accumulator
-        //   DEY               ; Next row
-        //   BNE LOOP
-        //
-        // Port B values 1, 3, 5 select rows via bits:
-        //   $01 = bit 0 = Row for digits 0,1,2,3 and function keys
-        //   $03 = bits 0,1 = additional row
-        //   $05 = bits 0,2 = another row
-        //
-        // This is a simplified model - the actual hardware may use specific
-        // bit patterns. Port A is read and AND'd with $FF initially.
-        // Keys pressed return 0 in their bit position (active LOW).
-        
         const portB = this.pia.portB;
         let result = 0xFF;  // No keys pressed (all bits high)
-        
-        // The ROM scans with specific port B values
-        // We map keyboard matrix rows based on port B bit patterns
-        // Row mapping depends on actual hardware - this is an approximation
-        
-        // Check if any row selection bit is active
-        // Port B bits 0-2 appear to be used for row selection
-        
-        for (let row = 0; row < 4; row++) {
-            // Determine if this row is currently being scanned
-            // Based on ROM: values 1, 3, 5 are used (bits 0, 0+1, 0+2)
-            let rowActive = false;
-            
-            if (row === 0 && (portB & 0x01)) rowActive = true;
-            if (row === 1 && (portB & 0x02)) rowActive = true;
-            if (row === 2 && (portB & 0x04)) rowActive = true;
-            if (row === 3 && (portB & 0x08)) rowActive = true;
-            
-            if (rowActive) {
-                // Check columns for this row
-                for (let col = 0; col < 6; col++) {
-                    if (this.keyMatrix[row][col]) {
-                        // Key pressed - clear bit (active LOW)
-                        result &= ~(1 << col);
-                    }
+
+        // The ROM scans with specific port B values: 1, 3, 5 (incrementing by 2)
+        // Only 3 rows are scanned based on ROM's TESTAS routine (LDY #$03)
+        // Map these exact values to keyboard matrix rows:
+        // Port B = 1 (0b0001) → Row 0 (keys 0-6)
+        // Port B = 3 (0b0011) → Row 1 (keys 7-D)
+        // Port B = 5 (0b0101) → Row 2 (keys E,F + function keys)
+
+        let row = -1;
+        const scanValue = portB & 0x0F;  // Lower 4 bits used for row selection
+
+        // Match exact port B values to rows (only 3 rows scanned)
+        if (scanValue === 0x01) row = 0;
+        else if (scanValue === 0x03) row = 1;
+        else if (scanValue === 0x05) row = 2;
+
+        // If a valid row is being scanned, check for pressed keys
+        // The ROM scans 7 columns (bits 0-6)
+        if (row >= 0 && row < 3) {
+            for (let col = 0; col < 7; col++) {
+                if (this.keyMatrix[row][col]) {
+                    // Key pressed - clear bit (active LOW)
+                    result &= ~(1 << col);
                 }
             }
         }
-        
+
+        // DEBUG: Log keyboard scans when keys are detected
+        if (result !== 0xFF && window.debugKeyboard) {
+            console.log(`[SCAN] portB=${portB.toString(16).padStart(2,'0')} row=${row} result=${result.toString(16).padStart(2,'0')} (bit cleared for pressed key)`);
+        }
+
         return result;
     }
     
@@ -241,7 +241,18 @@ class Amico2000 {
     keyDown(key) {
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
+            console.log(`Key pressed: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = true;
+
+            // DEBUG: Show display state after key press (with slight delay to see ROM processing)
+            if (window.debugKeyboard) {
+                setTimeout(() => {
+                    const displayHex = this.display.map(d => d.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+                    console.log(`[DISPLAY] ${displayHex} | CPU halted: ${this.cpu.halted} | PC: ${this.cpu.PC.toString(16).padStart(4, '0').toUpperCase()}`);
+                }, 50);
+            }
+        } else {
+            console.log(`Key pressed: "${key}" -> NOT MAPPED`);
         }
     }
     
@@ -252,6 +263,7 @@ class Amico2000 {
     keyUp(key) {
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
+            console.log(`Key released: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = false;
         }
     }
@@ -319,10 +331,30 @@ class Amico2000 {
      * Reset the machine
      */
     reset() {
+        // Initialize ALL RAM to $00 (not just zero page)
+        // The ROM expects RAM to be cleared on power-up, and uses various RAM locations
+        // for indirect jumps and function pointers. Clear all 2KB ($0000-$07FF).
+        for (let i = 0; i < 0x0800; i++) {
+            this.cpu.memory[i] = 0x00;
+        }
+
+        // Initialize ROM's IRQ/NMI vectors in RAM to point to main loop
+        // The ROM uses indirect jumps through these RAM locations:
+        // $03FC/$03FD = IRQ vector (ROM does JMP ($03FC))
+        // $03FE/$03FF = NMI vector (ROM does JMP ($03FE))
+        // Point both to $FE30 (main monitor loop) as safe default
+        this.cpu.memory[0x03FC] = 0x30;  // Low byte of $FE30
+        this.cpu.memory[0x03FD] = 0xFE;  // High byte of $FE30
+        this.cpu.memory[0x03FE] = 0x30;  // Low byte of $FE30
+        this.cpu.memory[0x03FF] = 0xFE;  // High byte of $FE30
+
+        // Unhalt CPU if it was halted
+        this.cpu.halted = false;
+
         this.cpu.reset();
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         this.pia = { portA: 0, portB: 0, portC: 0, control: 0 };
-        
+
         // Update display immediately on reset (user expects visual feedback)
         if (this.onDisplayUpdate) {
             this.onDisplayUpdate(this.display);
