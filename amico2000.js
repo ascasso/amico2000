@@ -243,6 +243,14 @@ class Amico2000 {
         if (pos) {
             console.log(`Key pressed: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = true;
+
+            // DEBUG: Show display state after key press (with slight delay to see ROM processing)
+            if (window.debugKeyboard) {
+                setTimeout(() => {
+                    const displayHex = this.display.map(d => d.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+                    console.log(`[DISPLAY] ${displayHex} | CPU halted: ${this.cpu.halted} | PC: ${this.cpu.PC.toString(16).padStart(4, '0').toUpperCase()}`);
+                }, 50);
+            }
         } else {
             console.log(`Key pressed: "${key}" -> NOT MAPPED`);
         }
@@ -323,10 +331,29 @@ class Amico2000 {
      * Reset the machine
      */
     reset() {
+        // Initialize zero page to $00 (ROM's workspace)
+        // The ROM expects zero page RAM to be cleared on power-up
+        for (let i = 0; i < 0x100; i++) {
+            this.cpu.memory[i] = 0x00;
+        }
+
+        // Initialize ROM's IRQ/NMI vectors in RAM to point to main loop
+        // The ROM uses indirect jumps through these RAM locations:
+        // $03FC/$03FD = IRQ vector (ROM does JMP ($03FC))
+        // $03FE/$03FF = NMI vector (ROM does JMP ($03FE))
+        // Point both to $FE30 (main monitor loop) as safe default
+        this.cpu.memory[0x03FC] = 0x30;  // Low byte of $FE30
+        this.cpu.memory[0x03FD] = 0xFE;  // High byte of $FE30
+        this.cpu.memory[0x03FE] = 0x30;  // Low byte of $FE30
+        this.cpu.memory[0x03FF] = 0xFE;  // High byte of $FE30
+
+        // Unhalt CPU if it was halted
+        this.cpu.halted = false;
+
         this.cpu.reset();
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         this.pia = { portA: 0, portB: 0, portC: 0, control: 0 };
-        
+
         // Update display immediately on reset (user expects visual feedback)
         if (this.onDisplayUpdate) {
             this.onDisplayUpdate(this.display);
