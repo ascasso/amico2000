@@ -331,9 +331,10 @@ class Amico2000 {
      * Reset the machine
      */
     reset() {
-        // Initialize zero page to $00 (ROM's workspace)
-        // The ROM expects zero page RAM to be cleared on power-up
-        for (let i = 0; i < 0x100; i++) {
+        // Initialize ALL RAM to $00 (not just zero page)
+        // The ROM expects RAM to be cleared on power-up, and uses various RAM locations
+        // for indirect jumps and function pointers. Clear all 2KB ($0000-$07FF).
+        for (let i = 0; i < 0x0800; i++) {
             this.cpu.memory[i] = 0x00;
         }
 

@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added display state logging in keyDown() showing hex values, CPU halted status, and PC after each key press when debugging is enabled
 
 ### Fixed
-- Fixed critical ROM initialization crash - zero page RAM ($00-$FF) now initializes to $00 on reset (ROM's workspace), and IRQ/NMI vectors at $03FC-$03FF initialize to $FE30 (main monitor loop) to provide valid indirect jump targets. Also unhalts CPU on reset to allow recovery from errors. This matches real AMICO 2000 power-up behavior where zero page is cleared
+- Fixed critical ROM initialization crash - ALL RAM ($0000-$07FF) now initializes to $00 on reset (not just zero page), and IRQ/NMI vectors at $03FC-$03FF initialize to $FE30 (main monitor loop) to provide valid indirect jump targets. Also unhalts CPU on reset to allow recovery from errors. This matches real AMICO 2000 power-up behavior where RAM is cleared and the ROM expects zero-filled RAM for its indirect jumps and function pointers
 - Fixed memory initialization - RAM now initializes to $FF instead of $00 to match real hardware behavior where RAM typically powers up with bits high. Using $FF prevents issues with indirect jumps reading uninitialized RAM as $FF interpreted as address points to $FFFF (ROM space) and $FF as opcode produces clear invalid opcode error
 - **All 16 hex keys now working!** - Keyboard matrix expanded to 7 columns (3 rows × 7 columns):
   - **Key 7 at [1, 6]** (Row 1, Column 6) - CONFIRMED working!
