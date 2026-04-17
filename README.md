@@ -39,29 +39,46 @@ amico2000_web/
 
 ## 🎮 How to Use
 
-### Examining Memory
+The AMICO 2000 Monitor ROM uses a state machine — follow the exact sequence for your task.
 
-1. Press **RES** to reset
-2. Press **AD** (Arrow Up)
-3. Enter 4 hex digits for the address (e.g., `0`, `0`, `0`, `0` for $0000)
-4. Press **+** to step through memory
+### Initial Setup
 
-### Entering Data
+Press **RES** (Escape) to reset the machine to a clean state.
 
-1. Go to the desired address (see above)
-2. Press **DA** (Arrow Down)
-3. Enter 2 hex digits for the data byte
-4. Press **+** to advance and continue entering
+### Data Entry Mode (DA)
+
+1. Press **DA** (Arrow Down) to enter data mode
+2. Type 2 hex digits (e.g., `E A` for byte $EA)
+3. Press **+** (Plus) to increment address and continue
+4. Repeat steps 2-3 for each byte
+
+Example: `DA → E A → + → E A → + → F0`
+
+### Address Entry Mode (AD)
+
+1. Press **AD** (Arrow Up) to enter address mode
+2. Type 4 hex digits (e.g., `0 0 2 0` for address $0020)
+3. Press **DA** (Arrow Down) to switch to data mode
+4. Type 2 hex digits for the first data byte
+5. Press **+** to continue entering data at subsequent addresses
+
+Example: `AD → 0 0 2 0 → DA → E A → + → F0`
 
 ### Running Programs
 
-1. Enter your program starting at address $0000
+1. Enter your program at the desired address
 2. Press **AD**, then enter the start address
 3. Press **GO** (Enter) to run
 
 ### Viewing Registers
 
 - Press **REG** (R) to cycle through CPU registers
+
+### ⚠️ Important Notes
+
+- **Don't press AD multiple times** without completing the sequence. Each function key expects specific input: AD expects 4 hex digits, then you must press DA.
+- If you break the sequence, press **RES** to start over — there's no undo.
+- Pressing **+** advances to the next address in memory.
 
 ## 💾 Loading ROMs
 
