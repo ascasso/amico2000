@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Added a Codex first-pass project review to `REVIEW.md` with architecture
+  impressions, verification gaps, and concrete cleanup findings.
+- Appended Codex freshness notes to `CLAUDE.md` so a future Claude pass can
+  reconcile stale agent guidance without losing the original text.
+
 ## [1.0.0] - 2026-01-12
 
 ### 🎉 Major Milestone: Emulator Fully Functional

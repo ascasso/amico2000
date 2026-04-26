@@ -167,3 +167,44 @@ The AMICO 2000 was published in "Sperimentare" magazine starting December 1978, 
 - 512 bytes Monitor ROM
 - 6 seven-segment LED displays
 - Hexadecimal keypad (23 keys)
+
+## Notes by Codex to Bring This Document Up to Date
+
+**Date:** 2026-04-26
+**Reviewer:** Codex (GPT-5)
+**Purpose:** These notes are appended without editing the original Claude-authored
+content above. They identify places where `CLAUDE.md` appears stale or should be
+reconciled before treating it as the system-of-record agent file.
+
+### Items to reconcile
+
+1. **Line counts and module descriptions are stale.** Current rough file sizes
+   are `cpu6502.js` 1108 lines, `amico2000.js` 500 lines, `display.js` 240
+   lines, `main.js` 489 lines, and `index.html` 465 lines.
+
+2. **Timing language conflicts with README.** This file says the CPU has
+   "cycle-accurate timing," while `README.md` lists timing accuracy as a known
+   limitation and says the emulator is not cycle-accurate. The wording should
+   be made consistent.
+
+3. **Cassette ROM status needs precision.** `main.js` embeds `CASSETTE_ROM` and
+   supports loading cassette ROM data, but file-based cassette LOAD/SAVE behavior
+   still appears incomplete. The limitation should distinguish ROM availability
+   from cassette I/O emulation.
+
+4. **Keyboard matrix comments should be reconciled.** `amico2000.js` maps
+   `e: [2, 6]`, but nearby comments still describe row 0 bit 6 as `E` and row 2
+   bit 6 as unknown.
+
+5. **Normal-use console logging is still noisy.** `amico2000.js` logs key
+   press/release events unconditionally. Future agents should gate those logs
+   behind `window.debugKeyboard`.
+
+6. **Startup globals can be simplified.** `main.js` initializes `window.amico`
+   separately and assigns it in a second `DOMContentLoaded` handler. That should
+   be folded into the main initialization path.
+
+7. **Automated verification is the biggest gap.** Syntax checks pass, and a
+   small CPU smoke test works, but the CPU core needs real automated coverage.
+   A Node-compatible harness plus a known 6502 functional suite, such as the
+   Klaus Dormann test, would give future changes much stronger confidence.
