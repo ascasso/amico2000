@@ -1,0 +1,18 @@
+# Title: 21 fiammiferi
+# Source: Sperimentare supplement, PDF page 103, Appendice 2
+# Status: candidate
+# Load address: 0200
+# Entry point: 0200
+# Notes: Appendix 2 game against AMICO 2000. Calls monitor routines, so byte
+# verification should be done visually before using this as an emulator fixture.
+@0200
+A9 00 85 FB A9 21 85 F9 20 0C FF 20 57 FF C9 04
+10 F6 C9 00 F0 F2 85 FB F8 38 A5 F9 E5 FB 85 F9
+20 7E FF D0 FB A9 08 85 EE 20 86 02 EA EA EA EA
+EA 2C 00 0F EA EA A5 EE C6 EE D0 ED C6 F9 A5 F9
+29 10 4A 4A 4A 18 65 F9 E6 F9 29 03 D0 02 A9 01
+AE EA EA E0 AD B0 02 A9 02 85 FA A5 F9 38 E5 FA
+85 F9 C9 01 F0 04 30 10 B0 9E A9 DE 85 FB A9 AD
+85 FA 20 0C FF 18 90 FA A9 5A 85 FB A9 FE 85 FA
+A9 00 85 F9 F0 EC A9 60 8D 00 01 20 0C FF CE 00
+01 D0 F8 60

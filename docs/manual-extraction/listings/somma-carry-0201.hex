@@ -1,0 +1,10 @@
+# Title: Esercizio con l'AMICO 2000A - somma con Carry
+# Source: Sperimentare supplement, PDF page 36
+# Status: candidate
+# Load address: 0201
+# Entry point: 0201
+# Expected setup: memory[0006] and memory[0007] contain the addends
+# Expected result: memory[0000] contains addend1 + addend2 + carry input
+# Note: The manual changes byte 0201 from 18 (CLC) to 38 (SEC) to test carry-in.
+@0201
+18 A5 06 65 07 85 00 4C 22 FE

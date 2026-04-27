@@ -45,6 +45,7 @@ quality, emulator relevance, and verification status.
 
 The embedded OCR layer extracted successfully for most pages:
 
+- Curated Markdown text: `docs/manual-extraction/sperimentare-1980-05-supplemento-text.md`
 - Extracted text file: `docs/manual-extraction/raw/embedded-layout.txt`
 - Page stats file: `docs/manual-extraction/raw/page-stats.tsv`
 - Extracted size: about 721 KB
@@ -56,6 +57,10 @@ separator pages, cover art, diagrams, or advertising/art pages. Program
 listings and technical text generally have usable embedded OCR, but hex listings
 must be visually verified against rendered page images before being treated as
 runnable code.
+
+The Markdown text file preserves the OCR text in Italian, grouped by PDF page in
+`text` fences so column layout and program listings remain close to the scanned
+source. Treat it as searchable source text, not as a verified transcription.
 
 ## Working Rules
 

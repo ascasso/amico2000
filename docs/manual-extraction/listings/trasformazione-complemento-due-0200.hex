@@ -1,0 +1,22 @@
+# Title: Trasformazione di numeri decimali negativi e positivi in corrispondenti nel sistema complemento a due
+# Source: Sperimentare supplement, PDF page 62, Programma 1
+# Status: candidate
+# Load address: 0200
+# Entry point: 0230
+# Notes: Entry point inferred from control flow; bytes transcribed from rendered
+# page image, but not yet independently verified.
+@0200
+A5 11 F0 0C A2 00 F8 18 E8 69 99 C9 00 D0 F8 8A
+18 D8 A6 10 F0 02 69 64 60 EA A8 29 0F AA BD EA
+FF 85 0F 98 4A 4A 4A 4A AA BD EA FF 60 EA EA EA
+A9 00 AA 95 00 E8 E0 9F D0 F9 A5 11 20 1A 02 85
+91 A5 0F 85 92 A5 12 20 1A 02 85 93 A5 0F 85 94
+A5 10 D0 04 A9 3F D0 02 A9 06 85 90 20 7E FF EA
+F8 20 2D FF D0 04 85 0A F0 D0 A5 0A D0 CC E6 0A
+A9 99 8D 03 FD 20 57 FF C9 15 D0 09 A9 40 45 8F
+85 8F 4C 99 02 C9 10 B0 44 48 A5 11 0A 0A 0A 0A
+26 10 85 11 68 05 11 85 11 A9 01 25 10 85 10 F0
+1B A5 8F D0 0D A5 11 C9 27 90 05 A9 27 85 11 18
+70 0A A5 11 C9 28 90 F8 A9 C7 D0 F1 20 00 02 A6
+8F F0 05 49 FF 38 69 00 85 12 4C 3A 02 C9 12 D0
+F9 4C 30 02

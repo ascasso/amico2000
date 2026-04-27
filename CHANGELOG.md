@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   manual-extraction artifacts in `docs/`.
 - Added initial manual extraction process notes and a first-pass content catalog
   for the Sperimentare AMICO 2000 supplement.
+- Added a Markdown extraction of the Sperimentare supplement text in the
+  original Italian for local search and future verification work.
+- Added an initial manual code-listing workspace with candidate transcriptions
+  for short tutorial programs and the first Appendix 2 game from the
+  Sperimentare supplement.
+- Added candidate transcriptions for the two page 62 listings and marked the
+  page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
 - Added a Codex first-pass project review to `archived/REVIEW.md` with architecture

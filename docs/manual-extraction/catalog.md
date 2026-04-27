@@ -50,3 +50,18 @@ creating runnable program assets.
 - Cassette chapter: identify monitor/cassette routines and expected user workflow.
 - Monitor listing pages 91-93: compare labels, vectors, display routines, and keyboard routines against embedded ROM data.
 - Appendix 2 listings: convert each verified listing into a machine-readable local format and document expected display/key behavior.
+
+## Listing Extraction Status
+
+Initial candidate listing files live in `docs/manual-extraction/listings/`.
+They are intentionally marked `candidate` until byte values are checked against
+rendered page images.
+
+| Listing file | Source page | Status |
+| --- | ---: | --- |
+| `somma-000a.hex` | 31 | candidate |
+| `somma-carry-0201.hex` | 36 | candidate |
+| `clear-page-zero-range-0200.hex` | 59 | verified |
+| `trasformazione-complemento-due-0200.hex` | 62 | candidate |
+| `master-mind-0200.hex` | 62 | candidate |
+| `21-fiammiferi-0200.hex` | 103 | candidate |
