@@ -1,0 +1,9 @@
+# Title: Azzeramento di una zona di memoria
+# Source: Sperimentare supplement, PDF page 59
+# Status: verified
+# Load address: 0200
+# Entry point: 0200
+# Expected result: memory[0020] through memory[002F] are cleared to 00
+# Verification: byte values checked against PDF page 59 by the project owner.
+@0200
+A2 00 8A 95 20 E8 E0 10 D0 F9 4C 22 FE

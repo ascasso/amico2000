@@ -1,0 +1,24 @@
+# Title: Gioco del "master mind"
+# Source: Sperimentare supplement, PDF page 62, Programma 2
+# Status: candidate
+# Load address: 0200
+# Entry point: 02A0
+# Notes: Manual states RUN from 02A0 after loading at 0200. Bytes transcribed
+# from rendered page image, but not yet independently verified.
+@0200
+20 0C FF 20 2D FF D0 04 85 0D F0 F4 A5 0D D0 F0
+E6 0D F8 A9 99 8D 03 FD 20 57 FF C9 15 F0 28 EA
+EA EA EA C9 10 B0 D9 A2 04 06 FA 26 FB CA D0 F9
+05 FA 85 FA 4C 00 02 EA EA EA 48 29 0F 95 01 68
+4A 4A 4A 4A 95 00 60 A5 FA A2 03 20 3A 02 A5 FB
+A2 01 20 3A 02 A9 00 85 09 85 0A A0 04 A2 01 B5
+00 D5 04 D0 0C E6 09 D5 04 D0 02 E6 0A E8 E0 05
+D0 F5 20 85 02 88 D0 E5 A5 09 0A 0A 0A 0A 05 0A
+85 F9 4C 00 02 A2 01 85 00 95 FF E8 E0 09 D0 F7
+85 FB 95 FF 85 F7 95 FB 60 EA EA EA EA EA EA EA
+A9 00 85 F9 85 FA 85 FB A2 05 18 F8 A5 0C 29 07
+75 00 29 0F 95 00 C6 0C E8 E0 09 D0 EF A9 00 85
+0B A2 05 85 00 D5 01 D0 0E 48 18 69 01 29 0F 95
+01 68 E6 0B 4C C1 02 E8 E0 08 D0 E9 C6 0B F0 06
+20 85 02 4C C1 02 20 0C FF A9 99 8D 03 FD 20 57
+FF C9 12 D0 03 4C 00 02 4C A8 02

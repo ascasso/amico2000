@@ -7,11 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `AGENTS.md` to direct Codex and other agents to the existing
+  repository guidance in `CLAUDE.md`.
+- Added `.gitignore` entries for the local scanned manual PDF and generated
+  manual-extraction artifacts in `docs/`.
+- Added initial manual extraction process notes and a first-pass content catalog
+  for the Sperimentare AMICO 2000 supplement.
+- Added a Markdown extraction of the Sperimentare supplement text in the
+  original Italian for local search and future verification work.
+- Added an initial manual code-listing workspace with candidate transcriptions
+  for short tutorial programs and the first Appendix 2 game from the
+  Sperimentare supplement.
+- Added candidate transcriptions for the two page 62 listings and marked the
+  page 59 clear-range listing as verified from project-owner review.
+
 ### Changed
-- Added a Codex first-pass project review to `REVIEW.md` with architecture
+- Added a Codex first-pass project review to `archived/REVIEW.md` with architecture
   impressions, verification gaps, and concrete cleanup findings.
 - Appended Codex freshness notes to `CLAUDE.md` so a future Claude pass can
   reconcile stale agent guidance without losing the original text.
+- Expanded the pending cleanup guidance in `CLAUDE.md` with agreed findings
+  from the Gemini and Opus review notes, including documentation drift,
+  keyboard-matrix caveats, and CPU verification work.
+- Moved the Gemini and Opus review notes into `archived/` so root-level
+  documentation stays focused on active project guidance.
 
 ## [1.0.0] - 2026-01-12
 

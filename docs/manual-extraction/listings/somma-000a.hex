@@ -1,0 +1,9 @@
+# Title: PROGRAMMA PER ESEGUIRE UNA OPERAZIONE DI SOMMA
+# Source: Sperimentare supplement, PDF page 31, Tabella 7
+# Status: candidate
+# Load address: 000A
+# Entry point: 000A
+# Expected setup: memory[0006]=03, memory[0007]=02
+# Expected result: memory[0004]=05 after RUN from 000A
+@000A
+18 A5 06 65 07 85 04 4C 22 FE

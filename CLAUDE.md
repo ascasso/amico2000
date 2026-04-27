@@ -91,6 +91,13 @@ The CPU properly polls for pending NMI/IRQ before each instruction fetch. This m
 
 ### Keyboard Scanning
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
+Keyboard input is active-low: unpressed columns read high, and a pressed key clears the corresponding Port A bit.
+
+The `archived/` directory is kept for historical safekeeping only. Its review
+notes and handoff files can provide context, but they are not ongoing project
+guidance. Treat `CLAUDE.md` and the current source files as authoritative; in
+particular, `archived/GEMINI3.md` contains a keyboard matrix table that does not
+match the current working implementation.
 
 ### ROM Data
 The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loading ROM files:
@@ -178,9 +185,39 @@ opportunistically rather than treating them as required for any specific task:
 - `amico2000.js`: the `keyMap` row/col comments are out of sync with the actual
   table (e.g. `e` is `[2, 6]` but the comments still describe row 2 bit 6 as
   unknown and row 0 bit 6 as `E`). Reconcile the comments with the table.
+  While doing this, document that some function keys intentionally share
+  matrix positions because the monitor ROM disambiguates them by context.
 - `amico2000.js`: gate the unconditional `Key pressed` / `Key released`
   `console.log` calls behind `window.debugKeyboard`, matching the existing
   pattern used elsewhere in the file.
 - `main.js`: `window.amico` is declared as `null` and then re-assigned inside a
   second `DOMContentLoaded` handler. Fold the assignment into the main init
   path so there is a single startup sequence.
+- `cpu6502.js`: verify `push16()`/`pull16()` physical stack byte order against
+  real 6502 behavior. The current pair is internally consistent, but review
+  notes flagged that programs inspecting return addresses or interrupt frames
+  on the stack may diverge from hardware.
+- `cpu6502.js` / `amico2000.js`: cross-reference the RAM initialization
+  behavior in comments. `cpu6502.js` initializes memory to `$FF`, while
+  `amico2000.js` clears AMICO RAM to `$00` during machine reset for monitor ROM
+  compatibility; both choices are intentional, but easy to misread in isolation.
+
+## Pending Documentation Cleanups
+
+- `README.md`: update the project structure diagram. It still shows a `js/`
+  subdirectory, but the JavaScript files currently live at the repository root.
+- Fold the archive links from `original-documentation.html` into `README.md`
+  under Credits, History, or References, then remove the standalone skeleton if
+  it no longer adds value.
+- Once the keyboard matrix comments are reconciled, archive or remove stale
+  keyboard-discovery scaffolding that is no longer part of the active workflow:
+  `keyboard-test.html`, `keyboard-debug.html`, `keyboard-matrix-test.js`,
+  and `KEYBOARD_TESTING_GUIDE.md`.
+
+## Pending Verification Work
+
+- Add a small Node-compatible harness so the CPU core and machine layer can be
+  smoke-tested without opening a browser.
+- Run a known 6502 functional suite, such as Klaus Dormann's tests, before
+  treating stack behavior, interrupt handling, BCD arithmetic, and page-crossing
+  timing as settled.
