@@ -94,3 +94,56 @@ skeleton containing three archive.org links. These belong in
   preserved faithfully.
 - `debug.trackPC()` is a genuinely useful diagnostic and worth keeping.
 - `CHANGELOG.md` is maintained consistently with the stated guidelines.
+
+## Codex Review - 2026-04-26
+
+**Reviewer:** Codex (GPT-5), first session on this project
+**Scope:** Read-through of repository structure, documentation, core emulator
+modules, and lightweight JavaScript checks on branch `develop`.
+
+### Overall impression
+
+This is a focused, readable preservation project with a sensible architecture.
+The separation between `cpu6502.js`, `amico2000.js`, `display.js`, and
+`main.js` is clean, and the hardware-specific comments are unusually helpful.
+The PIA callback model, partial address decoding, display batching, authentic
+ROM bytes, and debug console hooks all suggest the emulator has been debugged
+against observed behavior rather than only sketched from a high-level design.
+
+The main gap is confidence, not structure. The project has no automated tests,
+and the riskiest code is the CPU core. `node --check` passes for the four main
+JavaScript files, and a small CPU smoke test ran correctly, but a 6502 emulator
+needs stronger validation around stack behavior, interrupts, BCD arithmetic,
+and page-crossing behavior.
+
+### Findings
+
+1. `cpu6502.js:171-184` - `push16()` and `pull16()` are internally consistent,
+   so `JSR`/`RTS` can appear to work, but the byte order on the physical stack
+   looks reversed from real 6502 behavior. Programs that inspect return
+   addresses or interrupt frames on the stack could diverge from hardware.
+
+2. `amico2000.js:37-56` - keyboard matrix comments contradict the actual
+   mapping for `E`: comments place `E` at row 0 bit 6, while `keyMap` uses
+   `e: [2, 6]`. Aligning the comments with the current working map would reduce
+   future debugging confusion.
+
+3. `amico2000.js:244`, `amico2000.js:255`, `amico2000.js:266` - key
+   press/release logging is unconditional. This should be gated behind
+   `window.debugKeyboard` like the scan logging.
+
+4. `main.js:413-488` - `window.amico` is initialized separately and assigned
+   in a second `DOMContentLoaded` handler. Folding the assignment into the
+   main initialization block would make startup ordering easier to reason about.
+
+5. `README.md:16-25` - the project structure still shows a `js/` directory,
+   but the files live at the repository root.
+
+### Suggested next steps
+
+- Add a small Node-compatible harness so the CPU core and machine layer can be
+  tested without opening a browser.
+- Run a known 6502 functional suite, such as the Klaus Dormann test, before
+  treating CPU correctness as settled.
+- Prune or archive the old keyboard-debug artifacts once the matrix comments
+  are reconciled.
