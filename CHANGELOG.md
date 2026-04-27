@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `AGENTS.md` to direct Codex and other agents to the existing
+  repository guidance in `CLAUDE.md`.
+
 ### Changed
 - Added a Codex first-pass project review to `REVIEW.md` with architecture
   impressions, verification gaps, and concrete cleanup findings.
