@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved the Gemini and Opus review notes into `archived/` so root-level
   documentation stays focused on active project guidance.
 
+### Fixed
+- Fixed 6502 16-bit stack byte order so JSR, BRK, IRQ, and NMI stack frames
+  match real hardware while preserving RTS/RTI behavior (#3).
+
 ## [1.0.0] - 2026-01-12
 
 ### 🎉 Major Milestone: Emulator Fully Functional

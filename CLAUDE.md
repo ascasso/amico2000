@@ -218,10 +218,6 @@ opportunistically rather than treating them as required for any specific task:
 - `main.js`: `window.amico` is declared as `null` and then re-assigned inside a
   second `DOMContentLoaded` handler. Fold the assignment into the main init
   path so there is a single startup sequence.
-- `cpu6502.js`: verify `push16()`/`pull16()` physical stack byte order against
-  real 6502 behavior. The current pair is internally consistent, but review
-  notes flagged that programs inspecting return addresses or interrupt frames
-  on the stack may diverge from hardware.
 - `cpu6502.js` / `amico2000.js`: cross-reference the RAM initialization
   behavior in comments. `cpu6502.js` initializes memory to `$FF`, while
   `amico2000.js` clears AMICO RAM to `$00` during machine reset for monitor ROM

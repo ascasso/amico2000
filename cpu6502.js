@@ -178,8 +178,11 @@ class CPU6502 {
     }
     
     push16(value) {
-        this.push(value & 0xFF);          // Low byte first
-        this.push((value >> 8) & 0xFF);  // High byte second
+        // Real 6502 stack frames store return/vector addresses high byte first,
+        // then low byte. Because push() decrements SP after writing, the low byte
+        // is the first byte pulled by RTS/RTI while memory still matches hardware.
+        this.push((value >> 8) & 0xFF);
+        this.push(value & 0xFF);
     }
 
     pull() {
@@ -188,8 +191,8 @@ class CPU6502 {
     }
 
     pull16() {
-        const hi = this.pull();  // High byte first (was pushed second, so on top)
-        const lo = this.pull();  // Low byte second (was pushed first, so below)
+        const lo = this.pull();
+        const hi = this.pull();
         return (hi << 8) | lo;
     }
     
