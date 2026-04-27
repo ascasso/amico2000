@@ -1,4 +1,4 @@
-Is # CLAUDE.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -27,14 +27,14 @@ python3 -m http.server 8000
 
 The project consists of four modular JavaScript files:
 
-### 1. cpu6502.js (~900 lines)
+### 1. cpu6502.js (~1100 lines)
 Complete 6502 CPU interpreter implementing:
 - All 56 opcodes with 151 instruction variants
 - All addressing modes
 - BCD arithmetic
 - Interrupt handling (IRQ, NMI, BRK)
 - Memory-mapped I/O via callbacks (`readCallback`, `writeCallback`)
-- Cycle-accurate timing for proper execution speed
+- Approximate timing (~1 MHz target via cycle counts per instruction; not cycle-accurate — see Known Limitations)
 
 **Key architectural details:**
 - Memory is a flat 64KB Uint8Array
@@ -42,7 +42,7 @@ Complete 6502 CPU interpreter implementing:
 - Interrupts are polled before each instruction fetch (see `_checkInterrupts()`)
 - Stack lives at $0100-$01FF (standard 6502)
 
-### 2. amico2000.js (~350 lines)
+### 2. amico2000.js (~500 lines)
 Machine emulation layer that connects CPU to hardware:
 - Manages 8255 PIA (Programmable Interface Adapter) for I/O
 - Implements display multiplexing (refreshes 6 digits sequentially)
@@ -58,7 +58,7 @@ Machine emulation layer that connects CPU to hardware:
 - Display updates are decoupled from PIA writes for performance - buffered and updated once per frame
 - Keyboard scanning matches the ROM's timing expectations (port B values: 1, 3, 5 for rows 0, 1, 2)
 
-### 3. display.js (~200 lines)
+### 3. display.js (~240 lines)
 SVG-based seven-segment display renderer:
 - 6 displays arranged as: [A3][A2][A1][A0] : [D1][D0]
 - Authentic red LED appearance with glow effects
@@ -66,7 +66,7 @@ SVG-based seven-segment display renderer:
 
 **Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second.
 
-### 4. main.js (~300 lines)
+### 4. main.js (~490 lines)
 Application initialization and UI:
 - Contains the Monitor ROM data (MONITOR_ROM constant at top of file)
 - Keyboard event handling (both physical keyboard and on-screen buttons)
@@ -76,7 +76,7 @@ Application initialization and UI:
 **Memory Map:**
 ```
 $0000-$07FF: 2KB RAM (expandable)
-$FB00-$FCFF: Cassette ROM (optional, not yet implemented)
+$FB00-$FCFF: Cassette ROM (embedded as CASSETTE_ROM in main.js; opt-in via amico.loadCassetteROM)
 $FD00-$FD03: 8255 PIA I/O ports
 $FE00-$FFFF: Monitor ROM (512 bytes)
 ```
@@ -143,8 +143,10 @@ When implementing changes based on a GitHub issue:
 ## Known Limitations
 
 1. **Browser Tab Throttling**: Modern browsers throttle `requestAnimationFrame` when tabs are backgrounded, causing the emulator to pause/slow down
-2. **Cassette Interface**: Not yet implemented - file-based LOAD/SAVE would intercept cassette ROM calls
+2. **Cassette I/O**: The cassette ROM is available, but file-based LOAD/SAVE that would intercept its routines is not yet implemented
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
+4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate; sufficient for the monitor ROM and simple programs
+5. **Automated Tests**: There is no automated CPU test harness yet — running the Klaus Dormann 6502 functional suite against the core would be the strongest next step
 
 ## Keyboard Mappings
 
@@ -168,43 +170,17 @@ The AMICO 2000 was published in "Sperimentare" magazine starting December 1978, 
 - 6 seven-segment LED displays
 - Hexadecimal keypad (23 keys)
 
-## Notes by Codex to Bring This Document Up to Date
+## Pending Source-Level Cleanups
 
-**Date:** 2026-04-26
-**Reviewer:** Codex (GPT-5)
-**Purpose:** These notes are appended without editing the original Claude-authored
-content above. They identify places where `CLAUDE.md` appears stale or should be
-reconciled before treating it as the system-of-record agent file.
+These are small code-hygiene items, tracked here so future agents pick them up
+opportunistically rather than treating them as required for any specific task:
 
-### Items to reconcile
-
-1. **Line counts and module descriptions are stale.** Current rough file sizes
-   are `cpu6502.js` 1108 lines, `amico2000.js` 500 lines, `display.js` 240
-   lines, `main.js` 489 lines, and `index.html` 465 lines.
-
-2. **Timing language conflicts with README.** This file says the CPU has
-   "cycle-accurate timing," while `README.md` lists timing accuracy as a known
-   limitation and says the emulator is not cycle-accurate. The wording should
-   be made consistent.
-
-3. **Cassette ROM status needs precision.** `main.js` embeds `CASSETTE_ROM` and
-   supports loading cassette ROM data, but file-based cassette LOAD/SAVE behavior
-   still appears incomplete. The limitation should distinguish ROM availability
-   from cassette I/O emulation.
-
-4. **Keyboard matrix comments should be reconciled.** `amico2000.js` maps
-   `e: [2, 6]`, but nearby comments still describe row 0 bit 6 as `E` and row 2
-   bit 6 as unknown.
-
-5. **Normal-use console logging is still noisy.** `amico2000.js` logs key
-   press/release events unconditionally. Future agents should gate those logs
-   behind `window.debugKeyboard`.
-
-6. **Startup globals can be simplified.** `main.js` initializes `window.amico`
-   separately and assigns it in a second `DOMContentLoaded` handler. That should
-   be folded into the main initialization path.
-
-7. **Automated verification is the biggest gap.** Syntax checks pass, and a
-   small CPU smoke test works, but the CPU core needs real automated coverage.
-   A Node-compatible harness plus a known 6502 functional suite, such as the
-   Klaus Dormann test, would give future changes much stronger confidence.
+- `amico2000.js`: the `keyMap` row/col comments are out of sync with the actual
+  table (e.g. `e` is `[2, 6]` but the comments still describe row 2 bit 6 as
+  unknown and row 0 bit 6 as `E`). Reconcile the comments with the table.
+- `amico2000.js`: gate the unconditional `Key pressed` / `Key released`
+  `console.log` calls behind `window.debugKeyboard`, matching the existing
+  pattern used elsewhere in the file.
+- `main.js`: `window.amico` is declared as `null` and then re-assigned inside a
+  second `DOMContentLoaded` handler. Fold the assignment into the main init
+  path so there is a single startup sequence.
