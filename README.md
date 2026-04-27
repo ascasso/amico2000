@@ -80,12 +80,18 @@ Example: `AD → 0 0 2 0 → DA → E A → + → F0`
 - If you break the sequence, press **RES** to start over — there's no undo.
 - Pressing **+** advances to the next address in memory.
 
-## 💾 Loading ROMs
+## 💾 Loading ROMs And Tapes
 
-Click the **Load ROM** button to load:
+Click the **Load ROM/Tape** button to load:
 - **prom.ic9** - Monitor ROM (loads at $FE00)
 - **prom.ic10** - Cassette ROM (loads at $FB00)
+- **.amtape** - Mock cassette tape image for the IC10 LOAD routine
 - Other `.bin` files - Loaded as programs at $0000
+
+The optional cassette ROM entry points are intercepted at $FBBC (SAVE) and
+$FC54 (LOAD). This provides file-backed cassette behavior without emulating the
+original analog tape waveform. Use `debug.saveTape()` after running the cassette
+SAVE routine to download the most recent mock tape image.
 
 ## 🔧 Technical Details
 

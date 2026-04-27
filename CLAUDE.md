@@ -150,7 +150,9 @@ When implementing changes based on a GitHub issue:
 ## Known Limitations
 
 1. **Browser Tab Throttling**: Modern browsers throttle `requestAnimationFrame` when tabs are backgrounded, causing the emulator to pause/slow down
-2. **Cassette I/O**: The cassette ROM is available, but file-based LOAD/SAVE that would intercept its routines is not yet implemented
+2. **Cassette I/O**: File-backed mock cassette LOAD/SAVE is implemented by
+   trapping the IC10 ROM entry points ($FBBC and $FC54), but the analog
+   300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
 4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate; sufficient for the monitor ROM and simple programs
 5. **Automated Tests**: There is no automated CPU test harness yet — running the Klaus Dormann 6502 functional suite against the core would be the strongest next step

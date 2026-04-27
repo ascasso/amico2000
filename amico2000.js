@@ -29,6 +29,14 @@ class Amico2000 {
             portC: 0x00,    // General I/O (expansion port)
             control: 0x00   // 8255 control register
         };
+
+        // Fix for #2: mock cassette storage used by traps for the optional IC10 ROM entry points.
+        // This preserves the monitor workflow without emulating the analog tape waveform.
+        this.cassette = {
+            tapes: [],
+            lastSavedTape: null,
+            interceptROM: true
+        };
         
         // Display state (6 digits, each 8 segments including DP)
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
@@ -89,6 +97,7 @@ class Amico2000 {
         
         // Setup I/O
         this._setupIO();
+        this._setupCassetteROMTraps();
     }
     
     // =========================================================================
@@ -100,6 +109,35 @@ class Amico2000 {
         // aliases to these four 8255 PIA registers using the low two address bits.
         this.cpu.onRead(0xFD00, 0xFD03, (addr) => this._readPIA(addr));
         this.cpu.onWrite(0xFD00, 0xFD03, (addr, value) => this._writePIA(addr, value));
+    }
+
+    _setupCassetteROMTraps() {
+        this.cpu.onBeforeExecute((pc) => this._handleCassetteROMEntry(pc));
+    }
+
+    _handleCassetteROMEntry(pc) {
+        if (!this.cassette.interceptROM) return null;
+
+        // Fix for #2: IC10 cassette ROM documented entry points: FBBC = save, FC54 = load.
+        // Trapping here avoids tying browser file I/O to the original analog signal loop.
+        if (pc === 0xFBBC) {
+            try {
+                this.saveTapeFromMonitorParams();
+            } catch (err) {
+                console.warn('Cassette save failed:', err.message);
+                this.cpu.memory[0x0000] = 0xFF;
+            }
+            this.cpu.PC = 0xFE22;
+            return 6;
+        }
+
+        if (pc === 0xFC54) {
+            this.loadTapeFromMonitorParams();
+            this.cpu.PC = 0xFE22;
+            return 6;
+        }
+
+        return null;
     }
     
     _readPIA(addr) {
@@ -323,6 +361,153 @@ class Amico2000 {
     loadProgram(data, address = 0x0000) {
         this.cpu.loadBinary(data, address);
     }
+
+    // =========================================================================
+    // Cassette Tape Mock I/O
+    // =========================================================================
+
+    _readWord(loAddr) {
+        return this.cpu.memory[loAddr] | (this.cpu.memory[loAddr + 1] << 8);
+    }
+
+    _writeWord(loAddr, value) {
+        this.cpu.memory[loAddr] = value & 0xFF;
+        this.cpu.memory[loAddr + 1] = (value >> 8) & 0xFF;
+    }
+
+    _makeTapeImage(record) {
+        const magic = Amico2000.TAPE_MAGIC;
+        const image = new Uint8Array(magic.length + 9 + record.data.length);
+        image.set(magic, 0);
+        image[magic.length] = 1;  // format version
+        image[magic.length + 1] = record.id;
+        image[magic.length + 2] = record.start & 0xFF;
+        image[magic.length + 3] = (record.start >> 8) & 0xFF;
+        image[magic.length + 4] = record.end & 0xFF;
+        image[magic.length + 5] = (record.end >> 8) & 0xFF;
+        image[magic.length + 6] = record.checksum;
+        image[magic.length + 7] = record.data.length & 0xFF;
+        image[magic.length + 8] = (record.data.length >> 8) & 0xFF;
+        image.set(record.data, magic.length + 9);
+        return image;
+    }
+
+    _parseTapeImage(data) {
+        const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+        const magic = Amico2000.TAPE_MAGIC;
+        if (bytes.length < magic.length + 9) {
+            throw new Error('Tape image is too short');
+        }
+
+        for (let i = 0; i < magic.length; i++) {
+            if (bytes[i] !== magic[i]) {
+                throw new Error('Unrecognized AMICO 2000 tape image');
+            }
+        }
+
+        if (bytes[magic.length] !== 1) {
+            throw new Error(`Unsupported tape image version: ${bytes[magic.length]}`);
+        }
+
+        const length = bytes[magic.length + 7] | (bytes[magic.length + 8] << 8);
+        const dataStart = magic.length + 9;
+        if (bytes.length !== dataStart + length) {
+            throw new Error('Tape image length does not match header');
+        }
+
+        const record = {
+            id: bytes[magic.length + 1],
+            start: bytes[magic.length + 2] | (bytes[magic.length + 3] << 8),
+            end: bytes[magic.length + 4] | (bytes[magic.length + 5] << 8),
+            checksum: bytes[magic.length + 6],
+            data: bytes.slice(dataStart)
+        };
+
+        const checksum = record.data.reduce((sum, value) => (sum + value) & 0xFF, record.id);
+        if (checksum !== record.checksum) {
+            throw new Error('Tape image checksum mismatch');
+        }
+
+        return record;
+    }
+
+    /**
+     * Import a mock cassette tape image for later LOAD through the IC10 ROM trap.
+     * @param {Uint8Array|ArrayBuffer|Array} data - Tape image created by saveTapeFromMonitorParams/exportTape
+     */
+    loadTape(data) {
+        const record = this._parseTapeImage(data);
+        this.cassette.tapes = this.cassette.tapes.filter(existing => existing.id !== record.id);
+        this.cassette.tapes.push(record);
+        return record;
+    }
+
+    /**
+     * Export a previously imported or saved tape record as a browser-downloadable binary image.
+     */
+    exportTape(id = null) {
+        const record = id === null
+            ? (this.cassette.lastSavedTape || this.cassette.tapes[this.cassette.tapes.length - 1])
+            : this.cassette.tapes.find(tape => tape.id === (id & 0xFF));
+
+        if (!record) {
+            throw new Error('No matching tape record is available');
+        }
+
+        return this._makeTapeImage(record);
+    }
+
+    /**
+     * Save RAM using IC10 cassette ROM parameters:
+     * $0000/$0001 = start, $0002/$0003 = end, $0004 = program id.
+     */
+    saveTapeFromMonitorParams() {
+        const start = this._readWord(0x0000);
+        const end = this._readWord(0x0002);
+        const id = this.cpu.memory[0x0004] & 0xFF;
+
+        if (end < start) {
+            this.cpu.memory[0x0000] = 0xFF;
+            throw new Error('Cassette save end address is before start address');
+        }
+
+        const data = this.cpu.memory.slice(start, end + 1);
+        const checksum = data.reduce((sum, value) => (sum + value) & 0xFF, id);
+        const record = { id, start, end, checksum, data };
+        this.cassette.tapes = this.cassette.tapes.filter(existing => existing.id !== id);
+        this.cassette.tapes.push(record);
+        this.cassette.lastSavedTape = record;
+
+        // The original routine returns to the monitor with 0000 on success.
+        this._writeWord(0x0000, 0x0000);
+        return this._makeTapeImage(record);
+    }
+
+    /**
+     * Load RAM using IC10 cassette ROM parameters:
+     * $0000 = program id, $0001/$0002 = override start, high byte $FF = use recorded start.
+     */
+    loadTapeFromMonitorParams() {
+        const id = this.cpu.memory[0x0000] & 0xFF;
+        const override = this._readWord(0x0001);
+        const record = this.cassette.tapes.find(tape => tape.id === id);
+
+        if (!record) {
+            this.cpu.memory[0x0000] = 0xFF;
+            return false;
+        }
+
+        const loadAddress = this.cpu.memory[0x0002] === 0xFF ? record.start : override;
+        if (loadAddress + record.data.length > this.cpu.memory.length) {
+            this.cpu.memory[0x0000] = 0xFF;
+            return false;
+        }
+
+        this.cpu.memory.set(record.data, loadAddress);
+        this.cpu.memory[0x0000] = record.id;
+        this._writeWord(0x0001, loadAddress);
+        return true;
+    }
     
     // =========================================================================
     // Execution Control
@@ -494,6 +679,8 @@ class Amico2000 {
         this.singleStep = enabled;
     }
 }
+
+Amico2000.TAPE_MAGIC = new Uint8Array([0x41, 0x4D, 0x49, 0x43, 0x4F, 0x54, 0x41, 0x50, 0x45]);
 
 // Export for use as module
 if (typeof module !== 'undefined' && module.exports) {

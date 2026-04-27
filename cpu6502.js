@@ -56,6 +56,7 @@ class CPU6502 {
         // I/O callbacks for memory-mapped devices
         this.readCallbacks = new Map();
         this.writeCallbacks = new Map();
+        this.beforeExecuteCallback = null;
         
         // Cycle counter
         this.cycles = 0;
@@ -157,6 +158,14 @@ class CPU6502 {
         for (let addr = startAddr; addr <= endAddr; addr++) {
             this.writeCallbacks.set(addr, callback);
         }
+    }
+
+    /**
+     * Register a callback that can handle ROM entry points before instruction fetch.
+     * Returning a number of cycles means the callback consumed the instruction slot.
+     */
+    onBeforeExecute(callback) {
+        this.beforeExecuteCallback = callback;
     }
     
     // =========================================================================
@@ -1015,6 +1024,14 @@ class CPU6502 {
             // Note: IRQ line stays asserted until source clears it
             // Don't clear irqPending here - let the interrupt handler do it
             return this.cycles - startCycles;
+        }
+
+        if (this.beforeExecuteCallback) {
+            const handledCycles = this.beforeExecuteCallback(this.PC, this);
+            if (typeof handledCycles === 'number') {
+                this.cycles += handledCycles;
+                return this.cycles - startCycles;
+            }
         }
         
         // Fetch and execute instruction

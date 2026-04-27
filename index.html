@@ -380,7 +380,7 @@
                 <button class="control-btn control-btn-primary" id="btn-run">▶ Run</button>
                 <button class="control-btn control-btn-secondary" id="btn-step">Step</button>
                 <button class="control-btn control-btn-secondary" id="btn-reset">Reset</button>
-                <button class="control-btn control-btn-secondary" id="btn-load">Load ROM</button>
+                <button class="control-btn control-btn-secondary" id="btn-load">Load ROM/Tape</button>
             </div>
             
             <!-- Status -->
@@ -453,8 +453,8 @@
         </div>
     </div>
     
-    <!-- Hidden file input for ROM loading -->
-    <input type="file" id="rom-file" accept=".bin,.rom" style="display: none">
+    <!-- Hidden file input for ROM, program, and mock cassette tape loading -->
+    <input type="file" id="rom-file" accept=".bin,.rom,.amtape" style="display: none">
     
     <!-- Scripts -->
     <script src="cpu6502.js"></script>

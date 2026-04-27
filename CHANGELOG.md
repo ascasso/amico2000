@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added file-backed mock cassette tape support for issue #2, including IC10 ROM
+  entry-point traps for SAVE ($FBBC) and LOAD ($FC54), `.amtape` import, and
+  `debug.saveTape()` export.
 - Added `AGENTS.md` to direct Codex and other agents to the existing
   repository guidance in `CLAUDE.md`.
 - Added `.gitignore` entries for the local scanned manual PDF and generated

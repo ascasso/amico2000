@@ -280,28 +280,35 @@ function setupFileLoader() {
             const rom = new Uint8Array(data);
             
             // Determine ROM type based on size and name
-            if (file.name.toLowerCase().includes('ic9') || 
+            const lowerName = file.name.toLowerCase();
+
+            if (lowerName.endsWith('.amtape') || lowerName.includes('tape')) {
+                const record = amico.loadTape(rom);
+                console.log(`Tape image loaded: ${file.name} (program ${record.id}, $${record.start.toString(16).padStart(4, '0').toUpperCase()}-$${record.end.toString(16).padStart(4, '0').toUpperCase()})`);
+            } else if (lowerName.includes('ic9') ||
                 file.name.toLowerCase().includes('monitor')) {
                 amico.loadMonitorROM(rom);
                 console.log('Monitor ROM loaded:', file.name);
-            } else if (file.name.toLowerCase().includes('ic10') || 
-                       file.name.toLowerCase().includes('cassette')) {
+                amico.reset();
+            } else if (lowerName.includes('ic10') ||
+                       lowerName.includes('cassette')) {
                 amico.loadCassetteROM(rom);
                 console.log('Cassette ROM loaded:', file.name);
+                amico.reset();
             } else if (rom.length === 512) {
                 // Assume monitor ROM if 512 bytes
                 amico.loadMonitorROM(rom);
                 console.log('ROM loaded as monitor:', file.name);
+                amico.reset();
             } else {
                 // Load as program at $0000
                 amico.loadProgram(rom, 0x0000);
                 console.log('Program loaded at $0000:', file.name);
             }
-            
-            amico.reset();
+
             alert(`Loaded: ${file.name} (${rom.length} bytes)`);
         } catch (err) {
-            console.error('Error loading ROM:', err);
+            console.error('Error loading file:', err);
             alert('Error loading file: ' + err.message);
         }
         
@@ -406,6 +413,18 @@ function readFileAsArrayBuffer(file) {
     });
 }
 
+function downloadBytes(filename, bytes, type = 'application/octet-stream') {
+    const blob = new Blob([bytes], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
 // ============================================================================
 // Debug Functions (available in console)
 // ============================================================================
@@ -480,6 +499,14 @@ window.debug = {
     disableKeyboardDebug: () => {
         window.debugKeyboard = false;
         console.log('Keyboard scan debugging disabled');
+    },
+
+    // Export the most recent mock cassette save as a browser download.
+    saveTape: (id = null) => {
+        const bytes = amico.exportTape(id);
+        const suffix = id === null ? 'last' : id.toString(16).padStart(2, '0').toUpperCase();
+        downloadBytes(`amico-${suffix}.amtape`, bytes);
+        console.log(`Exported tape image (${bytes.length} bytes)`);
     }
 };
 
