@@ -8,7 +8,7 @@
  * - 1-2KB RAM ($0000-$07FF)
  * - Monitor ROM ($FE00-$FFFF)
  * - Cassette ROM ($FB00-$FCFF) [optional]
- * - 8255 PIA for display/keyboard ($FD00-$FD03)
+ * - 8255 PIA for display/keyboard ($FD00-$FDFF, aliased to four registers)
  * 
  * Author: Andrea Scasso / Claude
  * License: MIT
@@ -96,7 +96,8 @@ class Amico2000 {
     // =========================================================================
     
     _setupIO() {
-        // 8255 PIA at $FD00-$FD03
+        // The CPU callback layer models partial address decoding, so $FD00-$FDFF
+        // aliases to these four 8255 PIA registers using the low two address bits.
         this.cpu.onRead(0xFD00, 0xFD03, (addr) => this._readPIA(addr));
         this.cpu.onWrite(0xFD00, 0xFD03, (addr, value) => this._writePIA(addr, value));
     }

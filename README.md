@@ -96,15 +96,19 @@ Click the **Load ROM** button to load:
 | $0000-$03FF | RAM (1KB standard) |
 | $0400-$07FF | RAM (1KB expansion) |
 | $FB00-$FCFF | Cassette ROM (optional) |
-| $FD00-$FD03 | 8255 PIA (I/O) |
+| $FD00-$FDFF | 8255 PIA (I/O, partially decoded) |
 | $FE00-$FFFF | Monitor ROM |
 
 ### 8255 PIA Ports
 
-- **$FD00** (Port A): Display segments / Keyboard data
-- **$FD01** (Port B): Digit select / Control
-- **$FD02** (Port C): Expansion port
-- **$FD03**: 8255 Control register
+The 8255 PIA exposes four registers at $FD00-$FD03. AMICO 2000 address
+decoding is intentionally modeled as partial, so any address in $FD00-$FDFF
+aliases back to those four registers using the low two address bits.
+
+- **$FD00, $FD04, ...** (Port A): Display segments / Keyboard data
+- **$FD01, $FD05, ...** (Port B): Digit select / Control
+- **$FD02, $FD06, ...** (Port C): Expansion port
+- **$FD03, $FD07, ...**: 8255 Control register
 
 ### CPU
 
