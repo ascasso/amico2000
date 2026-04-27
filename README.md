@@ -93,6 +93,23 @@ $FC54 (LOAD). This provides file-backed cassette behavior without emulating the
 original analog tape waveform. Use `debug.saveTape()` after running the cassette
 SAVE routine to download the most recent mock tape image.
 
+The original Sperimentare supplement documents the cassette workflow in
+Chapter V, "L'uso del registratore a cassette":
+
+- `IC10` contains the cassette management ROM at $FB00-$FCFF.
+- The hardware recorder connections are `GND`, `IN` (to recorder microphone
+  input), and `OUT` (from recorder speaker output).
+- Tape data is recorded at about 300 bit/s, so a 1KB program takes roughly
+  45 seconds including leader/trailer sections.
+- The tape record layout is: leader, start byte, program identifier, load
+  address, byte count, program data, checksum, trailing leader.
+- LOAD uses PC $FC54. Parameters are stored in zero page: $0000 is the program
+  identifier, $0001 is the low byte of the desired load address, and $0002 is
+  the high byte. Setting $0002 to $FF loads at the address recorded on tape.
+- SAVE uses PC $FBBC. Parameters are stored in zero page: $0000/$0001 is the
+  start address, $0002/$0003 is the end address, and $0004 is the program
+  identifier.
+
 ## 🔧 Technical Details
 
 ### Memory Map

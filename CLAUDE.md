@@ -107,6 +107,29 @@ The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loa
 
 **Note on hardware PROMs**: The original AMICO 2000 used `prom.ic6` and `prom.ic7` for address decoding logic (generating chip-select signals). These are **not needed** in the emulator as address decoding is implemented in software through the CPU's memory read/write callbacks.
 
+### Cassette Interface Reference
+
+The Sperimentare supplement, Chapter V ("L'uso del registratore a cassette"),
+documents the original cassette workflow:
+
+- `IC10` is the cassette management PROM at $FB00-$FCFF.
+- The user jumps to PC $FC54 for cassette LOAD and PC $FBBC for cassette SAVE.
+- LOAD parameters: $0000 = program identifier, $0001 = desired load address low
+  byte, $0002 = desired load address high byte. If $0002 is $FF, the routine
+  loads at the address recorded on tape.
+- SAVE parameters: $0000/$0001 = start address, $0002/$0003 = end address,
+  $0004 = program identifier.
+- The documented tape record structure is leader, start byte, identifier, load
+  address, byte count, program data, checksum, trailing leader.
+- The original analog tape rate is about 300 bit/s, with a 1KB program taking
+  roughly 45 seconds including leader/trailer sections.
+- Physical recorder wiring uses `GND`, `IN` to the microphone input, and `OUT`
+  from the speaker output.
+
+The emulator's current cassette support is intentionally file-backed: it traps
+the IC10 entry points and reads/writes `.amtape` images instead of emulating the
+analog signal path or exact Port A/B timing.
+
 ## Development Guidelines
 
 ### Code Comments

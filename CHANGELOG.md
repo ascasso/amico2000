@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Documented Sperimentare-derived cassette operation details, including IC10
+  entry points, zero-page LOAD/SAVE parameters, tape record layout, approximate
+  300 bit/s rate, and recorder wiring (#2).
 - Documented that the 8255 PIA uses partial address decoding, with
   $FD00-$FDFF aliasing to the four PIA registers ($FD00-$FD03) (#1).
 - Added a Codex first-pass project review to `archived/REVIEW.md` with architecture

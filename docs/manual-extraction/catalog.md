@@ -12,7 +12,7 @@ section matters to the emulator project.
 | `CAPITOLO II - Il linguaggio del microelaboratore` | 15 | Programming model, 6502 instruction introduction, program counter. |
 | `CAPITOLO III - Montaggio e collaudo del microelaboratore` | 21 | Hardware architecture, assembly, first programs, key descriptions. |
 | `CAPITOLO IV - Il sistema di indirizzamento` | 35 | Addressing, zero page, memory map, early AMICO exercises. |
-| `CAPITOLO V - L'uso del registratore a cassette` | 43 | Cassette interface and software behavior; relevant to future LOAD/SAVE emulation. |
+| `CAPITOLO V - L'uso del registratore a cassette` | 43 | Cassette interface and software behavior: IC10 at $FB00-$FCFF, LOAD at $FC54, SAVE at $FBBC, zero-page parameters, 300 bit/s tape rate, GND/IN/OUT wiring, and the tape record layout. |
 | `CAPITOLO VI - I numeri negativi` | 53 | Arithmetic, status flags, branching, indexed addressing, games. |
 | `CAPITOLO VII - Registro indice Y e Stack Pointer` | 63 | Y register, stack pointer, subroutines, shift/rotate, multiplication. |
 | `CAPITOLO VIII - Uso della porta utente` | 75 | 8255 usage, display and keyboard monitor routines, interrupts, single step. |
