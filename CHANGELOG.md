@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `AGENTS.md` to direct Codex and other agents to the existing
   repository guidance in `CLAUDE.md`.
+- Added `.gitignore` entries for the local scanned manual PDF and generated
+  manual-extraction artifacts in `docs/`.
+- Added initial manual extraction process notes and a first-pass content catalog
+  for the Sperimentare AMICO 2000 supplement.
 
 ### Changed
 - Added a Codex first-pass project review to `archived/REVIEW.md` with architecture
