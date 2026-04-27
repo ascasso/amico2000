@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   300 bit/s rate, and recorder wiring (#2).
 - Documented that the 8255 PIA uses partial address decoding, with
   $FD00-$FDFF aliasing to the four PIA registers ($FD00-$FD03) (#1).
+- Documented CPU cycle-counting behavior: base instruction cycles are added in
+  `step()`, dynamic penalties are added by handlers, and NMOS 6502 decimal
+  ADC/SBC does not incur a 65C02-style extra cycle (#5).
 - Added a Codex first-pass project review to `archived/REVIEW.md` with architecture
   impressions, verification gaps, and concrete cleanup findings.
 - Appended Codex freshness notes to `CLAUDE.md` so a future Claude pass can
@@ -42,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   documentation stays focused on active project guidance.
 
 ### Fixed
+- Fixed decimal-mode ADC/SBC flag behavior so binary-derived flags and BCD carry
+  adjustment are handled consistently with NMOS 6502 behavior (#4).
 - Fixed 6502 16-bit stack byte order so JSR, BRK, IRQ, and NMI stack frames
   match real hardware while preserving RTS/RTI behavior (#3).
 

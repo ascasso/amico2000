@@ -89,6 +89,14 @@ The display update system is decoupled from PIA writes. The emulator runs the CP
 ### Interrupt Handling
 The CPU properly polls for pending NMI/IRQ before each instruction fetch. This matches real 6502 behavior and is critical for correct emulation.
 
+### Decimal ADC/SBC
+The AMICO 2000 uses an NMOS 6502. Decimal-mode ADC/SBC should follow NMOS flag
+behavior: the accumulator and carry are BCD-adjusted, while Z/V and ADC's N are
+derived from the underlying/intermediate binary ALU state rather than from a
+65C02-style simplified decimal result. Decimal mode does **not** add an extra
+cycle on NMOS 6502; base cycles are charged in `CPU6502.step()`, with only
+dynamic branch/page-crossing penalties added by handlers.
+
 ### Keyboard Scanning
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
 Keyboard input is active-low: unpressed columns read high, and a pressed key clears the corresponding Port A bit.
