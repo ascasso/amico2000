@@ -12,10 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repository guidance in `CLAUDE.md`.
 
 ### Changed
-- Added a Codex first-pass project review to `REVIEW.md` with architecture
+- Added a Codex first-pass project review to `archived/REVIEW.md` with architecture
   impressions, verification gaps, and concrete cleanup findings.
 - Appended Codex freshness notes to `CLAUDE.md` so a future Claude pass can
   reconcile stale agent guidance without losing the original text.
+- Expanded the pending cleanup guidance in `CLAUDE.md` with agreed findings
+  from the Gemini and Opus review notes, including documentation drift,
+  keyboard-matrix caveats, and CPU verification work.
+- Moved the Gemini and Opus review notes into `archived/` so root-level
+  documentation stays focused on active project guidance.
 
 ## [1.0.0] - 2026-01-12
 
