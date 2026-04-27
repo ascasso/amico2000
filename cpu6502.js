@@ -56,6 +56,7 @@ class CPU6502 {
         // I/O callbacks for memory-mapped devices
         this.readCallbacks = new Map();
         this.writeCallbacks = new Map();
+        this.beforeExecuteCallback = null;
         
         // Cycle counter
         this.cycles = 0;
@@ -158,6 +159,14 @@ class CPU6502 {
             this.writeCallbacks.set(addr, callback);
         }
     }
+
+    /**
+     * Register a callback that can handle ROM entry points before instruction fetch.
+     * Returning a number of cycles means the callback consumed the instruction slot.
+     */
+    onBeforeExecute(callback) {
+        this.beforeExecuteCallback = callback;
+    }
     
     // =========================================================================
     // Stack Operations
@@ -169,8 +178,11 @@ class CPU6502 {
     }
     
     push16(value) {
-        this.push(value & 0xFF);          // Low byte first
-        this.push((value >> 8) & 0xFF);  // High byte second
+        // Real 6502 stack frames store return/vector addresses high byte first,
+        // then low byte. Because push() decrements SP after writing, the low byte
+        // is the first byte pulled by RTS/RTI while memory still matches hardware.
+        this.push((value >> 8) & 0xFF);
+        this.push(value & 0xFF);
     }
 
     pull() {
@@ -179,8 +191,8 @@ class CPU6502 {
     }
 
     pull16() {
-        const hi = this.pull();  // High byte first (was pushed second, so on top)
-        const lo = this.pull();  // Low byte second (was pushed first, so below)
+        const lo = this.pull();
+        const hi = this.pull();
         return (hi << 8) | lo;
     }
     
@@ -416,34 +428,33 @@ class CPU6502 {
     
     opADC(addr) {
         const value = this.read(addr);
+        const accumulator = this.A;
+        const carryIn = this.flags.C;
         
         if (this.flags.D) {
-            // BCD mode
-            let lo = (this.A & 0x0F) + (value & 0x0F) + this.flags.C;
-            let hi = (this.A >> 4) + (value >> 4);
-            
-            if (lo > 9) {
-                lo -= 10;
-                hi++;
+            // Fix for #4: NMOS 6502 decimal ADC adjusts the accumulator as BCD,
+            // while Z follows the binary sum and N/V follow the intermediate
+            // result after low-nibble decimal correction.
+            const binarySum = accumulator + value + carryIn;
+            let decimalSum = binarySum;
+
+            if (((accumulator & 0x0F) + (value & 0x0F) + carryIn) > 9) {
+                decimalSum += 0x06;
             }
-            
-            // Set flags before decimal adjust of high nibble
-            const sum = this.A + value + this.flags.C;
-            this.flags.Z = (sum & 0xFF) === 0 ? 1 : 0;
-            this.flags.N = (hi & 0x08) ? 1 : 0;
-            this.flags.V = (~(this.A ^ value) & (this.A ^ (hi << 4)) & 0x80) ? 1 : 0;
-            
-            if (hi > 9) {
-                hi -= 10;
-                this.flags.C = 1;
-            } else {
-                this.flags.C = 0;
+            const intermediateSum = decimalSum;
+
+            this.flags.C = decimalSum > 0x99 ? 1 : 0;
+            if (this.flags.C) {
+                decimalSum += 0x60;
             }
-            
-            this.A = ((hi << 4) | (lo & 0x0F)) & 0xFF;
+
+            this.A = decimalSum & 0xFF;
+            this.flags.Z = ((binarySum & 0xFF) === 0) ? 1 : 0;
+            this.flags.N = (intermediateSum & 0x80) ? 1 : 0;
+            this.flags.V = (~(accumulator ^ value) & (accumulator ^ intermediateSum) & 0x80) ? 1 : 0;
         } else {
             // Binary mode
-            const sum = this.A + value + this.flags.C;
+            const sum = this.A + value + carryIn;
             
             this.flags.C = sum > 0xFF ? 1 : 0;
             this.flags.V = (~(this.A ^ value) & (this.A ^ sum) & 0x80) ? 1 : 0;
@@ -455,32 +466,31 @@ class CPU6502 {
     
     opSBC(addr) {
         const value = this.read(addr);
+        const accumulator = this.A;
+        const carryIn = this.flags.C;
+        const borrow = 1 - carryIn;
         
         if (this.flags.D) {
-            // BCD mode
-            let lo = (this.A & 0x0F) - (value & 0x0F) - (1 - this.flags.C);
-            let hi = (this.A >> 4) - (value >> 4);
-            
-            if (lo < 0) {
-                lo += 10;
-                hi--;
+            // Fix for #4: decimal SBC applies BCD correction after computing the
+            // binary subtraction flags. Carry remains the 6502 "no borrow" flag.
+            const binaryDiff = accumulator - value - borrow;
+            let decimalDiff = binaryDiff;
+
+            if (((accumulator & 0x0F) - borrow) < (value & 0x0F)) {
+                decimalDiff -= 0x06;
             }
-            if (hi < 0) {
-                hi += 10;
-                this.flags.C = 0;
-            } else {
-                this.flags.C = 1;
+            if (binaryDiff < 0) {
+                decimalDiff -= 0x60;
             }
-            
-            const diff = this.A - value - (1 - this.flags.C);
-            this.flags.Z = (diff & 0xFF) === 0 ? 1 : 0;
-            this.flags.N = (diff & 0x80) ? 1 : 0;
-            this.flags.V = ((this.A ^ value) & (this.A ^ diff) & 0x80) ? 1 : 0;
-            
-            this.A = ((hi << 4) | (lo & 0x0F)) & 0xFF;
+
+            this.A = decimalDiff & 0xFF;
+            this.flags.C = binaryDiff >= 0 ? 1 : 0;
+            this.flags.Z = ((binaryDiff & 0xFF) === 0) ? 1 : 0;
+            this.flags.N = (this.A & 0x80) ? 1 : 0;
+            this.flags.V = ((accumulator ^ value) & (accumulator ^ binaryDiff) & 0x80) ? 1 : 0;
         } else {
             // Binary mode (same as ADC with inverted value)
-            const diff = this.A - value - (1 - this.flags.C);
+            const diff = this.A - value - borrow;
             
             this.flags.C = diff >= 0 ? 1 : 0;
             this.flags.V = ((this.A ^ value) & (this.A ^ diff) & 0x80) ? 1 : 0;
@@ -1016,6 +1026,14 @@ class CPU6502 {
             // Don't clear irqPending here - let the interrupt handler do it
             return this.cycles - startCycles;
         }
+
+        if (this.beforeExecuteCallback) {
+            const handledCycles = this.beforeExecuteCallback(this.PC, this);
+            if (typeof handledCycles === 'number') {
+                this.cycles += handledCycles;
+                return this.cycles - startCycles;
+            }
+        }
         
         // Fetch and execute instruction
         const opcode = this.read(this.PC++);
@@ -1027,6 +1045,10 @@ class CPU6502 {
             return 0;
         }
         
+        // Base cycles are charged once here. Addressing modes and branch handlers
+        // add only dynamic penalties such as page crossings or taken branches.
+        // Issue #5: AMICO 2000 uses an NMOS 6502, so decimal ADC/SBC does not add
+        // the later 65C02 decimal-mode cycle penalty.
         this.cycles += instruction.cycles;
         instruction.handler();
         

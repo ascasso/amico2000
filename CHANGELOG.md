@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added file-backed mock cassette tape support for issue #2, including IC10 ROM
+  entry-point traps for SAVE ($FBBC) and LOAD ($FC54), `.amtape` import, and
+  `debug.saveTape()` export.
 - Added `AGENTS.md` to direct Codex and other agents to the existing
   repository guidance in `CLAUDE.md`.
 - Added `.gitignore` entries for the local scanned manual PDF and generated
@@ -23,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Documented Sperimentare-derived cassette operation details, including IC10
+  entry points, zero-page LOAD/SAVE parameters, tape record layout, approximate
+  300 bit/s rate, and recorder wiring (#2).
+- Documented that the 8255 PIA uses partial address decoding, with
+  $FD00-$FDFF aliasing to the four PIA registers ($FD00-$FD03) (#1).
+- Documented CPU cycle-counting behavior: base instruction cycles are added in
+  `step()`, dynamic penalties are added by handlers, and NMOS 6502 decimal
+  ADC/SBC does not incur a 65C02-style extra cycle (#5).
 - Added a Codex first-pass project review to `archived/REVIEW.md` with architecture
   impressions, verification gaps, and concrete cleanup findings.
 - Appended Codex freshness notes to `CLAUDE.md` so a future Claude pass can
@@ -32,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keyboard-matrix caveats, and CPU verification work.
 - Moved the Gemini and Opus review notes into `archived/` so root-level
   documentation stays focused on active project guidance.
+
+### Fixed
+- Fixed decimal-mode ADC/SBC flag behavior so binary-derived flags and BCD carry
+  adjustment are handled consistently with NMOS 6502 behavior (#4).
+- Fixed 6502 16-bit stack byte order so JSR, BRK, IRQ, and NMI stack frames
+  match real hardware while preserving RTS/RTI behavior (#3).
 
 ## [1.0.0] - 2026-01-12
 

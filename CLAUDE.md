@@ -89,6 +89,14 @@ The display update system is decoupled from PIA writes. The emulator runs the CP
 ### Interrupt Handling
 The CPU properly polls for pending NMI/IRQ before each instruction fetch. This matches real 6502 behavior and is critical for correct emulation.
 
+### Decimal ADC/SBC
+The AMICO 2000 uses an NMOS 6502. Decimal-mode ADC/SBC should follow NMOS flag
+behavior: the accumulator and carry are BCD-adjusted, while Z/V and ADC's N are
+derived from the underlying/intermediate binary ALU state rather than from a
+65C02-style simplified decimal result. Decimal mode does **not** add an extra
+cycle on NMOS 6502; base cycles are charged in `CPU6502.step()`, with only
+dynamic branch/page-crossing penalties added by handlers.
+
 ### Keyboard Scanning
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
 Keyboard input is active-low: unpressed columns read high, and a pressed key clears the corresponding Port A bit.
@@ -106,6 +114,29 @@ The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loa
 - Other .bin files load as programs at $0000
 
 **Note on hardware PROMs**: The original AMICO 2000 used `prom.ic6` and `prom.ic7` for address decoding logic (generating chip-select signals). These are **not needed** in the emulator as address decoding is implemented in software through the CPU's memory read/write callbacks.
+
+### Cassette Interface Reference
+
+The Sperimentare supplement, Chapter V ("L'uso del registratore a cassette"),
+documents the original cassette workflow:
+
+- `IC10` is the cassette management PROM at $FB00-$FCFF.
+- The user jumps to PC $FC54 for cassette LOAD and PC $FBBC for cassette SAVE.
+- LOAD parameters: $0000 = program identifier, $0001 = desired load address low
+  byte, $0002 = desired load address high byte. If $0002 is $FF, the routine
+  loads at the address recorded on tape.
+- SAVE parameters: $0000/$0001 = start address, $0002/$0003 = end address,
+  $0004 = program identifier.
+- The documented tape record structure is leader, start byte, identifier, load
+  address, byte count, program data, checksum, trailing leader.
+- The original analog tape rate is about 300 bit/s, with a 1KB program taking
+  roughly 45 seconds including leader/trailer sections.
+- Physical recorder wiring uses `GND`, `IN` to the microphone input, and `OUT`
+  from the speaker output.
+
+The emulator's current cassette support is intentionally file-backed: it traps
+the IC10 entry points and reads/writes `.amtape` images instead of emulating the
+analog signal path or exact Port A/B timing.
 
 ## Development Guidelines
 
@@ -150,7 +181,9 @@ When implementing changes based on a GitHub issue:
 ## Known Limitations
 
 1. **Browser Tab Throttling**: Modern browsers throttle `requestAnimationFrame` when tabs are backgrounded, causing the emulator to pause/slow down
-2. **Cassette I/O**: The cassette ROM is available, but file-based LOAD/SAVE that would intercept its routines is not yet implemented
+2. **Cassette I/O**: File-backed mock cassette LOAD/SAVE is implemented by
+   trapping the IC10 ROM entry points ($FBBC and $FC54), but the analog
+   300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
 4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate; sufficient for the monitor ROM and simple programs
 5. **Automated Tests**: There is no automated CPU test harness yet — running the Klaus Dormann 6502 functional suite against the core would be the strongest next step
@@ -193,10 +226,6 @@ opportunistically rather than treating them as required for any specific task:
 - `main.js`: `window.amico` is declared as `null` and then re-assigned inside a
   second `DOMContentLoaded` handler. Fold the assignment into the main init
   path so there is a single startup sequence.
-- `cpu6502.js`: verify `push16()`/`pull16()` physical stack byte order against
-  real 6502 behavior. The current pair is internally consistent, but review
-  notes flagged that programs inspecting return addresses or interrupt frames
-  on the stack may diverge from hardware.
 - `cpu6502.js` / `amico2000.js`: cross-reference the RAM initialization
   behavior in comments. `cpu6502.js` initializes memory to `$FF`, while
   `amico2000.js` clears AMICO RAM to `$00` during machine reset for monitor ROM
