@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keyboard-matrix caveats, and CPU verification work.
 - Moved the Gemini and Opus review notes into `archived/` so root-level
   documentation stays focused on active project guidance.
+- Clarified that loading a raw `.bin` program at $0000 via the file loader
+  preserves machine state and intentionally does not call `amico.reset()`,
+  because `Amico2000.reset()` clears all 2KB of RAM ($0000-$07FF) and would
+  erase the program just loaded. The other load paths (monitor ROM, cassette
+  ROM, 512-byte fallback) write to ROM regions unaffected by reset, so they
+  continue to reset after loading. This documents the asymmetry introduced
+  in #21 and resolves #25.
 
 ### Fixed
 - Fixed decimal-mode ADC/SBC flag behavior so binary-derived flags and BCD carry
