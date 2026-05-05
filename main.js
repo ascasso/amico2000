@@ -304,8 +304,8 @@ function setupFileLoader() {
                 // Load as program at $0000.
                 // Intentionally no amico.reset() here: Amico2000.reset() zeroes
                 // all 2KB of RAM ($0000-$07FF), which would erase the program
-                // we just wrote. The other load paths target ROM regions that
-                // reset() does not touch, so they reset safely. See #25.
+                // we just wrote. The ROM and 512-byte fallback paths target
+                // regions reset() does not touch, so they reset safely. See #25.
                 amico.loadProgram(rom, 0x0000);
                 console.log('Program loaded at $0000:', file.name);
             }
