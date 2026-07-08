@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added preservation notes for the archived ComputerHistory.it AMICO 2000
+  reconstruction article under `docs/`.
+- Added the December 1978 Sperimentare AMICO 2000 Archive.org source link to
+  `original-documentation.html`.
+- Added the MePC page 44 Archive.org source link to
+  `original-documentation.html`.
 - Added file-backed mock cassette tape support for issue #2, including IC10 ROM
   entry-point traps for SAVE ($FBBC) and LOAD ($FC54), `.amtape` import, and
   `debug.saveTape()` export.
@@ -26,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Renamed the original documentation mounting-instructions link label to
+  "Istruzioni per il montaggio".
 - Documented Sperimentare-derived cassette operation details, including IC10
   entry points, zero-page LOAD/SAVE parameters, tape record layout, approximate
   300 bit/s rate, and recorder wiring (#2).
@@ -52,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed `original-documentation.html` markup by replacing loose text and
+  placeholder metadata with a titled source list of valid links.
 - Fixed decimal-mode ADC/SBC flag behavior so binary-derived flags and BCD carry
   adjustment are handled consistently with NMOS 6502 behavior (#4).
 - Fixed 6502 16-bit stack byte order so JSR, BRK, IRQ, and NMI stack frames
