@@ -471,8 +471,8 @@ class CPU6502 {
         const borrow = 1 - carryIn;
         
         if (this.flags.D) {
-            // Fix for #4: decimal SBC applies BCD correction after computing the
-            // binary subtraction flags. Carry remains the 6502 "no borrow" flag.
+            // Fix for #22: NMOS 6502 N/V/Z reflect the binary subtraction even
+            // though the accumulator is BCD-adjusted; carry remains "no borrow".
             const binaryDiff = accumulator - value - borrow;
             let decimalDiff = binaryDiff;
 
@@ -486,7 +486,7 @@ class CPU6502 {
             this.A = decimalDiff & 0xFF;
             this.flags.C = binaryDiff >= 0 ? 1 : 0;
             this.flags.Z = ((binaryDiff & 0xFF) === 0) ? 1 : 0;
-            this.flags.N = (this.A & 0x80) ? 1 : 0;
+            this.flags.N = (binaryDiff & 0x80) ? 1 : 0;
             this.flags.V = ((accumulator ^ value) & (accumulator ^ binaryDiff) & 0x80) ? 1 : 0;
         } else {
             // Binary mode (same as ADC with inverted value)

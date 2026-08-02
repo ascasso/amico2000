@@ -18,6 +18,8 @@ python3 -m http.server 8000
 
 ## Testing the Emulator
 
+- Run the targeted CPU regression check with
+  `node --test tests/cpu6502-decimal-sbc.test.js`
 - Open the browser console (F12) to access debug commands
 - Use `debug.mem(0x0000, 16)` to dump memory
 - Use `debug.state()` to show CPU state
@@ -186,7 +188,9 @@ When implementing changes based on a GitHub issue:
    300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
 4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate; sufficient for the monitor ROM and simple programs
-5. **Automated Tests**: There is no automated CPU test harness yet — running the Klaus Dormann 6502 functional suite against the core would be the strongest next step
+5. **Automated Tests**: Coverage is limited to targeted dependency-free CPU
+   regression checks; running the Klaus Dormann 6502 functional suite against
+   the core would provide broader confidence
 
 ## Keyboard Mappings
 
@@ -245,8 +249,8 @@ opportunistically rather than treating them as required for any specific task:
 
 ## Pending Verification Work
 
-- Add a small Node-compatible harness so the CPU core and machine layer can be
-  smoke-tested without opening a browser.
+- Expand the small Node-compatible regression coverage so the CPU core and
+  machine layer can be smoke-tested without opening a browser.
 - Run a known 6502 functional suite, such as Klaus Dormann's tests, before
   treating stack behavior, interrupt handling, BCD arithmetic, and page-crossing
   timing as settled.

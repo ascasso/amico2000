@@ -22,7 +22,9 @@ Priority order:
 - `develop` matches `origin/develop`.
 - `#25` is done/closed: raw `.bin` program loads intentionally do not call
   `amico.reset()`.
-- Open items from the prior handoff: `#17`, `#18`, `#19`, `#20`, `#22`, `#23`,
+- `#22` is implemented: decimal-mode SBC now derives `N` from the binary
+  subtraction result, protected by a targeted dependency-free Node test.
+- Remaining items from the prior handoff: `#17`, `#18`, `#19`, `#20`, `#23`,
   `#24`.
 - There is no full automated CPU test harness yet. Keep any near-term
   verification small and directly tied to a behavior fix.
@@ -44,11 +46,11 @@ behavior:
 If behavior and comments/docs disagree, trust the ROM/manual/current verified
 behavior and update the stale guidance.
 
-## Next CPU Fix
+## Latest CPU Fix
 
-Fix `#22`: decimal-mode `SBC` currently sets `N` from the BCD-adjusted
-accumulator. For NMOS 6502 behavior, `N` should derive from the binary
-subtraction result.
+Issue `#22` corrected decimal-mode `SBC`, which previously set `N` from the
+BCD-adjusted accumulator instead of the binary subtraction result required by
+NMOS 6502 behavior.
 
 Target case to preserve:
 
@@ -57,8 +59,10 @@ Target case to preserve:
 - Adjusted accumulator becomes `$20`
 - Expected `N=1`
 
-A minimal fix should change the `opSBC()` decimal path to compute `N` from the
-binary diff, then add only lightweight verification.
+The dependency-free regression check in
+`tests/cpu6502-decimal-sbc.test.js` preserves this edge case. Choose any future
+CPU fix from observed machine behavior or a concrete conformance failure rather
+than expanding test infrastructure speculatively.
 
 ## Verification Approach
 
