@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Reworked `AGENTS.md` into an agent-first repository contract with explicit
+  source-of-truth, scope, verification, changelog, and external-state rules.
 - Consolidated the repository guidance from `CLAUDE.md` into `AGENTS.md` so
   agents use a single active guidance file.
 - Corrected the README project-structure diagram to match the repository's

@@ -2,6 +2,24 @@
 
 This file provides repository guidance for agents working in this repository.
 
+## Agent Operating Contract
+
+- Treat this file and the current source as the repository's source of truth.
+  Files under `archived/` are historical context only unless a task explicitly
+  asks for archival work.
+- Inspect the current Git state and relevant files before changing anything.
+  Preserve unrelated worktree changes and keep edits narrowly scoped.
+- For implementation work, update `CHANGELOG.md` under `[Unreleased]` and add
+  a concise entry to the dated engineering log in `docs/logs/`.
+- Run the narrowest relevant checks before handoff. At minimum, use
+  `git diff --check`; for JavaScript changes also run `node --check` on the
+  affected files and the targeted Node test when applicable.
+- Do not add a build system or test framework for a small fix. Prefer the
+  existing browser workflow and dependency-free Node checks.
+- Do not push, publish, or alter external GitHub state unless explicitly asked.
+- Report browser/manual-test limitations clearly when a check cannot be
+  automated.
+
 ## Project Overview
 
 This is a browser-based emulator for the **AMICO 2000**, an Italian home computer (ASEL Milano, 1978) that the project owner's father built from a kit. This is a preservation and memorial project recreating a machine that was later discarded.
