@@ -11,6 +11,9 @@ This file provides repository guidance for agents working in this repository.
   Preserve unrelated worktree changes and keep edits narrowly scoped.
 - For implementation work, update `CHANGELOG.md` under `[Unreleased]` and add
   a concise entry to the dated engineering log in `docs/logs/`.
+- Fully document every change, including its purpose, scope, and verification;
+  commit the complete change in one or more focused logical commits before
+  handoff.
 - Run the narrowest relevant checks before handoff. At minimum, use
   `git diff --check`; for JavaScript changes also run `node --check` on the
   affected files and the targeted Node test when applicable.
