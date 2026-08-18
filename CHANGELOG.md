@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Corrected the README project-structure diagram to match the repository's
+  root-level JavaScript files and test directory.
 - Renamed the original documentation mounting-instructions link label to
   "Istruzioni per il montaggio".
 - Documented Sperimentare-derived cassette operation details, including IC10
