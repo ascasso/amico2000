@@ -46,7 +46,7 @@ creating runnable program assets.
 
 - `Tabella 6 - DESCRIZIONE DEI TASTI FUNZIONALI DELL'AMICO 2000`: compare with current keyboard handling and comments.
 - `Tabella 7 - PROGRAMMA PER ESEGUIRE UNA OPERAZIONE DI SOMMA`: first small program candidate.
-- `Mappa della memoria dell'AMICO 2000/A`: compare with `CLAUDE.md` and emulator memory map.
+- `Mappa della memoria dell'AMICO 2000/A`: compare with `AGENTS.md` and emulator memory map.
 - Cassette chapter: identify monitor/cassette routines and expected user workflow.
 - Monitor listing pages 91-93: compare labels, vectors, display routines, and keyboard routines against embedded ROM data.
 - Appendix 2 listings: convert each verified listing into a machine-readable local format and document expected display/key behavior.

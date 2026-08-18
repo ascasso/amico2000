@@ -14,13 +14,13 @@ The AMICO 2000 lives again. 🇮🇹💾✨
 ## 📁 Project Structure
 
 ```
-amico2000_web/
+amico2000/
 ├── index.html          # Main HTML page with UI
-├── js/
-│   ├── cpu6502.js      # Complete 6502 CPU emulator
-│   ├── amico2000.js    # Amico 2000 machine emulation
-│   ├── display.js      # SVG 7-segment display renderer
-│   └── main.js         # Application initialization
+├── cpu6502.js          # Complete 6502 CPU emulator
+├── amico2000.js        # Amico 2000 machine emulation
+├── display.js           # SVG 7-segment display renderer
+├── main.js              # Application initialization
+├── tests/               # Dependency-free regression tests
 └── README.md           # This file
 ```
 

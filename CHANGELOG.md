@@ -32,6 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Updated the manual-extraction checklist to reference the active `AGENTS.md`
+  guidance file instead of the removed `CLAUDE.md`.
+- Clarified that all changes must be fully documented, logged, and committed
+  in one or more focused logical commits.
+- Reworked `AGENTS.md` into an agent-first repository contract with explicit
+  source-of-truth, scope, verification, changelog, and external-state rules.
+- Consolidated the repository guidance from `CLAUDE.md` into `AGENTS.md` so
+  agents use a single active guidance file.
+- Corrected the README project-structure diagram to match the repository's
+  root-level JavaScript files and test directory.
 - Renamed the original documentation mounting-instructions link label to
   "Istruzioni per il montaggio".
 - Documented Sperimentare-derived cassette operation details, including IC10
