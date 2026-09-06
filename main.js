@@ -355,10 +355,10 @@ function updateRunButton() {
     const led = document.getElementById('led-run');
     
     if (isRunning) {
-        btn.textContent = '⏸ Stop';
+        btn.textContent = 'Stop';
         led.classList.add('on');
     } else {
-        btn.textContent = '▶ Run';
+        btn.textContent = 'Run';
         led.classList.remove('on');
     }
 }
