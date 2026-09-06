@@ -51,6 +51,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Recorded completed re-verification and closure of #30 and #31 on
+  `develop` at `8f1fa3d`, matching the remote branch. Reviewed all four fix/docs
+  commits, their engineering-log sections, and every issue acceptance criterion
+  against the current code and tests; no additional implementation was needed.
+  `node --test tests/` passed all 32 tests (16 for #30, 11 for #31, five existing
+  regressions); individual syntax checks passed for `amico2000.js`, `main.js`,
+  `cpu6502.js`, and `display.js`, and `git diff --check` passed. Git status
+  showed only the pre-existing untracked `docs/.DS_Store`, left untouched.
+  Chrome checks against a local Python server confirmed Escape, Backspace, and
+  mouse RES recover a running loop, and Escape recovers an illegal-opcode halt;
+  Backspace prevents browser navigation, reset aliases inject no matrix input,
+  and Escape/Backspace/Arrow Up/Arrow Down/Enter depress and release the correct
+  keycaps. Screenshot and computed-style checks confirmed the rendered 3px
+  depression and its release. Keypad-entered `$AB` survived RES and Backspace,
+  then **Cold reset** cleared it; the control label and both reset tooltips were
+  checked. ROM write attempts preserved `$FE00 = $85`, `$FFFC = $22`, and the
+  `$FE22` reset vector. Loading a 513-byte monitor file through the native picker
+  produced the expected size-error alert without changing any monitor byte or
+  `$0000`; a normal eight-byte `.bin` loaded at `$0000` and executed, storing
+  `$42` at `$0300` and looping at `$0005` without halting. Both issues were
+  closed with item-by-item evidence and browser results. Browser coverage was
+  limited to Chrome on this machine; touch input and other browsers were not
+  exercised. See [the complete verification record](docs/logs/2026-09-06.md#verification-and-closure-of-30-and-31).
 - Renamed the bench **Reset** control to **Cold reset** and described both
   resets in the on-page help (#30). Two controls named "Reset" with different
   RAM behavior was the confusion the issue reported; the bench control is the
