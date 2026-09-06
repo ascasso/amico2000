@@ -32,6 +32,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Reworked the emulator front end in `index.html` so the interface recreates the
+  appearance of the real ASEL board instead of presenting generic display and
+  keypad panels. The layout, silkscreen legends, keycap colours, and component
+  placement follow the board photographs archived on ComputerHistory.it.
+- Renamed the on-screen `GO` and `PC` keys to `RUN` and `HLT` to match the
+  legends silkscreened on the original board. The keyboard shortcuts and the
+  underlying key matrix positions are unchanged, so only the labels differ.
+- Replaced the glyph-prefixed run/stop button labels in `main.js` with plain
+  text to match the reworked control panel.
 - Updated the manual-extraction checklist to reference the active `AGENTS.md`
   guidance file instead of the removed `CLAUDE.md`.
 - Clarified that all changes must be fully documented, logged, and committed
