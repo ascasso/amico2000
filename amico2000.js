@@ -120,6 +120,19 @@ class Amico2000 {
 
         // Fix for #2: IC10 cassette ROM documented entry points: FBBC = save, FC54 = load.
         // Trapping here avoids tying browser file I/O to the original analog signal loop.
+        //
+        // Issue #24: redirecting to $FE22 deliberately does NOT unwind a JSR frame.
+        // $FE22 is the monitor's RESET entry (it is the $FFFC vector target) and it
+        // runs `LDX #$00 / STX $FA / STX $FB / LDX #$FF / TXS` before reaching the
+        // main loop at $FE30, so the TXS at $FE2A reinitialises SP to $FF. Any frame
+        // pushed by a `JSR $FBBC` / `JSR $FC54` is discarded by the monitor itself,
+        // and repeated LOAD/SAVE cannot leak stack space.
+        //
+        // Pulling the frame here would be wrong rather than merely redundant: the
+        // IC10 ROM re-enters LOAD with `JMP $FC54` (no frame pushed) and leaves both
+        // routines with `JMP $FE22` rather than RTS, so an unconditional pull would
+        // corrupt the stack on the JMP path. Covered by
+        // tests/cassette-trap-stack.test.js.
         if (pc === 0xFBBC) {
             try {
                 this.saveTapeFromMonitorParams();

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/cassette-trap-stack.test.js`, a regression check for issue #24
+  confirming the cassette ROM traps leave no stack residue: the monitor's
+  reset entry at $FE22 reinitialises SP with `TXS`, so 300 consecutive
+  `JSR $FC54` traps never drift the stack pointer.
 - Added preservation notes for the archived ComputerHistory.it AMICO 2000
   reconstruction article under `docs/`.
 - Added the December 1978 Sperimentare AMICO 2000 Archive.org source link to
@@ -32,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Documented in `amico2000.js` why the IC10 cassette traps redirect to $FE22
+  without unwinding the JSR frame (issue #24). $FE22 is the monitor reset entry
+  ($FFFC vector target) and its `TXS` restores SP to $FF, so no stack leak is
+  possible; pulling the frame would instead corrupt the stack on the ROM's own
+  `JMP $FC54` re-entry path. No behavioural change.
 - Let the bottom "About this board" text use the full panel width and added
   a GitHub repository link alongside the page credits.
 - Reworked the emulator front end in `index.html` so the interface recreates the
