@@ -220,11 +220,19 @@ When implementing changes based on a GitHub issue:
 | 0-9, A-F  | 0-9, A-F |
 | AD        | ↑ (Arrow Up) |
 | DA        | ↓ (Arrow Down) |
-| PC        | P |
+| HLT       | P |
 | REG       | R |
-| +         | + or = |
-| GO        | Enter or G |
+| ↑ (increment) | + or = |
+| RUN       | Enter or G |
 | RES       | Escape or Backspace |
+
+The on-screen keys are labelled with the legends silkscreened on the original
+board. Two of them were previously labelled after their emulator identity rather
+than the hardware: `RUN` was shown as `GO`, and `HLT` was shown as `PC`. The
+`data-key` values in `index.html` still read `go` and `pc`, and the matrix
+positions in `amico2000.js` are unchanged, so the rename is presentational only.
+The `HLT`/`pc` correspondence is inferred from key position on the board and is
+not confirmed against the monitor ROM.
 
 ## Historical Context
 
