@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/rom-write-protection.test.js`, dependency-free regression
+  coverage for issue #31: guest stores into either PROM region are ignored, the
+  reset vector survives, the monitor still boots and runs afterwards, and RAM,
+  the PIA, and the explicit ROM loaders all keep working.
+- Added `tests/helpers/machine.js`, shared dependency-free test scaffolding so
+  the monitor ROM image is scraped out of `main.js` in one place instead of
+  once per test file.
 - Added `tests/cassette-trap-stack.test.js`, a regression check for issue #24
   confirming the cassette ROM traps leave no stack residue: the monitor's
   reset entry at $FE22 reinitialises SP with `TXS`, so 300 consecutive
@@ -95,6 +102,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed guest CPU writes corrupting the monitor PROM and surviving Reset (#31).
+  The IC9 ($FE00-$FFFF) and IC10 ($FB00-$FCFF) regions are now read-only to the
+  running program, as chips with no write line are on the real board. This
+  covers the $FFFA-$FFFF vectors, which matters because `CPU6502.reset()` takes
+  its new PC from $FFFC: a single `STA $FFFC` previously left the machine with
+  no way back to the monitor, defeating the Reset control too. Deliberate PROM
+  installation through `loadMonitorROM()` / `loadCassetteROM()` is unchanged,
+  and is now bounded to the size of the socket instead of wrapping past $FFFF.
+- Fixed two direct-memory paths that bypassed the new protection (#31):
+  `loadProgram()` now refuses a destination overlapping a PROM, and the trapped
+  IC10 tape LOAD refuses a guest-supplied load address that would land on one,
+  reporting the routine's own `$0000 = $FF` error status.
 - Corrected the recreated board's I/O package from MCS 6532 to the documented
   8255 PIA (IC15), with a 40-pin depiction.
 - Fixed decimal-mode SBC to derive the negative flag from the NMOS 6502 binary

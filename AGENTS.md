@@ -104,6 +104,9 @@ $FD00-$FD03: 8255 PIA I/O ports
 $FE00-$FFFF: Monitor ROM (512 bytes)
 ```
 
+Both PROM regions are read-only to the running program; see ROM Write
+Protection below.
+
 ## Important Implementation Notes
 
 ### Performance
@@ -119,6 +122,35 @@ derived from the underlying/intermediate binary ALU state rather than from a
 65C02-style simplified decimal result. Decimal mode does **not** add an extra
 cycle on NMOS 6502; base cycles are charged in `CPU6502.step()`, with only
 dynamic branch/page-crossing penalties added by handlers.
+
+### ROM Write Protection
+
+Issue #31: the PROMs at IC9 ($FE00-$FFFF) and IC10 ($FB00-$FCFF) have no write
+line, so a store into their address space is decoded and then lost. The machine
+layer models this the same way it models the PIA, by registering write
+callbacks over both regions in `Amico2000._protectROM()`; the generic CPU core
+keeps its plain writable 64KB array and stays layout-agnostic.
+`Amico2000.ROM_REGIONS` is the single place the layout is declared.
+
+The IC10 region is protected whether or not a cassette PROM has been loaded: an
+empty socket latches a store no better than a fitted chip does.
+
+Three paths write `cpu.memory[]` directly and therefore bypass those callbacks.
+Two are deliberate and must keep working: `loadMonitorROM()` and
+`loadCassetteROM()` install an image the way fitting a chip does, bounded to
+the size of the socket. The others validate their destination against
+`_findROMOverlap()`: `loadProgram()` throws, and the trapped IC10 tape LOAD
+returns the routine's own `$0000 = $FF` error status because the monitor
+expects a status byte, not an exception.
+
+The vectors are the reason this is more than cosmetic. `CPU6502.reset()` reads
+its new PC from `$FFFC`, so before the fix a single `STA $FFFC` left the board
+with no way back to the monitor, defeating the Reset control as well. Covered
+by `tests/rom-write-protection.test.js`.
+
+Note that `amico.writeMemory()` goes through `cpu.write()` and so cannot patch
+ROM either; that is intentional, and the ROM loaders remain the way to change a
+PROM image from the console.
 
 ### Keyboard Scanning
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.

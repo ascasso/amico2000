@@ -119,9 +119,16 @@ Chapter V, "L'uso del registratore a cassette":
 |---------|---------|
 | $0000-$03FF | RAM (1KB standard) |
 | $0400-$07FF | RAM (1KB expansion) |
-| $FB00-$FCFF | Cassette ROM (optional) |
+| $FB00-$FCFF | Cassette ROM (optional, read-only) |
 | $FD00-$FDFF | 8255 PIA (I/O, partially decoded) |
-| $FE00-$FFFF | Monitor ROM |
+| $FE00-$FFFF | Monitor ROM (read-only) |
+
+Both PROM regions ignore writes from the running program, the way chips with no
+write line do on the real board (#31). A `STA $FE00` is decoded and discarded
+rather than patching the monitor, and that includes the $FFFA-$FFFF interrupt
+and reset vectors, so Reset can always bring the machine back to the monitor.
+Replacing a PROM is a separate, deliberate act: use the ROM file loader, or
+`amico.loadMonitorROM()` / `amico.loadCassetteROM()` from the console.
 
 ### 8255 PIA Ports
 
