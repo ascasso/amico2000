@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Let the bottom "About this board" text use the full panel width and added
+  a GitHub repository link alongside the page credits.
 - Reworked the emulator front end in `index.html` so the interface recreates the
   appearance of the real ASEL board instead of presenting generic display and
   keypad panels. The layout, silkscreen legends, keycap colours, and component
