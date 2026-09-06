@@ -79,6 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Corrected the recreated board's I/O package from MCS 6532 to the documented
+  8255 PIA (IC15), with a 40-pin depiction.
 - Fixed decimal-mode SBC to derive the negative flag from the NMOS 6502 binary
   subtraction result, with a dependency-free regression test for the edge case
   where BCD adjustment changes bit 7 (#22).
