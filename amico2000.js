@@ -109,6 +109,48 @@ class Amico2000 {
         // aliases to these four 8255 PIA registers using the low two address bits.
         this.cpu.onRead(0xFD00, 0xFD03, (addr) => this._readPIA(addr));
         this.cpu.onWrite(0xFD00, 0xFD03, (addr, value) => this._writePIA(addr, value));
+
+        this._protectROM();
+    }
+
+    /**
+     * Fix for #31: model the read-only regions of the board.
+     *
+     * The PROMs at IC9 and IC10 have no write line. A store into their address
+     * space is decoded and driven onto the bus, but nothing latches it, so the
+     * byte is simply lost. The generic CPU core deliberately keeps a writable
+     * flat 64KB array, so the machine layer declares which regions are
+     * read-only exactly the way it declares the PIA: through write callbacks.
+     * A store landing here is swallowed instead of reaching cpu.memory[].
+     *
+     * This matters beyond stray bytes in the monitor listing. $FFFA-$FFFF hold
+     * the NMI/reset/IRQ vectors, so before this fix a single `STA $FFFC` left
+     * the board with no way home: CPU6502.reset() takes its new PC from that
+     * vector, which meant even the Reset control could not recover the machine.
+     *
+     * Deliberate ROM installation goes through loadMonitorROM() and
+     * loadCassetteROM(), which write cpu.memory[] directly the way fitting a
+     * chip into the socket does, and are unaffected by this protection.
+     */
+    _protectROM() {
+        for (const region of Amico2000.ROM_REGIONS) {
+            this.cpu.onWrite(region.start, region.end, () => {});
+        }
+    }
+
+    /**
+     * Fix for #31: return the read-only region that a span of `length` bytes
+     * starting at `address` would land on, or null when the span is clear.
+     *
+     * The write callbacks above only guard the CPU's own stores. The loaders
+     * below write cpu.memory[] directly, so they check their destination here.
+     */
+    _findROMOverlap(address, length) {
+        if (length <= 0) return null;
+        const end = address + length - 1;
+        return Amico2000.ROM_REGIONS.find(
+            (region) => address <= region.end && end >= region.start
+        ) || null;
     }
 
     _setupCassetteROMTraps() {
@@ -355,7 +397,7 @@ class Amico2000 {
      * @param {Uint8Array|Array} data - ROM data (512 bytes)
      */
     loadMonitorROM(data) {
-        this.cpu.loadBinary(data, 0xFE00);
+        this._installROM(data, Amico2000.MONITOR_ROM_REGION);
     }
     
     /**
@@ -363,7 +405,25 @@ class Amico2000 {
      * @param {Uint8Array|Array} data - ROM data (512 bytes)
      */
     loadCassetteROM(data) {
-        this.cpu.loadBinary(data, 0xFB00);
+        this._installROM(data, Amico2000.CASSETTE_ROM_REGION);
+    }
+
+    /**
+     * Fix for #31: install a PROM image, bypassing the write protection the way
+     * physically fitting the chip does. The size check stops a wrongly
+     * identified file from running past the end of its socket, which for the
+     * monitor means loadBinary()'s address masking silently wrapping the tail
+     * of the image into zero page.
+     */
+    _installROM(data, region) {
+        const capacity = region.end - region.start + 1;
+        if (data.length > capacity) {
+            const range = `$${region.start.toString(16).toUpperCase()}-$${region.end.toString(16).toUpperCase()}`;
+            throw new Error(
+                `${region.name} image is ${data.length} bytes, but ${range} holds ${capacity}`
+            );
+        }
+        this.cpu.loadBinary(data, region.start);
     }
     
     /**
@@ -372,6 +432,18 @@ class Amico2000 {
      * @param {number} address - Start address (default $0000)
      */
     loadProgram(data, address = 0x0000) {
+        // Fix for #31: this writes cpu.memory[] directly, so without a check an
+        // oversized or misaddressed .bin would be a way around ROM protection.
+        // Replacing a PROM is a separate, deliberate act: loadMonitorROM() and
+        // loadCassetteROM() exist for that.
+        const clash = this._findROMOverlap(address, data.length);
+        if (clash) {
+            const at = `$${address.toString(16).padStart(4, '0').toUpperCase()}`;
+            throw new Error(
+                `Program of ${data.length} bytes at ${at} would overwrite the ` +
+                `${clash.name}; use the ROM loader to replace it`
+            );
+        }
         this.cpu.loadBinary(data, address);
     }
 
@@ -512,6 +584,17 @@ class Amico2000 {
 
         const loadAddress = this.cpu.memory[0x0002] === 0xFF ? record.start : override;
         if (loadAddress + record.data.length > this.cpu.memory.length) {
+            this.cpu.memory[0x0000] = 0xFF;
+            return false;
+        }
+
+        // Fix for #31: the destination comes from guest RAM ($0001/$0002) or
+        // from the tape record itself, so a LOAD is the third direct-memory
+        // path that could otherwise drop a program on top of the monitor.
+        // Refuse it with the routine's own error convention ($0000 = $FF)
+        // rather than throwing: this runs inside the trapped IC10 entry point,
+        // where the monitor expects a status byte back, not an exception.
+        if (this._findROMOverlap(loadAddress, record.data.length)) {
             this.cpu.memory[0x0000] = 0xFF;
             return false;
         }
@@ -694,6 +777,15 @@ class Amico2000 {
 }
 
 Amico2000.TAPE_MAGIC = new Uint8Array([0x41, 0x4D, 0x49, 0x43, 0x4F, 0x54, 0x41, 0x50, 0x45]);
+
+// Read-only regions of the AMICO memory map (#31). The monitor PROM at IC9 is
+// always fitted; the cassette PROM at IC10 is optional, but the region is
+// protected either way, because an empty socket latches a store no better than
+// a PROM does. Keeping the table here rather than in cpu6502.js is what lets
+// the CPU core stay a generic 6502 with plain writable memory.
+Amico2000.MONITOR_ROM_REGION = { name: 'monitor ROM (IC9)', start: 0xFE00, end: 0xFFFF };
+Amico2000.CASSETTE_ROM_REGION = { name: 'cassette ROM (IC10)', start: 0xFB00, end: 0xFCFF };
+Amico2000.ROM_REGIONS = [Amico2000.MONITOR_ROM_REGION, Amico2000.CASSETTE_ROM_REGION];
 
 // Export for use as module
 if (typeof module !== 'undefined' && module.exports) {

@@ -2,27 +2,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 
-// amico2000.js is a browser script and expects CPU6502 as a global.
-global.CPU6502 = require('../cpu6502').CPU6502;
-const { Amico2000 } = require('../amico2000');
+const { Amico2000, MONITOR_ROM, MONITOR_RESET } = require('./helpers/machine');
 
-// main.js touches the DOM, so pull the ROM image out of its source instead of
-// requiring it. Testing against the real bytes keeps this honest if they change.
-function loadMonitorROM() {
-    const src = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
-    const body = src.match(/const MONITOR_ROM = new Uint8Array\(\[([\s\S]*?)\]\);/);
-    assert.ok(body, 'MONITOR_ROM literal not found in main.js');
-    const bytes = body[1].match(/0x[0-9a-fA-F]{2}/g).map((b) => parseInt(b, 16));
-    assert.equal(bytes.length, 512, 'monitor ROM should be 512 bytes');
-    return Uint8Array.from(bytes);
-}
-
-const MONITOR_ROM = loadMonitorROM();
 const ROM_BASE = 0xFE00;
-const MONITOR_RESET = 0xFE22;
 
 test('monitor $FE22 is the reset entry and reinitialises the stack pointer (#24)', () => {
     const at = (addr) => MONITOR_ROM[addr - ROM_BASE];
