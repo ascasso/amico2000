@@ -72,13 +72,23 @@ class Amico2000 {
             'g': [2, 3],          // GO alternate
             'r': [2, 1],          // REG (shares with AD)
             'p': [2, 3],          // PC (shares with DA/GO)
-            'Escape': [2, 1],     // RES (shares with AD/REG)
         };
 
         // Alternate key mappings for function keys
-        this.altKeyMap = {
-            'Backspace': [0, 5],  // RES (alternate, shares with 5)
-        };
+        this.altKeyMap = {};
+
+        // Fix for #30: RES is not a key in the scanned matrix. On the real
+        // board it drives the 6502 reset line, which is why the manual can say
+        // it "permette di arrestare l'esecuzione di un programma utente in
+        // qualsiasi momento passando il controllo del sistema al monitor" -
+        // it stops a user program at any moment, whether or not that program
+        // ever scans the keyboard, and even after an illegal opcode has
+        // stopped the CPU dead. These keys therefore bypass keyMatrix
+        // entirely and call res().
+        //
+        // They used to sit in the matrix at positions they shared with other
+        // keys, so pressing Escape also typed AD and Backspace also typed 5.
+        this.resetKeys = new Set(['Escape', 'Backspace']);
         
         // Single-step mode
         this.singleStep = false;
@@ -333,19 +343,29 @@ class Amico2000 {
      * @param {string} key - Key identifier
      */
     keyDown(key) {
+        // Fix for #30: the reset line is checked before the matrix, so RES
+        // works with a program that never scans the keyboard and with a CPU
+        // that is halted on an illegal opcode.
+        if (this.isResetKey(key)) {
+            if (this._keyboardDebug()) console.log(`Key pressed: "${key}" -> RES (reset line)`);
+            this.res();
+            return;
+        }
+
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
-            console.log(`Key pressed: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = true;
 
-            // DEBUG: Show display state after key press (with slight delay to see ROM processing)
-            if (window.debugKeyboard) {
+            if (this._keyboardDebug()) {
+                console.log(`Key pressed: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
+
+                // Show display state after the press, delayed so ROM processing lands first
                 setTimeout(() => {
                     const displayHex = this.display.map(d => d.toString(16).padStart(2, '0').toUpperCase()).join(' ');
                     console.log(`[DISPLAY] ${displayHex} | CPU halted: ${this.cpu.halted} | PC: ${this.cpu.PC.toString(16).padStart(4, '0').toUpperCase()}`);
                 }, 50);
             }
-        } else {
+        } else if (this._keyboardDebug()) {
             console.log(`Key pressed: "${key}" -> NOT MAPPED`);
         }
     }
@@ -355,11 +375,31 @@ class Amico2000 {
      * @param {string} key - Key identifier
      */
     keyUp(key) {
+        // A reset key holds nothing in the matrix, so there is nothing to
+        // release and no way for it to leave a cell stuck down (#30).
+        if (this.isResetKey(key)) return;
+
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
-            console.log(`Key released: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
+            if (this._keyboardDebug()) console.log(`Key released: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = false;
         }
+    }
+
+    /**
+     * Is this key one of the RES aliases? Fix for #30: `main.js` needs this to
+     * decide whether to preventDefault, since RES no longer appears in keyMap.
+     */
+    isResetKey(key) {
+        return this.resetKeys.has(key);
+    }
+
+    /**
+     * Keyboard tracing is opt-in through `debug.enableKeyboardDebug()`, and the
+     * guard has to survive Node, where the machine runs without a `window`.
+     */
+    _keyboardDebug() {
+        return typeof window !== 'undefined' && window.debugKeyboard === true;
     }
     
     /**
@@ -381,11 +421,17 @@ class Amico2000 {
         };
         
         const key = nameToKey[keyName];
-        if (key) {
-            this.keyDown(key);
-            // Auto-release after 100ms (simulates key click)
-            setTimeout(() => this.keyUp(key), 100);
-        }
+        if (!key) return;
+
+        this.keyDown(key);
+
+        // Fix for #30: RES is a momentary line rather than a matrix key, so
+        // keyDown() has already done all of it. Scheduling a release would
+        // only queue a timer that has nothing to clear.
+        if (this.isResetKey(key)) return;
+
+        // Auto-release after 100ms (simulates key click)
+        setTimeout(() => this.keyUp(key), 100);
     }
     
     // =========================================================================
@@ -610,7 +656,17 @@ class Amico2000 {
     // =========================================================================
     
     /**
-     * Reset the machine
+     * Power-on reset: the state the board is in a moment after the switch is
+     * flipped. Clears RAM, seeds the monitor's RAM-resident vectors, and then
+     * asserts the reset line.
+     *
+     * This is the cold start, and it is deliberately more than RES does (#30).
+     * Switching on gives you undefined RAM that the monitor expects to have
+     * been cleared; pressing RES on a running board does not. Keeping the two
+     * apart is why `reset()` retains exactly the behavior it always had, while
+     * the RES key and its Escape/Backspace aliases go to res().
+     *
+     * @see res
      */
     reset() {
         // Initialize ALL RAM to $00 (not just zero page)
@@ -629,6 +685,41 @@ class Amico2000 {
         this.cpu.memory[0x03FD] = 0xFE;  // High byte of $FE30
         this.cpu.memory[0x03FE] = 0x30;  // Low byte of $FE30
         this.cpu.memory[0x03FF] = 0xFE;  // High byte of $FE30
+
+        this.res();
+    }
+
+    /**
+     * RES: assert the 6502 reset line, which is all the board's RES key does.
+     *
+     * Fix for #30. The CPU vectors through $FFFC to the monitor's cold-start
+     * entry at $FE22, so this recovers a program stuck in a tight loop and a
+     * CPU halted on an illegal opcode alike, with no cooperation needed from
+     * the running code. The 8255's own RESET pin sits on the same line, hence
+     * clearing the PIA and the display here.
+     *
+     * RAM is preserved, which is the part worth being explicit about. The
+     * Sperimentare supplement's clock tutorial has the reader press RES to
+     * stop the program at $0300, then re-enter values at $0000-$0002 and tune
+     * $0312 - the program itself is still there afterwards. Wiping RAM would
+     * make that workflow impossible. Power-on clearing lives in reset().
+     *
+     * Two consequences follow from preserving RAM, and both match the
+     * hardware. The monitor's RAM-resident IRQ/NMI vectors at $03FC-$03FF keep
+     * whatever a program left in them, since $FE22 reinitialises $FA, $FB and
+     * $FE but not those; the emulator's power-on reset is the way back from a
+     * program that trashed them. And RES does not touch the emulator's own
+     * run/pause state: pausing is a debugging facility with no counterpart on
+     * the board, so a paused machine stays paused, resettable and steppable
+     * from $FE22.
+     *
+     * @see reset
+     */
+    res() {
+        // A held key must not survive the reset as a stuck matrix cell.
+        for (const row of this.keyMatrix) {
+            row.fill(false);
+        }
 
         // Unhalt CPU if it was halted
         this.cpu.halted = false;

@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('  A:', amico.cpu.A.toString(16).toUpperCase());
     console.log('  X:', amico.cpu.X.toString(16).toUpperCase());
     console.log('  Y:', amico.cpu.Y.toString(16).toUpperCase());
-    console.log('Press RES (Escape) to reset, then use hex keys to enter addresses and data');
+    console.log('Press RES (Escape) to return to the monitor, then use hex keys to enter addresses and data');
 });
 
 // ============================================================================
@@ -195,7 +195,10 @@ function setupKeyboard() {
         // Only lowercase hex letter keys (A-F), preserve case for special keys (ArrowUp, Enter, etc.)
         const normalizedKey = (key.length === 1) ? key.toLowerCase() : key;
 
-        if (amico.keyMap[normalizedKey] || amico.altKeyMap[normalizedKey] ||
+        // Fix for #30: RES is no longer in keyMap, so it needs naming here or
+        // Backspace falls through to the browser's own history navigation.
+        if (amico.isResetKey(normalizedKey) ||
+            amico.keyMap[normalizedKey] || amico.altKeyMap[normalizedKey] ||
             (key >= '0' && key <= '9') ||
             (key >= 'a' && key <= 'f') ||
             (key >= 'A' && key <= 'F')) {
@@ -259,7 +262,9 @@ function setupControls() {
         }
     });
     
-    // Reset button
+    // Power-on reset. This is the emulator's control panel, not the board, so
+    // it is deliberately the cold start: it clears RAM as switching the machine
+    // on does. The board's own RES key is on the keypad and preserves RAM (#30).
     document.getElementById('btn-reset').addEventListener('click', () => {
         amico.reset();
     });
@@ -377,7 +382,10 @@ function highlightButton(key) {
         'g': 'go'
     };
     
-    const buttonKey = keyMap[key] || key;
+    // The table is keyed lowercase but `key` keeps its case for named keys, so
+    // 'Escape' missed 'escape' and the RES cap never moved. Same for the other
+    // named keys (#30).
+    const buttonKey = keyMap[key.toLowerCase()] || key;
     const button = document.querySelector(`.key[data-key="${buttonKey}"]`);
     if (button) {
         button.style.transform = 'translateY(3px)';
@@ -397,7 +405,7 @@ function unhighlightButton(key) {
         'g': 'go'
     };
     
-    const buttonKey = keyMap[key] || key;
+    const buttonKey = keyMap[key.toLowerCase()] || key;
     const button = document.querySelector(`.key[data-key="${buttonKey}"]`);
     if (button) {
         button.style.transform = '';

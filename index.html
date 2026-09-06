@@ -831,7 +831,7 @@
             </div>
 
             <div class="keycell">
-                <button class="key key-func" data-key="res" aria-label="RES" title="RES — reset (Escape)"></button>
+                <button class="key key-func" data-key="res" aria-label="RES" title="RES — stop whatever is running and return to the monitor, keeping RAM (Escape or Backspace)"></button>
                 <span class="legend">RES</span>
             </div>
             <div class="keycell">
@@ -884,7 +884,7 @@
             <div class="controls">
                 <button class="control-btn control-btn-primary" id="btn-run">Run</button>
                 <button class="control-btn" id="btn-step">Step</button>
-                <button class="control-btn" id="btn-reset">Reset</button>
+                <button class="control-btn" id="btn-reset" title="Power-on reset — clears RAM, the way switching the board off and on does. The board&rsquo;s own RES key keeps RAM.">Cold reset</button>
                 <button class="control-btn" id="btn-load">Load ROM or tape</button>
             </div>
             <h2>Processor state</h2>
@@ -910,6 +910,14 @@
                 <tr><td>HLT</td><td>P</td></tr>
                 <tr><td>RES</td><td>Escape or Backspace</td></tr>
             </table>
+            <p>
+                RES works like the reset line on the real board: it stops whatever
+                is running &mdash; a program in a loop, or one that has crashed the
+                processor &mdash; and hands control back to the monitor, leaving
+                what you typed into RAM alone. <em>Cold reset</em> under Bench
+                controls is the harder one: it clears RAM as switching the machine
+                off and on does.
+            </p>
         </section>
 
         <section class="note about">
