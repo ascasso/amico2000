@@ -176,7 +176,7 @@ Features:
 
 - **Original Design**: ASEL Milano, 1978
 - **Documentation**: Sperimentare magazine
-- **Preservation**: [ComputerHistory.it](https://www.computerhistory.it)
+- **Preservation**: [ComputerHistory.it](https://web.archive.org/web/20260113032804/https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117) (via Wayback Machine)
 - **Emulator**: Andrea Scasso, 2025
 
 ## 📄 License
