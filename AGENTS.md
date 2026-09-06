@@ -39,8 +39,8 @@ python3 -m http.server 8000
 
 ## Testing the Emulator
 
-- Run the targeted CPU regression check with
-  `node --test tests/cpu6502-decimal-sbc.test.js`
+- Run the committed regression checks with `node --test tests/`, or a single
+  file, e.g. `node --test tests/cpu6502-decimal-sbc.test.js`
 - Open the browser console (F12) to access debug commands
 - Use `debug.mem(0x0000, 16)` to dump memory
 - Use `debug.state()` to show CPU state
@@ -104,6 +104,9 @@ $FD00-$FD03: 8255 PIA I/O ports
 $FE00-$FFFF: Monitor ROM (512 bytes)
 ```
 
+Both PROM regions are read-only to the running program; see ROM Write
+Protection below.
+
 ## Important Implementation Notes
 
 ### Performance
@@ -119,6 +122,80 @@ derived from the underlying/intermediate binary ALU state rather than from a
 65C02-style simplified decimal result. Decimal mode does **not** add an extra
 cycle on NMOS 6502; base cycles are charged in `CPU6502.step()`, with only
 dynamic branch/page-crossing penalties added by handlers.
+
+### ROM Write Protection
+
+Issue #31: the PROMs at IC9 ($FE00-$FFFF) and IC10 ($FB00-$FCFF) have no write
+line, so a store into their address space is decoded and then lost. The machine
+layer models this the same way it models the PIA, by registering write
+callbacks over both regions in `Amico2000._protectROM()`; the generic CPU core
+keeps its plain writable 64KB array and stays layout-agnostic.
+`Amico2000.ROM_REGIONS` is the single place the layout is declared.
+
+The IC10 region is protected whether or not a cassette PROM has been loaded: an
+empty socket latches a store no better than a fitted chip does.
+
+Three paths write `cpu.memory[]` directly and therefore bypass those callbacks.
+Two are deliberate and must keep working: `loadMonitorROM()` and
+`loadCassetteROM()` install an image the way fitting a chip does, bounded to
+the size of the socket. The others validate their destination against
+`_findROMOverlap()`: `loadProgram()` throws, and the trapped IC10 tape LOAD
+returns the routine's own `$0000 = $FF` error status because the monitor
+expects a status byte, not an exception.
+
+Both of those bound the destination before comparing it against the regions.
+`CPU6502.loadBinary()` masks every write with `& 0xFFFF`, so an address above
+`$FFFF` or below zero wraps back into the address space -- `$1FE00` and
+`-$200` both land on `$FE00` -- while the unmasked value overlaps no region.
+`loadProgram()` rejects such an address rather than masking it, because the
+board has no address line above A15 and relocating a caller's data silently
+would hide the caller's bug. The tape LOAD path was already bounded by its
+`loadAddress + length > memory.length` check, and its address comes from two
+guest RAM bytes, so it cannot leave the 16-bit space to begin with.
+
+The vectors are the reason this is more than cosmetic. `CPU6502.reset()` reads
+its new PC from `$FFFC`, so before the fix a single `STA $FFFC` left the board
+with no way back to the monitor, defeating the Reset control as well. Covered
+by `tests/rom-write-protection.test.js`.
+
+Note that `amico.writeMemory()` goes through `cpu.write()` and so cannot patch
+ROM either; that is intentional, and the ROM loaders remain the way to change a
+PROM image from the console.
+
+### Reset Semantics
+
+Issue #30: the board has two different resets, and the emulator keeps them
+apart deliberately.
+
+`Amico2000.res()` is the RES key, and RES on the real board drives the 6502
+reset line rather than being a key in the scanned matrix. The CPU vectors
+through `$FFFC` to the monitor's cold-start entry at `$FE22`, so it recovers a
+tight loop and an illegal-opcode halt alike with no cooperation from the
+running code. The manual's own description is the evidence: RES "permette di
+arrestare l'esecuzione di un programma utente in qualsiasi momento passando il
+controllo del sistema al monitor". The 8255's RESET pin is on the same line, so
+`res()` also clears the PIA and blanks the display.
+
+`Amico2000.reset()` is the power-on reset and keeps exactly the behavior it
+always had: clear all 2KB of RAM, seed the monitor's RAM-resident IRQ/NMI
+vectors at `$03FC-$03FF` to `$FE30`, then call `res()`. It is what `main.js`
+runs at startup and what the bench **Cold reset** control invokes.
+
+**RES preserves RAM.** This is a deliberate fidelity decision, not an
+oversight. The Sperimentare clock tutorial has the reader press RES to stop the
+program at `$0300`, then re-enter values at `$0000-$0002` and tune `$0312`; the
+program is plainly still in memory afterwards. Two consequences follow, both
+matching the hardware: `$03FC-$03FF` keep whatever a program left in them,
+because `$FE22` reinitialises `$FA`, `$FB` and `$FE` but not those, so the
+power-on reset is the only way back from a program that trashed them; and RES
+does not touch `this.running`, because pausing is a debugging facility with no
+counterpart on the board.
+
+Escape and Backspace are listed in `Amico2000.resetKeys`, checked by
+`keyDown()` before the matrix and exposed through `isResetKey()` so `main.js`
+can still call `preventDefault()` for them. They previously sat at shared
+matrix positions, so Escape also typed AD and Backspace also typed 5. Covered
+by `tests/res-reset.test.js`.
 
 ### Keyboard Scanning
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
@@ -160,6 +237,15 @@ documents the original cassette workflow:
 The emulator's current cassette support is intentionally file-backed: it traps
 the IC10 entry points and reads/writes `.amtape` images instead of emulating the
 analog signal path or exact Port A/B timing.
+
+Return convention (issue #24): the IC10 routines do not end in `RTS`. They exit
+with `JMP $FE22`, the monitor's reset entry and the `$FFFC` vector target, whose
+preamble runs `LDX #$FF / TXS` at `$FE28-$FE2A` and reinitialises `SP` to `$FF`.
+The traps therefore set `PC = $FE22` without unwinding any `JSR` frame, which
+matches the original ROM and cannot leak stack space. Do not add a `pull16()`
+there: the ROM also re-enters LOAD with `JMP $FC54` (no frame pushed), so an
+unconditional pull would corrupt the stack on that path. Protected by
+`tests/cassette-trap-stack.test.js`.
 
 ## Development Guidelines
 
@@ -226,6 +312,8 @@ When implementing changes based on a GitHub issue:
 | RUN       | Enter or G |
 | RES       | Escape or Backspace |
 
+RES is not a matrix key; see Reset Semantics above.
+
 The on-screen keys are labelled with the legends silkscreened on the original
 board. Two of them were previously labelled after their emulator identity rather
 than the hardware: `RUN` was shown as `GO`, and `HLT` was shown as `PC`. The
@@ -253,9 +341,8 @@ opportunistically rather than treating them as required for any specific task:
   unknown and row 0 bit 6 as `E`). Reconcile the comments with the table.
   While doing this, document that some function keys intentionally share
   matrix positions because the monitor ROM disambiguates them by context.
-- `amico2000.js`: gate the unconditional `Key pressed` / `Key released`
-  `console.log` calls behind `window.debugKeyboard`, matching the existing
-  pattern used elsewhere in the file.
+  Note that RES no longer shares a position with AD/REG: it left the matrix
+  entirely in #30.
 - `main.js`: `window.amico` is declared as `null` and then re-assigned inside a
   second `DOMContentLoaded` handler. Fold the assignment into the main init
   path so there is a single startup sequence.

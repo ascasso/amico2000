@@ -72,13 +72,23 @@ class Amico2000 {
             'g': [2, 3],          // GO alternate
             'r': [2, 1],          // REG (shares with AD)
             'p': [2, 3],          // PC (shares with DA/GO)
-            'Escape': [2, 1],     // RES (shares with AD/REG)
         };
 
         // Alternate key mappings for function keys
-        this.altKeyMap = {
-            'Backspace': [0, 5],  // RES (alternate, shares with 5)
-        };
+        this.altKeyMap = {};
+
+        // Fix for #30: RES is not a key in the scanned matrix. On the real
+        // board it drives the 6502 reset line, which is why the manual can say
+        // it "permette di arrestare l'esecuzione di un programma utente in
+        // qualsiasi momento passando il controllo del sistema al monitor" -
+        // it stops a user program at any moment, whether or not that program
+        // ever scans the keyboard, and even after an illegal opcode has
+        // stopped the CPU dead. These keys therefore bypass keyMatrix
+        // entirely and call res().
+        //
+        // They used to sit in the matrix at positions they shared with other
+        // keys, so pressing Escape also typed AD and Backspace also typed 5.
+        this.resetKeys = new Set(['Escape', 'Backspace']);
         
         // Single-step mode
         this.singleStep = false;
@@ -109,6 +119,48 @@ class Amico2000 {
         // aliases to these four 8255 PIA registers using the low two address bits.
         this.cpu.onRead(0xFD00, 0xFD03, (addr) => this._readPIA(addr));
         this.cpu.onWrite(0xFD00, 0xFD03, (addr, value) => this._writePIA(addr, value));
+
+        this._protectROM();
+    }
+
+    /**
+     * Fix for #31: model the read-only regions of the board.
+     *
+     * The PROMs at IC9 and IC10 have no write line. A store into their address
+     * space is decoded and driven onto the bus, but nothing latches it, so the
+     * byte is simply lost. The generic CPU core deliberately keeps a writable
+     * flat 64KB array, so the machine layer declares which regions are
+     * read-only exactly the way it declares the PIA: through write callbacks.
+     * A store landing here is swallowed instead of reaching cpu.memory[].
+     *
+     * This matters beyond stray bytes in the monitor listing. $FFFA-$FFFF hold
+     * the NMI/reset/IRQ vectors, so before this fix a single `STA $FFFC` left
+     * the board with no way home: CPU6502.reset() takes its new PC from that
+     * vector, which meant even the Reset control could not recover the machine.
+     *
+     * Deliberate ROM installation goes through loadMonitorROM() and
+     * loadCassetteROM(), which write cpu.memory[] directly the way fitting a
+     * chip into the socket does, and are unaffected by this protection.
+     */
+    _protectROM() {
+        for (const region of Amico2000.ROM_REGIONS) {
+            this.cpu.onWrite(region.start, region.end, () => {});
+        }
+    }
+
+    /**
+     * Fix for #31: return the read-only region that a span of `length` bytes
+     * starting at `address` would land on, or null when the span is clear.
+     *
+     * The write callbacks above only guard the CPU's own stores. The loaders
+     * below write cpu.memory[] directly, so they check their destination here.
+     */
+    _findROMOverlap(address, length) {
+        if (length <= 0) return null;
+        const end = address + length - 1;
+        return Amico2000.ROM_REGIONS.find(
+            (region) => address <= region.end && end >= region.start
+        ) || null;
     }
 
     _setupCassetteROMTraps() {
@@ -120,6 +172,19 @@ class Amico2000 {
 
         // Fix for #2: IC10 cassette ROM documented entry points: FBBC = save, FC54 = load.
         // Trapping here avoids tying browser file I/O to the original analog signal loop.
+        //
+        // Issue #24: redirecting to $FE22 deliberately does NOT unwind a JSR frame.
+        // $FE22 is the monitor's RESET entry (it is the $FFFC vector target) and it
+        // runs `LDX #$00 / STX $FA / STX $FB / LDX #$FF / TXS` before reaching the
+        // main loop at $FE30, so the TXS at $FE2A reinitialises SP to $FF. Any frame
+        // pushed by a `JSR $FBBC` / `JSR $FC54` is discarded by the monitor itself,
+        // and repeated LOAD/SAVE cannot leak stack space.
+        //
+        // Pulling the frame here would be wrong rather than merely redundant: the
+        // IC10 ROM re-enters LOAD with `JMP $FC54` (no frame pushed) and leaves both
+        // routines with `JMP $FE22` rather than RTS, so an unconditional pull would
+        // corrupt the stack on the JMP path. Covered by
+        // tests/cassette-trap-stack.test.js.
         if (pc === 0xFBBC) {
             try {
                 this.saveTapeFromMonitorParams();
@@ -278,19 +343,29 @@ class Amico2000 {
      * @param {string} key - Key identifier
      */
     keyDown(key) {
+        // Fix for #30: the reset line is checked before the matrix, so RES
+        // works with a program that never scans the keyboard and with a CPU
+        // that is halted on an illegal opcode.
+        if (this.isResetKey(key)) {
+            if (this._keyboardDebug()) console.log(`Key pressed: "${key}" -> RES (reset line)`);
+            this.res();
+            return;
+        }
+
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
-            console.log(`Key pressed: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = true;
 
-            // DEBUG: Show display state after key press (with slight delay to see ROM processing)
-            if (window.debugKeyboard) {
+            if (this._keyboardDebug()) {
+                console.log(`Key pressed: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
+
+                // Show display state after the press, delayed so ROM processing lands first
                 setTimeout(() => {
                     const displayHex = this.display.map(d => d.toString(16).padStart(2, '0').toUpperCase()).join(' ');
                     console.log(`[DISPLAY] ${displayHex} | CPU halted: ${this.cpu.halted} | PC: ${this.cpu.PC.toString(16).padStart(4, '0').toUpperCase()}`);
                 }, 50);
             }
-        } else {
+        } else if (this._keyboardDebug()) {
             console.log(`Key pressed: "${key}" -> NOT MAPPED`);
         }
     }
@@ -300,11 +375,31 @@ class Amico2000 {
      * @param {string} key - Key identifier
      */
     keyUp(key) {
+        // A reset key holds nothing in the matrix, so there is nothing to
+        // release and no way for it to leave a cell stuck down (#30).
+        if (this.isResetKey(key)) return;
+
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
-            console.log(`Key released: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
+            if (this._keyboardDebug()) console.log(`Key released: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
             this.keyMatrix[pos[0]][pos[1]] = false;
         }
+    }
+
+    /**
+     * Is this key one of the RES aliases? Fix for #30: `main.js` needs this to
+     * decide whether to preventDefault, since RES no longer appears in keyMap.
+     */
+    isResetKey(key) {
+        return this.resetKeys.has(key);
+    }
+
+    /**
+     * Keyboard tracing is opt-in through `debug.enableKeyboardDebug()`, and the
+     * guard has to survive Node, where the machine runs without a `window`.
+     */
+    _keyboardDebug() {
+        return typeof window !== 'undefined' && window.debugKeyboard === true;
     }
     
     /**
@@ -326,11 +421,17 @@ class Amico2000 {
         };
         
         const key = nameToKey[keyName];
-        if (key) {
-            this.keyDown(key);
-            // Auto-release after 100ms (simulates key click)
-            setTimeout(() => this.keyUp(key), 100);
-        }
+        if (!key) return;
+
+        this.keyDown(key);
+
+        // Fix for #30: RES is a momentary line rather than a matrix key, so
+        // keyDown() has already done all of it. Scheduling a release would
+        // only queue a timer that has nothing to clear.
+        if (this.isResetKey(key)) return;
+
+        // Auto-release after 100ms (simulates key click)
+        setTimeout(() => this.keyUp(key), 100);
     }
     
     // =========================================================================
@@ -342,7 +443,7 @@ class Amico2000 {
      * @param {Uint8Array|Array} data - ROM data (512 bytes)
      */
     loadMonitorROM(data) {
-        this.cpu.loadBinary(data, 0xFE00);
+        this._installROM(data, Amico2000.MONITOR_ROM_REGION);
     }
     
     /**
@@ -350,7 +451,25 @@ class Amico2000 {
      * @param {Uint8Array|Array} data - ROM data (512 bytes)
      */
     loadCassetteROM(data) {
-        this.cpu.loadBinary(data, 0xFB00);
+        this._installROM(data, Amico2000.CASSETTE_ROM_REGION);
+    }
+
+    /**
+     * Fix for #31: install a PROM image, bypassing the write protection the way
+     * physically fitting the chip does. The size check stops a wrongly
+     * identified file from running past the end of its socket, which for the
+     * monitor means loadBinary()'s address masking silently wrapping the tail
+     * of the image into zero page.
+     */
+    _installROM(data, region) {
+        const capacity = region.end - region.start + 1;
+        if (data.length > capacity) {
+            const range = `$${region.start.toString(16).toUpperCase()}-$${region.end.toString(16).toUpperCase()}`;
+            throw new Error(
+                `${region.name} image is ${data.length} bytes, but ${range} holds ${capacity}`
+            );
+        }
+        this.cpu.loadBinary(data, region.start);
     }
     
     /**
@@ -359,6 +478,42 @@ class Amico2000 {
      * @param {number} address - Start address (default $0000)
      */
     loadProgram(data, address = 0x0000) {
+        // Fix for #31: this writes cpu.memory[] directly, so without a check an
+        // oversized or misaddressed .bin would be a way around ROM protection.
+        // Replacing a PROM is a separate, deliberate act: loadMonitorROM() and
+        // loadCassetteROM() exist for that.
+        //
+        // The destination is bounded before it is compared against the PROM
+        // regions, because CPU6502.loadBinary() masks every write with
+        // & 0xFFFF: an address outside the 6502's 16-bit space wraps back
+        // into it -- $1FE00 and -$200 both land on $FE00 -- while the
+        // unmasked value overlaps nothing, so the region test alone waved
+        // them straight through onto the monitor.
+        //
+        // Out-of-range addresses are rejected rather than masked. The board
+        // has no address line above A15, so a caller holding one has a bug,
+        // and quietly relocating its data would only hide it.
+        if (!Number.isInteger(address) || address < 0 || address >= this.cpu.memory.length) {
+            throw new Error(
+                `Load address ${address} is outside the 6502's $0000-$FFFF address space`
+            );
+        }
+        if (address + data.length > this.cpu.memory.length) {
+            const at = `$${address.toString(16).padStart(4, '0').toUpperCase()}`;
+            throw new Error(
+                `Program of ${data.length} bytes at ${at} runs past the end of ` +
+                `the address space`
+            );
+        }
+
+        const clash = this._findROMOverlap(address, data.length);
+        if (clash) {
+            const at = `$${address.toString(16).padStart(4, '0').toUpperCase()}`;
+            throw new Error(
+                `Program of ${data.length} bytes at ${at} would overwrite the ` +
+                `${clash.name}; use the ROM loader to replace it`
+            );
+        }
         this.cpu.loadBinary(data, address);
     }
 
@@ -503,6 +658,17 @@ class Amico2000 {
             return false;
         }
 
+        // Fix for #31: the destination comes from guest RAM ($0001/$0002) or
+        // from the tape record itself, so a LOAD is the third direct-memory
+        // path that could otherwise drop a program on top of the monitor.
+        // Refuse it with the routine's own error convention ($0000 = $FF)
+        // rather than throwing: this runs inside the trapped IC10 entry point,
+        // where the monitor expects a status byte back, not an exception.
+        if (this._findROMOverlap(loadAddress, record.data.length)) {
+            this.cpu.memory[0x0000] = 0xFF;
+            return false;
+        }
+
         this.cpu.memory.set(record.data, loadAddress);
         this.cpu.memory[0x0000] = record.id;
         this._writeWord(0x0001, loadAddress);
@@ -514,7 +680,17 @@ class Amico2000 {
     // =========================================================================
     
     /**
-     * Reset the machine
+     * Power-on reset: the state the board is in a moment after the switch is
+     * flipped. Clears RAM, seeds the monitor's RAM-resident vectors, and then
+     * asserts the reset line.
+     *
+     * This is the cold start, and it is deliberately more than RES does (#30).
+     * Switching on gives you undefined RAM that the monitor expects to have
+     * been cleared; pressing RES on a running board does not. Keeping the two
+     * apart is why `reset()` retains exactly the behavior it always had, while
+     * the RES key and its Escape/Backspace aliases go to res().
+     *
+     * @see res
      */
     reset() {
         // Initialize ALL RAM to $00 (not just zero page)
@@ -533,6 +709,41 @@ class Amico2000 {
         this.cpu.memory[0x03FD] = 0xFE;  // High byte of $FE30
         this.cpu.memory[0x03FE] = 0x30;  // Low byte of $FE30
         this.cpu.memory[0x03FF] = 0xFE;  // High byte of $FE30
+
+        this.res();
+    }
+
+    /**
+     * RES: assert the 6502 reset line, which is all the board's RES key does.
+     *
+     * Fix for #30. The CPU vectors through $FFFC to the monitor's cold-start
+     * entry at $FE22, so this recovers a program stuck in a tight loop and a
+     * CPU halted on an illegal opcode alike, with no cooperation needed from
+     * the running code. The 8255's own RESET pin sits on the same line, hence
+     * clearing the PIA and the display here.
+     *
+     * RAM is preserved, which is the part worth being explicit about. The
+     * Sperimentare supplement's clock tutorial has the reader press RES to
+     * stop the program at $0300, then re-enter values at $0000-$0002 and tune
+     * $0312 - the program itself is still there afterwards. Wiping RAM would
+     * make that workflow impossible. Power-on clearing lives in reset().
+     *
+     * Two consequences follow from preserving RAM, and both match the
+     * hardware. The monitor's RAM-resident IRQ/NMI vectors at $03FC-$03FF keep
+     * whatever a program left in them, since $FE22 reinitialises $FA, $FB and
+     * $FE but not those; the emulator's power-on reset is the way back from a
+     * program that trashed them. And RES does not touch the emulator's own
+     * run/pause state: pausing is a debugging facility with no counterpart on
+     * the board, so a paused machine stays paused, resettable and steppable
+     * from $FE22.
+     *
+     * @see reset
+     */
+    res() {
+        // A held key must not survive the reset as a stuck matrix cell.
+        for (const row of this.keyMatrix) {
+            row.fill(false);
+        }
 
         // Unhalt CPU if it was halted
         this.cpu.halted = false;
@@ -681,6 +892,15 @@ class Amico2000 {
 }
 
 Amico2000.TAPE_MAGIC = new Uint8Array([0x41, 0x4D, 0x49, 0x43, 0x4F, 0x54, 0x41, 0x50, 0x45]);
+
+// Read-only regions of the AMICO memory map (#31). The monitor PROM at IC9 is
+// always fitted; the cassette PROM at IC10 is optional, but the region is
+// protected either way, because an empty socket latches a store no better than
+// a PROM does. Keeping the table here rather than in cpu6502.js is what lets
+// the CPU core stay a generic 6502 with plain writable memory.
+Amico2000.MONITOR_ROM_REGION = { name: 'monitor ROM (IC9)', start: 0xFE00, end: 0xFFFF };
+Amico2000.CASSETTE_ROM_REGION = { name: 'cassette ROM (IC10)', start: 0xFB00, end: 0xFCFF };
+Amico2000.ROM_REGIONS = [Amico2000.MONITOR_ROM_REGION, Amico2000.CASSETTE_ROM_REGION];
 
 // Export for use as module
 if (typeof module !== 'undefined' && module.exports) {

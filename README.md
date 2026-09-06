@@ -7,7 +7,7 @@ The AMICO 2000 lives again. 🇮🇹💾✨
 ## 🚀 Quick Start
 
 1. Open `index.html` in any modern web browser
-2. Press **ESC** (or click RES) to reset the machine
+2. Press **ESC** (or click RES) to hand control to the monitor
 3. Use the hex keypad to enter programs
 4. Press **Enter** (or click GO) to run
 
@@ -37,13 +37,25 @@ amico2000/
 | GO        | Enter or G |
 | RES       | Escape or Backspace |
 
+RES is wired the way it is on the real board: it drives the processor's reset
+line rather than sitting in the scanned key matrix (#30). So it stops whatever
+is running at any moment, even a program that never reads the keyboard, or one
+that has crashed the processor on an illegal opcode, and hands control back to
+the monitor. Your program and anything you typed into RAM are left alone.
+
+The **Cold reset** button under Bench controls is the harder one: it clears all
+of RAM the way switching the board off and on does. Reach for it if a program
+has overwritten the monitor's RAM-resident interrupt vectors at $03FC-$03FF,
+which RES does not restore because on the real machine it cannot.
+
 ## 🎮 How to Use
 
 The AMICO 2000 Monitor ROM uses a state machine — follow the exact sequence for your task.
 
 ### Initial Setup
 
-Press **RES** (Escape) to reset the machine to a clean state.
+Press **RES** (Escape) to hand control back to the monitor. RAM is preserved;
+use **Cold reset** under Bench controls if you want a cleared machine.
 
 ### Data Entry Mode (DA)
 
@@ -90,7 +102,8 @@ Click the **Load ROM/Tape** button to load:
 
 The optional cassette ROM entry points are intercepted at $FBBC (SAVE) and
 $FC54 (LOAD). This provides file-backed cassette behavior without emulating the
-original analog tape waveform. Use `debug.saveTape()` after running the cassette
+original analog tape waveform. As on the original, control then returns to the
+monitor at $FE22 rather than through an `RTS`. Use `debug.saveTape()` after running the cassette
 SAVE routine to download the most recent mock tape image.
 
 The original Sperimentare supplement documents the cassette workflow in
@@ -118,9 +131,16 @@ Chapter V, "L'uso del registratore a cassette":
 |---------|---------|
 | $0000-$03FF | RAM (1KB standard) |
 | $0400-$07FF | RAM (1KB expansion) |
-| $FB00-$FCFF | Cassette ROM (optional) |
+| $FB00-$FCFF | Cassette ROM (optional, read-only) |
 | $FD00-$FDFF | 8255 PIA (I/O, partially decoded) |
-| $FE00-$FFFF | Monitor ROM |
+| $FE00-$FFFF | Monitor ROM (read-only) |
+
+Both PROM regions ignore writes from the running program, the way chips with no
+write line do on the real board (#31). A `STA $FE00` is decoded and discarded
+rather than patching the monitor, and that includes the $FFFA-$FFFF interrupt
+and reset vectors, so Reset can always bring the machine back to the monitor.
+Replacing a PROM is a separate, deliberate act: use the ROM file loader, or
+`amico.loadMonitorROM()` / `amico.loadCassetteROM()` from the console.
 
 ### 8255 PIA Ports
 

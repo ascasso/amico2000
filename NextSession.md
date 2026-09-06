@@ -24,8 +24,21 @@ Priority order:
   `amico.reset()`.
 - `#22` is implemented: decimal-mode SBC now derives `N` from the binary
   subtraction result, protected by a targeted dependency-free Node test.
-- Remaining items from the prior handoff: `#17`, `#18`, `#19`, `#20`, `#23`,
-  `#24`.
+- `#24` is resolved as a non-bug: the cassette traps correctly keep the `JSR`
+  frame, because `$FE22` is the monitor reset entry and its `TXS` restores
+  `SP`. Documented in `amico2000.js` and protected by
+  `tests/cassette-trap-stack.test.js`.
+- `#31` is fixed: the IC9 and IC10 PROM regions are read-only to guest code,
+  including the `$FFFA-$FFFF` vectors, and the three direct-memory paths that
+  bypassed the write callbacks (`loadProgram`, tape LOAD, the ROM loaders) are
+  each bounded. Protected by `tests/rom-write-protection.test.js`.
+- `#30` is fixed: RES drives the processor's reset line instead of poking the
+  key matrix, so it recovers a tight loop and an illegal-opcode halt. RES
+  preserves RAM and `reset()` remains the power-on cold start; the bench
+  control is now labelled **Cold reset**. Protected by
+  `tests/res-reset.test.js`. The two issues were worked together because a
+  corrupted `$FFFC` vector defeats every reset path, so #31 had to land first.
+- Remaining items from the prior handoff: `#17`, `#18`, `#19`, `#20`, `#23`.
 - There is no full automated CPU test harness yet. Keep any near-term
   verification small and directly tied to a behavior fix.
 
@@ -34,8 +47,11 @@ Priority order:
 Re-check the user-visible AMICO 2000 workflow against the original monitor
 behavior:
 
-- Reset, address entry (`AD`), data entry (`DA`), increment (`+`), run (`GO`),
-  register display (`REG`), and program counter display (`PC`).
+- Reset is done (`#30`). Address entry (`AD`), data entry (`DA`), increment
+  (`+`), run (`GO`), register display (`REG`), and halt (`HLT`) are still
+  unverified against the monitor ROM; `HLT` is mapped to `P` on inference from
+  board position, and the manual describes it as generating a CPU-level
+  interrupt, which the emulator does not do.
 - Keyboard matrix behavior, including row/column assumptions and active-low
   reads.
 - Display multiplexing and seven-segment patterns.
@@ -88,8 +104,12 @@ Relevant open items:
 
 - `#23`: full `$0000-$FFFF` SAVE produces a 64KB data payload that cannot fit in
   the current 16-bit `.amtape` length field.
-- `#24`: investigate whether cassette ROM traps should unwind a `JSR` return
-  frame or intentionally jump back to the monitor.
+- `#35`: the `CASSETTE_ROM` array in `main.js` does not disassemble as coherent
+  6502 code at `$FB00`: the ROM's own `JMP $FC54` at `$FBF3` lands on `$FB`, an
+  invalid opcode, because `$FC52` holds `JSR $FB00`. It is not loaded by
+  default, so nothing depends on it today, but it should be replaced with the
+  archived `prom.ic10` binary before any cassette work relies on real ROM
+  execution. See `docs/computerhistory-amico2000.md` for the source link.
 - `#19`: document the `.amtape` mock cassette file format after behavior is
   settled.
 - `#20`: analog cassette signal fidelity is long-term only.

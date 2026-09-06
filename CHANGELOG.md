@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `Amico2000.res()`, the board's RES key as a distinct operation from the
+  power-on reset (#30). `reset()` keeps its existing cold-start behavior and
+  now delegates the CPU/PIA/display half to `res()`.
+- Added `tests/res-reset.test.js`, dependency-free regression coverage for
+  issue #30: Escape, Backspace, the on-screen RES button and `res()` each break
+  a tight loop and clear an illegal-opcode halt, RES preserves RAM while the
+  power-on reset clears it, and no reset alias leaves a matrix key stuck or
+  types AD or 5.
+- Added `tests/rom-write-protection.test.js`, dependency-free regression
+  coverage for issue #31: guest stores into either PROM region are ignored, the
+  reset vector survives, the monitor still boots and runs afterwards, and RAM,
+  the PIA, and the explicit ROM loaders all keep working.
+- Added `tests/helpers/machine.js`, shared dependency-free test scaffolding so
+  the monitor ROM image is scraped out of `main.js` in one place instead of
+  once per test file.
+- Added `tests/cassette-trap-stack.test.js`, a regression check for issue #24
+  confirming the cassette ROM traps leave no stack residue: the monitor's
+  reset entry at $FE22 reinitialises SP with `TXS`, so 300 consecutive
+  `JSR $FC54` traps never drift the stack pointer.
 - Added preservation notes for the archived ComputerHistory.it AMICO 2000
   reconstruction article under `docs/`.
 - Added the December 1978 Sperimentare AMICO 2000 Archive.org source link to
@@ -32,6 +51,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Recorded completed re-verification and closure of #30 and #31 on
+  `develop` at `8f1fa3d`, matching the remote branch. Reviewed all four fix/docs
+  commits, their engineering-log sections, and every issue acceptance criterion
+  against the current code and tests; no additional implementation was needed.
+  `node --test tests/` passed all 32 tests (16 for #30, 11 for #31, five existing
+  regressions); individual syntax checks passed for `amico2000.js`, `main.js`,
+  `cpu6502.js`, and `display.js`, and `git diff --check` passed. Git status
+  showed only the pre-existing untracked `docs/.DS_Store`, left untouched.
+  Chrome checks against a local Python server confirmed Escape, Backspace, and
+  mouse RES recover a running loop, and Escape recovers an illegal-opcode halt;
+  Backspace prevents browser navigation, reset aliases inject no matrix input,
+  and Escape/Backspace/Arrow Up/Arrow Down/Enter depress and release the correct
+  keycaps. Screenshot and computed-style checks confirmed the rendered 3px
+  depression and its release. Keypad-entered `$AB` survived RES and Backspace,
+  then **Cold reset** cleared it; the control label and both reset tooltips were
+  checked. ROM write attempts preserved `$FE00 = $85`, `$FFFC = $22`, and the
+  `$FE22` reset vector. Loading a 513-byte monitor file through the native picker
+  produced the expected size-error alert without changing any monitor byte or
+  `$0000`; a normal eight-byte `.bin` loaded at `$0000` and executed, storing
+  `$42` at `$0300` and looping at `$0005` without halting. Both issues were
+  closed with item-by-item evidence and browser results. Browser coverage was
+  limited to Chrome on this machine; touch input and other browsers were not
+  exercised. See [the complete verification record](docs/logs/2026-09-06.md#verification-and-closure-of-30-and-31).
+- Renamed the bench **Reset** control to **Cold reset** and described both
+  resets in the on-page help (#30). Two controls named "Reset" with different
+  RAM behavior was the confusion the issue reported; the bench control is the
+  emulator's power-on reset, the board's RES key is the reset line.
+- Documented in `amico2000.js`, `AGENTS.md`, and `README.md` why the IC10
+  cassette traps redirect to $FE22 without unwinding the JSR frame (issue #24).
+  $FE22 is the monitor reset entry ($FFFC vector target) and its `TXS` restores
+  SP to $FF, so no stack leak is possible; pulling the frame would instead
+  corrupt the stack on the ROM's own `JMP $FC54` re-entry path. No behavioural
+  change.
+- Corrected the `AGENTS.md` testing instructions, which named only the single
+  decimal-SBC test file; the committed checks now run with `node --test tests/`.
+- Recorded the resolution of #24 and the newly filed #35 (`CASSETTE_ROM` is not
+  a valid `prom.ic10` dump) in `NextSession.md`.
 - Let the bottom "About this board" text use the full panel width and added
   a GitHub repository link alongside the page credits.
 - Reworked the emulator front end in `index.html` so the interface recreates the
@@ -81,6 +137,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed RES not resetting a running or halted CPU (#30). Escape, Backspace and
+  the on-screen RES button only set a bit in the scanned key matrix, so they
+  could not reach a program that never reads the keyboard, nor a CPU stopped on
+  an illegal opcode. All three now drive the processor's reset line, as RES
+  does on the real board, and vector through $FFFC to the monitor.
+- Fixed Escape typing AD and Backspace typing 5 (#30). Both aliases sat at
+  matrix positions shared with other keys; RES is no longer a matrix key at
+  all, and a reset also clears any key being held.
+- Fixed the on-screen key highlight for named keys, which indexed a lowercase
+  lookup table with a cased key name, so pressing Escape, Arrow Up, Arrow Down
+  or Enter never animated the matching cap (#30).
+- Fixed `Amico2000.keyDown()` throwing a `ReferenceError` outside a browser by
+  guarding its bare `window.debugKeyboard` reference, which had made the
+  keyboard path untestable from Node (#30). The unconditional key-press logging
+  it sits next to is now gated behind the same flag, as the rest of the file
+  already does.
+- Fixed `loadProgram()` accepting a load address outside the 6502's 16-bit
+  address space, which defeated its own PROM check (#31). `CPU6502.loadBinary()`
+  masks every write with `& 0xFFFF`, so `loadProgram(data, 0x1FE00)` and
+  `loadProgram(data, -0x200)` both landed on `$FE00` and overwrote the monitor
+  while the unmasked address overlapped no region. The destination is now
+  bounded before it is compared against the PROM regions, and an out-of-range
+  address is rejected rather than masked.
+- Fixed guest CPU writes corrupting the monitor PROM and surviving Reset (#31).
+  The IC9 ($FE00-$FFFF) and IC10 ($FB00-$FCFF) regions are now read-only to the
+  running program, as chips with no write line are on the real board. This
+  covers the $FFFA-$FFFF vectors, which matters because `CPU6502.reset()` takes
+  its new PC from $FFFC: a single `STA $FFFC` previously left the machine with
+  no way back to the monitor, defeating the Reset control too. Deliberate PROM
+  installation through `loadMonitorROM()` / `loadCassetteROM()` is unchanged,
+  and is now bounded to the size of the socket instead of wrapping past $FFFF.
+- Fixed two direct-memory paths that bypassed the new protection (#31):
+  `loadProgram()` now refuses a destination overlapping a PROM, and the trapped
+  IC10 tape LOAD refuses a guest-supplied load address that would land on one,
+  reporting the routine's own `$0000 = $FF` error status.
 - Corrected the recreated board's I/O package from MCS 6532 to the documented
   8255 PIA (IC15), with a 40-pin depiction.
 - Fixed decimal-mode SBC to derive the negative flag from the NMOS 6502 binary
