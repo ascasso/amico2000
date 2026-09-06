@@ -39,8 +39,8 @@ python3 -m http.server 8000
 
 ## Testing the Emulator
 
-- Run the targeted CPU regression check with
-  `node --test tests/cpu6502-decimal-sbc.test.js`
+- Run the committed regression checks with `node --test tests/`, or a single
+  file, e.g. `node --test tests/cpu6502-decimal-sbc.test.js`
 - Open the browser console (F12) to access debug commands
 - Use `debug.mem(0x0000, 16)` to dump memory
 - Use `debug.state()` to show CPU state
@@ -160,6 +160,15 @@ documents the original cassette workflow:
 The emulator's current cassette support is intentionally file-backed: it traps
 the IC10 entry points and reads/writes `.amtape` images instead of emulating the
 analog signal path or exact Port A/B timing.
+
+Return convention (issue #24): the IC10 routines do not end in `RTS`. They exit
+with `JMP $FE22`, the monitor's reset entry and the `$FFFC` vector target, whose
+preamble runs `LDX #$FF / TXS` at `$FE28-$FE2A` and reinitialises `SP` to `$FF`.
+The traps therefore set `PC = $FE22` without unwinding any `JSR` frame, which
+matches the original ROM and cannot leak stack space. Do not add a `pull16()`
+there: the ROM also re-enters LOAD with `JMP $FC54` (no frame pushed), so an
+unconditional pull would corrupt the stack on that path. Protected by
+`tests/cassette-trap-stack.test.js`.
 
 ## Development Guidelines
 

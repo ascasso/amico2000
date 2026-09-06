@@ -36,11 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
-- Documented in `amico2000.js` why the IC10 cassette traps redirect to $FE22
-  without unwinding the JSR frame (issue #24). $FE22 is the monitor reset entry
-  ($FFFC vector target) and its `TXS` restores SP to $FF, so no stack leak is
-  possible; pulling the frame would instead corrupt the stack on the ROM's own
-  `JMP $FC54` re-entry path. No behavioural change.
+- Documented in `amico2000.js`, `AGENTS.md`, and `README.md` why the IC10
+  cassette traps redirect to $FE22 without unwinding the JSR frame (issue #24).
+  $FE22 is the monitor reset entry ($FFFC vector target) and its `TXS` restores
+  SP to $FF, so no stack leak is possible; pulling the frame would instead
+  corrupt the stack on the ROM's own `JMP $FC54` re-entry path. No behavioural
+  change.
+- Corrected the `AGENTS.md` testing instructions, which named only the single
+  decimal-SBC test file; the committed checks now run with `node --test tests/`.
+- Recorded the resolution of #24 and the newly filed #35 (`CASSETTE_ROM` is not
+  a valid `prom.ic10` dump) in `NextSession.md`.
 - Let the bottom "About this board" text use the full panel width and added
   a GitHub repository link alongside the page credits.
 - Reworked the emulator front end in `index.html` so the interface recreates the

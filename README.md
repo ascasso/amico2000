@@ -90,7 +90,8 @@ Click the **Load ROM/Tape** button to load:
 
 The optional cassette ROM entry points are intercepted at $FBBC (SAVE) and
 $FC54 (LOAD). This provides file-backed cassette behavior without emulating the
-original analog tape waveform. Use `debug.saveTape()` after running the cassette
+original analog tape waveform. As on the original, control then returns to the
+monitor at $FE22 rather than through an `RTS`. Use `debug.saveTape()` after running the cassette
 SAVE routine to download the most recent mock tape image.
 
 The original Sperimentare supplement documents the cassette workflow in
