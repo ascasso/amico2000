@@ -143,6 +143,16 @@ the size of the socket. The others validate their destination against
 returns the routine's own `$0000 = $FF` error status because the monitor
 expects a status byte, not an exception.
 
+Both of those bound the destination before comparing it against the regions.
+`CPU6502.loadBinary()` masks every write with `& 0xFFFF`, so an address above
+`$FFFF` or below zero wraps back into the address space -- `$1FE00` and
+`-$200` both land on `$FE00` -- while the unmasked value overlaps no region.
+`loadProgram()` rejects such an address rather than masking it, because the
+board has no address line above A15 and relocating a caller's data silently
+would hide the caller's bug. The tape LOAD path was already bounded by its
+`loadAddress + length > memory.length` check, and its address comes from two
+guest RAM bytes, so it cannot leave the 16-bit space to begin with.
+
 The vectors are the reason this is more than cosmetic. `CPU6502.reset()` reads
 its new PC from `$FFFC`, so before the fix a single `STA $FFFC` left the board
 with no way back to the monitor, defeating the Reset control as well. Covered

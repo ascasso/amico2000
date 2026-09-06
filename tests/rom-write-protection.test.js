@@ -136,12 +136,39 @@ test('loadProgram refuses a destination that would overwrite a PROM (#31)', () =
     );
 
     // A program that starts below a PROM but runs into it is refused too.
-    assert.throws(() => amico.loadProgram(new Uint8Array(0x0400), 0xFD00), /would overwrite/);
+    // $FD00 sits in the gap between the two sockets; 512 bytes from there run
+    // to $FEFF, into the monitor, without overrunning the address space.
+    assert.throws(() => amico.loadProgram(new Uint8Array(0x0200), 0xFD00), /would overwrite/);
     assert.equal(amico.cpu.memory[MONITOR_BASE], MONITOR_ROM[0]);
 
     // The ordinary case is unaffected.
     amico.loadProgram(Uint8Array.from([0x01, 0x02, 0x03]), 0x0300);
     assert.deepEqual(Array.from(amico.cpu.memory.slice(0x0300, 0x0303)), [0x01, 0x02, 0x03]);
+});
+
+test('loadProgram refuses a destination outside the 16-bit address space (#31)', () => {
+    const amico = bootedMachine();
+
+    // CPU6502.loadBinary() masks its destination with & 0xFFFF, so each of
+    // these lands on $FE00 even though the unmasked address overlaps no
+    // region. Before the fix they rewrote the monitor PROM.
+    for (const bad of [0x1FE00, -0x200, 768.5, '0x0300', NaN]) {
+        assert.throws(
+            () => amico.loadProgram(Uint8Array.of(0x55), bad),
+            /outside the 6502/,
+            `${bad} must be rejected`
+        );
+    }
+    assert.equal(amico.cpu.memory[MONITOR_BASE], MONITOR_ROM[0], 'the monitor must be untouched');
+
+    // A span that starts in range but runs off the top of memory is refused
+    // as well: loadBinary() would wrap the tail back into zero page.
+    assert.throws(() => amico.loadProgram(new Uint8Array(0x20), 0xFFF8), /runs past the end/);
+    assert.equal(amico.cpu.memory[0x0000], 0x00, 'and nothing may have wrapped into zero page');
+
+    // In-range destinations still load, including the very last RAM byte.
+    amico.loadProgram(Uint8Array.of(0x7E), 0x07FF);
+    assert.equal(amico.cpu.memory[0x07FF], 0x7E);
 });
 
 test('a tape LOAD cannot drop its program on top of a PROM (#31)', () => {

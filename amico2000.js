@@ -482,6 +482,30 @@ class Amico2000 {
         // oversized or misaddressed .bin would be a way around ROM protection.
         // Replacing a PROM is a separate, deliberate act: loadMonitorROM() and
         // loadCassetteROM() exist for that.
+        //
+        // The destination is bounded before it is compared against the PROM
+        // regions, because CPU6502.loadBinary() masks every write with
+        // & 0xFFFF: an address outside the 6502's 16-bit space wraps back
+        // into it -- $1FE00 and -$200 both land on $FE00 -- while the
+        // unmasked value overlaps nothing, so the region test alone waved
+        // them straight through onto the monitor.
+        //
+        // Out-of-range addresses are rejected rather than masked. The board
+        // has no address line above A15, so a caller holding one has a bug,
+        // and quietly relocating its data would only hide it.
+        if (!Number.isInteger(address) || address < 0 || address >= this.cpu.memory.length) {
+            throw new Error(
+                `Load address ${address} is outside the 6502's $0000-$FFFF address space`
+            );
+        }
+        if (address + data.length > this.cpu.memory.length) {
+            const at = `$${address.toString(16).padStart(4, '0').toUpperCase()}`;
+            throw new Error(
+                `Program of ${data.length} bytes at ${at} runs past the end of ` +
+                `the address space`
+            );
+        }
+
         const clash = this._findROMOverlap(address, data.length);
         if (clash) {
             const at = `$${address.toString(16).padStart(4, '0').toUpperCase()}`;

@@ -153,6 +153,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keyboard path untestable from Node (#30). The unconditional key-press logging
   it sits next to is now gated behind the same flag, as the rest of the file
   already does.
+- Fixed `loadProgram()` accepting a load address outside the 6502's 16-bit
+  address space, which defeated its own PROM check (#31). `CPU6502.loadBinary()`
+  masks every write with `& 0xFFFF`, so `loadProgram(data, 0x1FE00)` and
+  `loadProgram(data, -0x200)` both landed on `$FE00` and overwrote the monitor
+  while the unmasked address overlapped no region. The destination is now
+  bounded before it is compared against the PROM regions, and an out-of-range
+  address is rejected rather than masked.
 - Fixed guest CPU writes corrupting the monitor PROM and surviving Reset (#31).
   The IC9 ($FE00-$FFFF) and IC10 ($FB00-$FCFF) regions are now read-only to the
   running program, as chips with no write line are on the real board. This
