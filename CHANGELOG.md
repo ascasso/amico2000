@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `Amico2000.res()`, the board's RES key as a distinct operation from the
+  power-on reset (#30). `reset()` keeps its existing cold-start behavior and
+  now delegates the CPU/PIA/display half to `res()`.
+- Added `tests/res-reset.test.js`, dependency-free regression coverage for
+  issue #30: Escape, Backspace, the on-screen RES button and `res()` each break
+  a tight loop and clear an illegal-opcode halt, RES preserves RAM while the
+  power-on reset clears it, and no reset alias leaves a matrix key stuck or
+  types AD or 5.
 - Added `tests/rom-write-protection.test.js`, dependency-free regression
   coverage for issue #31: guest stores into either PROM region are ignored, the
   reset vector survives, the monitor still boots and runs afterwards, and RAM,
@@ -43,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Renamed the bench **Reset** control to **Cold reset** and described both
+  resets in the on-page help (#30). Two controls named "Reset" with different
+  RAM behavior was the confusion the issue reported; the bench control is the
+  emulator's power-on reset, the board's RES key is the reset line.
 - Documented in `amico2000.js`, `AGENTS.md`, and `README.md` why the IC10
   cassette traps redirect to $FE22 without unwinding the JSR frame (issue #24).
   $FE22 is the monitor reset entry ($FFFC vector target) and its `TXS` restores
@@ -102,6 +114,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed RES not resetting a running or halted CPU (#30). Escape, Backspace and
+  the on-screen RES button only set a bit in the scanned key matrix, so they
+  could not reach a program that never reads the keyboard, nor a CPU stopped on
+  an illegal opcode. All three now drive the processor's reset line, as RES
+  does on the real board, and vector through $FFFC to the monitor.
+- Fixed Escape typing AD and Backspace typing 5 (#30). Both aliases sat at
+  matrix positions shared with other keys; RES is no longer a matrix key at
+  all, and a reset also clears any key being held.
+- Fixed the on-screen key highlight for named keys, which indexed a lowercase
+  lookup table with a cased key name, so pressing Escape, Arrow Up, Arrow Down
+  or Enter never animated the matching cap (#30).
+- Fixed `Amico2000.keyDown()` throwing a `ReferenceError` outside a browser by
+  guarding its bare `window.debugKeyboard` reference, which had made the
+  keyboard path untestable from Node (#30). The unconditional key-press logging
+  it sits next to is now gated behind the same flag, as the rest of the file
+  already does.
 - Fixed guest CPU writes corrupting the monitor PROM and surviving Reset (#31).
   The IC9 ($FE00-$FFFF) and IC10 ($FB00-$FCFF) regions are now read-only to the
   running program, as chips with no write line are on the real board. This

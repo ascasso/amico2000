@@ -28,6 +28,16 @@ Priority order:
   frame, because `$FE22` is the monitor reset entry and its `TXS` restores
   `SP`. Documented in `amico2000.js` and protected by
   `tests/cassette-trap-stack.test.js`.
+- `#31` is fixed: the IC9 and IC10 PROM regions are read-only to guest code,
+  including the `$FFFA-$FFFF` vectors, and the three direct-memory paths that
+  bypassed the write callbacks (`loadProgram`, tape LOAD, the ROM loaders) are
+  each bounded. Protected by `tests/rom-write-protection.test.js`.
+- `#30` is fixed: RES drives the processor's reset line instead of poking the
+  key matrix, so it recovers a tight loop and an illegal-opcode halt. RES
+  preserves RAM and `reset()` remains the power-on cold start; the bench
+  control is now labelled **Cold reset**. Protected by
+  `tests/res-reset.test.js`. The two issues were worked together because a
+  corrupted `$FFFC` vector defeats every reset path, so #31 had to land first.
 - Remaining items from the prior handoff: `#17`, `#18`, `#19`, `#20`, `#23`.
 - There is no full automated CPU test harness yet. Keep any near-term
   verification small and directly tied to a behavior fix.
@@ -37,8 +47,11 @@ Priority order:
 Re-check the user-visible AMICO 2000 workflow against the original monitor
 behavior:
 
-- Reset, address entry (`AD`), data entry (`DA`), increment (`+`), run (`GO`),
-  register display (`REG`), and program counter display (`PC`).
+- Reset is done (`#30`). Address entry (`AD`), data entry (`DA`), increment
+  (`+`), run (`GO`), register display (`REG`), and halt (`HLT`) are still
+  unverified against the monitor ROM; `HLT` is mapped to `P` on inference from
+  board position, and the manual describes it as generating a CPU-level
+  interrupt, which the emulator does not do.
 - Keyboard matrix behavior, including row/column assumptions and active-low
   reads.
 - Display multiplexing and seven-segment patterns.

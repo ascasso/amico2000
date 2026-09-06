@@ -152,6 +152,41 @@ Note that `amico.writeMemory()` goes through `cpu.write()` and so cannot patch
 ROM either; that is intentional, and the ROM loaders remain the way to change a
 PROM image from the console.
 
+### Reset Semantics
+
+Issue #30: the board has two different resets, and the emulator keeps them
+apart deliberately.
+
+`Amico2000.res()` is the RES key, and RES on the real board drives the 6502
+reset line rather than being a key in the scanned matrix. The CPU vectors
+through `$FFFC` to the monitor's cold-start entry at `$FE22`, so it recovers a
+tight loop and an illegal-opcode halt alike with no cooperation from the
+running code. The manual's own description is the evidence: RES "permette di
+arrestare l'esecuzione di un programma utente in qualsiasi momento passando il
+controllo del sistema al monitor". The 8255's RESET pin is on the same line, so
+`res()` also clears the PIA and blanks the display.
+
+`Amico2000.reset()` is the power-on reset and keeps exactly the behavior it
+always had: clear all 2KB of RAM, seed the monitor's RAM-resident IRQ/NMI
+vectors at `$03FC-$03FF` to `$FE30`, then call `res()`. It is what `main.js`
+runs at startup and what the bench **Cold reset** control invokes.
+
+**RES preserves RAM.** This is a deliberate fidelity decision, not an
+oversight. The Sperimentare clock tutorial has the reader press RES to stop the
+program at `$0300`, then re-enter values at `$0000-$0002` and tune `$0312`; the
+program is plainly still in memory afterwards. Two consequences follow, both
+matching the hardware: `$03FC-$03FF` keep whatever a program left in them,
+because `$FE22` reinitialises `$FA`, `$FB` and `$FE` but not those, so the
+power-on reset is the only way back from a program that trashed them; and RES
+does not touch `this.running`, because pausing is a debugging facility with no
+counterpart on the board.
+
+Escape and Backspace are listed in `Amico2000.resetKeys`, checked by
+`keyDown()` before the matrix and exposed through `isResetKey()` so `main.js`
+can still call `preventDefault()` for them. They previously sat at shared
+matrix positions, so Escape also typed AD and Backspace also typed 5. Covered
+by `tests/res-reset.test.js`.
+
 ### Keyboard Scanning
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
 Keyboard input is active-low: unpressed columns read high, and a pressed key clears the corresponding Port A bit.
@@ -267,6 +302,8 @@ When implementing changes based on a GitHub issue:
 | RUN       | Enter or G |
 | RES       | Escape or Backspace |
 
+RES is not a matrix key; see Reset Semantics above.
+
 The on-screen keys are labelled with the legends silkscreened on the original
 board. Two of them were previously labelled after their emulator identity rather
 than the hardware: `RUN` was shown as `GO`, and `HLT` was shown as `PC`. The
@@ -294,9 +331,8 @@ opportunistically rather than treating them as required for any specific task:
   unknown and row 0 bit 6 as `E`). Reconcile the comments with the table.
   While doing this, document that some function keys intentionally share
   matrix positions because the monitor ROM disambiguates them by context.
-- `amico2000.js`: gate the unconditional `Key pressed` / `Key released`
-  `console.log` calls behind `window.debugKeyboard`, matching the existing
-  pattern used elsewhere in the file.
+  Note that RES no longer shares a position with AD/REG: it left the matrix
+  entirely in #30.
 - `main.js`: `window.amico` is declared as `null` and then re-assigned inside a
   second `DOMContentLoaded` handler. Fold the assignment into the main init
   path so there is a single startup sequence.

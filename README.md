@@ -7,7 +7,7 @@ The AMICO 2000 lives again. 🇮🇹💾✨
 ## 🚀 Quick Start
 
 1. Open `index.html` in any modern web browser
-2. Press **ESC** (or click RES) to reset the machine
+2. Press **ESC** (or click RES) to hand control to the monitor
 3. Use the hex keypad to enter programs
 4. Press **Enter** (or click GO) to run
 
@@ -37,13 +37,25 @@ amico2000/
 | GO        | Enter or G |
 | RES       | Escape or Backspace |
 
+RES is wired the way it is on the real board: it drives the processor's reset
+line rather than sitting in the scanned key matrix (#30). So it stops whatever
+is running at any moment, even a program that never reads the keyboard, or one
+that has crashed the processor on an illegal opcode, and hands control back to
+the monitor. Your program and anything you typed into RAM are left alone.
+
+The **Cold reset** button under Bench controls is the harder one: it clears all
+of RAM the way switching the board off and on does. Reach for it if a program
+has overwritten the monitor's RAM-resident interrupt vectors at $03FC-$03FF,
+which RES does not restore because on the real machine it cannot.
+
 ## 🎮 How to Use
 
 The AMICO 2000 Monitor ROM uses a state machine — follow the exact sequence for your task.
 
 ### Initial Setup
 
-Press **RES** (Escape) to reset the machine to a clean state.
+Press **RES** (Escape) to hand control back to the monitor. RAM is preserved;
+use **Cold reset** under Bench controls if you want a cleared machine.
 
 ### Data Entry Mode (DA)
 
