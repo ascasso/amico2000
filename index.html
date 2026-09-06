@@ -338,6 +338,14 @@
         .dip .pins.top    { top: -0.3cqw; }
         .dip .pins.bottom { bottom: -0.3cqw; }
 
+        /* IC15 is a 40-pin 8255: twenty pins per side, independent of board scale.
+           See the original manual's 8255A pinout (PDF page 76). */
+        .dip.io-8255 .pins {
+            background: linear-gradient(90deg, var(--gold) 0 40%, transparent 40% 100%);
+            background-size: 5% 100%;
+            background-repeat: repeat-x;
+        }
+
         /* --- Bus indicator LEDs --------------------------------------- */
 
         .led-bank {
@@ -634,7 +642,8 @@
             line-height: 1.65;
         }
 
-        .about p { margin: 0 0 0.8rem; max-width: 68ch; }
+        /* Let the board description use the full width of its enclosing panel. */
+        .about p { margin: 0 0 0.8rem; }
         .about p:last-child { margin-bottom: 0; }
 
         .colophon {
@@ -729,8 +738,8 @@
         <div class="part dip wide" style="left:31%; top:34%; width:12.5%; height:34%;">
             <div class="pins top"></div><span>MCS 6502</span><div class="pins bottom"></div>
         </div>
-        <div class="part dip" style="left:45.5%; top:36%; width:8.5%; height:26%;">
-            <div class="pins top"></div><span>MCS 6532</span><div class="pins bottom"></div>
+        <div class="part dip io-8255" style="left:45.5%; top:36%; width:8.5%; height:26%;" title="IC15 — 8255 PIA ($FD00–$FD03), 40-pin DIP">
+            <div class="pins top"></div><span>8255</span><div class="pins bottom"></div>
         </div>
         <div class="part dip" style="left:31%; top:12%; width:8%; height:16%;">
             <div class="pins top"></div><span>2716</span><div class="pins bottom"></div>
@@ -923,6 +932,7 @@
 
         <div class="colophon">
             Emulator by Andrea Scasso &middot; original design by A.S.E.L. Milano, 1978 &middot;
+            <a href="https://github.com/ascasso/amico2000" target="_blank" rel="noopener">Source code on GitHub</a> &middot;
             <a href="https://web.archive.org/web/20260113032804/https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117" target="_blank" rel="noopener">board photographs on ComputerHistory.it</a>
         </div>
 
