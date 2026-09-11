@@ -1,0 +1,7 @@
+# tests/fixtures/6502-functional/6502_functional_test.a65 is vendored
+# verbatim from upstream and is pinned byte-for-byte identical, checked
+# against its git blob SHA-1 at the pinned revision (see the fixture
+# README). Its trailing whitespace and missing final newline are upstream's,
+# not ours to "fix" -- doing so would break the pin. Exempt it from
+# `git diff --check` rather than editing vendored bytes.
+tests/fixtures/6502-functional/6502_functional_test.a65 -whitespace

@@ -225,6 +225,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Added `.gitattributes`, exempting the vendored
+  `tests/fixtures/6502-functional/6502_functional_test.a65` from `git diff
+  --check`'s whitespace checks. The file is pinned byte-for-byte identical to
+  upstream and verified against its git blob SHA-1 (see the fixture README);
+  its trailing whitespace and missing final newline are upstream's formatting,
+  not a defect to "fix" by editing vendored bytes. `git diff --check
+  master...develop` now passes cleanly; previously it reported 565 whitespace
+  errors in that one file, which had gone unnoticed because `git diff --check`
+  with no range only inspects uncommitted changes, not historical commits.
+
 - Fixed RES not resetting a running or halted CPU (#30). Escape, Backspace and
   the on-screen RES button only set a bit in the scanned key matrix, so they
   could not reach a program that never reads the keyboard, nor a CPU stopped on
