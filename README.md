@@ -206,6 +206,11 @@ undocumented opcodes, or any AMICO 2000 hardware. See
 [`docs/6502-conformance.md`](docs/6502-conformance.md) for the full picture and
 for how to diagnose a failure.
 
+Alongside it, targeted checks protect each CPU fix the project has made, in the
+areas the functional suite cannot reach — the physical layout of stack and
+interrupt frames, decimal flag semantics swept across every valid BCD operand
+pair, and the per-instruction cycle counts for all 151 documented opcodes.
+
 ## 📚 History
 
 The **AMICO 2000** (Advanced MIcro COmputer) was published in the Italian
@@ -240,6 +245,6 @@ The original AMICO 2000 ROM is included for preservation purposes.
 
 2. **Keyboard Ghosting**: The emulator does not simulate keyboard matrix ghosting that occurs on real hardware when pressing multiple keys simultaneously. For normal operation this doesn't matter, but some edge cases may behave differently.
 
-3. **Timing Accuracy**: The emulator runs at approximately 1MHz but is not cycle-accurate. This is sufficient for the monitor ROM and simple programs. The functional test suite the core passes checks results and flags, never cycles, so it says nothing about timing either way.
+3. **Timing Accuracy**: The emulator runs at approximately 1MHz but is not cycle-accurate: each instruction is charged its documented total, with no model of what happens within it. Those per-instruction totals are checked for all 151 documented opcodes, including page-crossing and branch penalties. This is sufficient for the monitor ROM and simple programs. The functional test suite the core passes never looks at cycles, so it says nothing about timing either way.
 
-4. **Untested CPU Areas**: External interrupt delivery, NMOS decimal-mode flag semantics with invalid BCD operands, and undocumented opcodes are outside what the conformance suite covers. See [`docs/6502-conformance.md`](docs/6502-conformance.md).
+4. **Untested CPU Areas**: External interrupt *delivery* under load, decimal arithmetic with invalid BCD operands, and undocumented opcodes remain uncovered. Decimal flag semantics and per-instruction timing are covered by targeted checks even though the conformance suite does not reach them. See [`docs/6502-conformance.md`](docs/6502-conformance.md).

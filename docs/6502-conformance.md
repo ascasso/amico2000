@@ -165,9 +165,9 @@ These are real gaps, not formalities. None of them is covered by a passing run:
 
 | Gap | Why it matters here |
 |---|---|
-| **External interrupt behaviour** | IRQ/NMI delivery, timing and nesting are untested. That is the separate `6502_interrupt_test`, which needs a feedback register to inject requests. The AMICO monitor's RAM-resident vectors at `$03FC-$03FF` depend on this working. |
+| **External interrupt behaviour** | IRQ/NMI delivery, timing and nesting are untested. That is the separate `6502_interrupt_test`, which needs a feedback register to inject requests. The AMICO monitor's RAM-resident vectors at `$03FC-$03FF` depend on this working. `tests/cpu6502-stack-frames.test.js` pins the frame each interrupt *builds* (#3, #17), which is a different question from whether one is delivered at the right moment. |
 | **NMOS decimal flag behaviour** | Decimal `ADC`/`SBC` run here with **valid BCD operands only**, and **`N`, `V` and `Z` are ignored**. The NMOS flag semantics this project cares about (#4, #22) are therefore *not* covered — `tests/cpu6502-decimal-flags.test.js` and `tests/cpu6502-decimal-sbc.test.js` remain load-bearing, not redundant. The former sweeps all 20,000 valid-BCD operand pairs per instruction against an independent reference. Invalid BCD operands are reproduced by neither the suite nor this core, and that boundary is asserted rather than assumed. |
-| **Instruction timing** | The suite checks results and flags, never cycles. A passing run says nothing about cycle accuracy, which stays approximate by design (Known Limitations #4). |
+| **Instruction timing** | The suite checks results and flags, never cycles. A passing run says nothing about cycle accuracy, which stays approximate by design (Known Limitations #4). `tests/cpu6502-cycles.test.js` covers the per-instruction totals separately (#5, #17); nothing covers sub-instruction timing. |
 | **Undocumented opcodes** | Documented opcodes only. The core halts on unknown opcodes, which is a deliberate debugging choice rather than NMOS behaviour — a real 6502 executes the undocumented ones. |
 | **AMICO 2000 hardware** | The suite runs against a bare `CPU6502`: no monitor ROM, no 8255 PIA, no display multiplexing, no keyboard matrix, no cassette traps. Board-level behaviour is covered by the other files in `tests/` and by browser testing. |
 
@@ -183,5 +183,8 @@ project, more important question.
 - `6502_decimal_test` (Bruce Clark's), which checks decimal-mode flags properly,
   including invalid BCD operands — the gap the functional suite explicitly
   leaves open and the one closest to this project's existing CPU fixes.
-- Issue #17, a targeted per-fix regression harness, remains open and is not
-  satisfied by this work.
+Issue #17's targeted per-fix regression harness is **done** and was satisfied
+separately from this work, as it had to be: the functional suite never looks at
+cycles or at the layout of a stack frame in memory. See
+`tests/cpu6502-stack-frames.test.js`, `tests/cpu6502-decimal-flags.test.js` and
+`tests/cpu6502-cycles.test.js`.

@@ -118,6 +118,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Reconciled the guidance that recorded #17 as open and unsatisfied. `AGENTS.md`,
+  `README.md`, `NextSession.md` and `docs/6502-conformance.md` now state that
+  the per-fix harness is done and, more usefully, draw the line the two pieces
+  of work fall on either side of: the conformance suite proves the instruction
+  set, while the #17 checks cover what it structurally cannot see — cycles, and
+  the layout of a stack frame in memory. The remaining CPU gaps are narrowed to
+  external interrupt *delivery*, invalid BCD operands and undocumented opcodes,
+  and the machine layer is named as the clearest gap overall.
 - Reconciled guidance that predated the conformance suite (#18). `README.md`
   gains a Testing section and records that the CPU core passes the functional
   suite; `AGENTS.md` documents the command, rewrites Known Limitations #5, and

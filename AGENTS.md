@@ -320,9 +320,10 @@ When implementing changes based on a GitHub issue:
    evidence about timing in either direction
 5. **Automated Tests**: The CPU core passes the Klaus Dormann 6502 functional
    suite (#18), which covers every documented NMOS opcode in every addressing
-   mode. Still uncovered: external interrupt behavior, NMOS decimal flag
-   semantics (the suite uses valid BCD operands only and ignores N/V/Z),
-   instruction timing, undocumented opcodes, and the machine layer, which is
+   mode, and targeted checks now protect each earlier CPU fix (#17): stack
+   frame layout, decimal flag semantics, and instruction timing. Still
+   uncovered: external interrupt *delivery* under load, decimal arithmetic with
+   invalid BCD operands, undocumented opcodes, and the machine layer, which is
    covered only by the targeted checks in `tests/` and by browser testing. See
    `docs/6502-conformance.md`
 
@@ -390,9 +391,11 @@ opportunistically rather than treating them as required for any specific task:
 
 ## Pending Verification Work
 
-- Expand the small Node-compatible regression coverage so the CPU core and
-  machine layer can be smoke-tested without opening a browser. The CPU core is
-  now well covered; the machine layer is not.
+- Expand the small Node-compatible regression coverage so the machine layer
+  can be smoke-tested without opening a browser. The CPU core is now well
+  covered — broadly by the functional suite (#18) and per-fix by the targeted
+  checks (#17) — and the machine layer is the remaining gap: the PIA, display
+  multiplexing, keyboard matrix and monitor workflow.
 - Running a known 6502 functional suite is **done** (#18): the core passes Klaus
   Dormann's functional test, pinned in `tests/fixtures/6502-functional/`. Of the
   four areas that motivated it, stack behavior and BCD arithmetic with valid
@@ -400,10 +403,16 @@ opportunistically rather than treating them as required for any specific task:
   but page-crossing *timing* is not, because the suite does not check cycles,
   and **interrupt handling is not**, because external IRQ/NMI delivery is a
   separate upstream suite needing a feedback register. Do not treat those two as
-  settled on the strength of the functional suite.
+  settled on the strength of the functional suite. Both are now covered
+  separately by the #17 checks — `tests/cpu6502-cycles.test.js` for the timing
+  contract and `tests/cpu6502-stack-frames.test.js` for interrupt frame layout
+  — but those are per-fix checks, not a conformance suite.
 - The obvious next suites, both from the same pinned upstream repository, are
   `6502_interrupt_test` (needs machine-layer support to inject IRQ/NMI) and
   Bruce Clark's `6502_decimal_test` (checks decimal flags properly, including
   invalid BCD operands). Neither is integrated.
-- Issue #17, a targeted per-fix regression harness, is still open and is **not**
-  satisfied by the conformance suite.
+- Issue #17, a targeted per-fix regression harness, is **done**: every fix it
+  named is protected by `tests/cpu6502-stack-frames.test.js`,
+  `tests/cpu6502-decimal-flags.test.js` and `tests/cpu6502-cycles.test.js`. It
+  was satisfied on its own terms, not by the conformance suite (#18), which
+  never looks at cycles or at frame layout in memory.

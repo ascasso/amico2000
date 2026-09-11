@@ -44,11 +44,20 @@ Priority order:
   `node --test tests/`. It stayed dependency-free: no package.json, no
   framework, no network. See `docs/6502-conformance.md`. The issue has not been
   closed on GitHub; that is a deliberate hand-back, not an oversight.
-- Remaining items from the prior handoff: `#17`, `#19`, `#20`, `#23`.
-- The CPU core now has broad instruction-level coverage, but the **machine
-  layer still does not**: the PIA, display multiplexing, keyboard matrix and
-  monitor workflow are covered only by the targeted checks in `tests/` and by
-  browser testing. Keep near-term verification there small and tied to a
+- `#17` is implemented: every CPU fix the issue named now has a committed
+  regression check, in the areas the conformance suite cannot reach.
+  `tests/cpu6502-stack-frames.test.js` pins the physical byte layout of
+  `JSR`/`BRK`/`IRQ`/`NMI` frames (#3), `tests/cpu6502-decimal-flags.test.js`
+  sweeps all 20,000 valid-BCD operand pairs per instruction against an
+  independent reference (#4, #22), and `tests/cpu6502-cycles.test.js` checks
+  the base cost of all 151 documented opcodes plus every dynamic penalty (#5).
+  `node --test tests/` is now 76 checks.
+- Remaining items from the prior handoff: `#19`, `#20`, `#23`.
+- The CPU core now has broad instruction-level coverage *and* per-fix
+  regression coverage, but the **machine layer still does not**: the PIA,
+  display multiplexing, keyboard matrix and monitor workflow are covered only
+  by the targeted checks in `tests/` and by browser testing. That is the
+  clearest remaining gap. Keep near-term verification there small and tied to a
   behavior fix.
 
 ## Highest Priority: Machine Fidelity
@@ -96,6 +105,7 @@ Do not introduce a large test framework as the next step.
 Use the smallest useful checks:
 
 - `node --check cpu6502.js amico2000.js main.js display.js`
+- `node --test tests/` for the committed checks, or a single file while working.
 - A tiny Node script or ad hoc command for CPU edge cases touched by the change.
 - Browser/manual smoke testing for monitor workflow and display/keyboard
   behavior.
@@ -107,9 +117,10 @@ so it no longer needs deferring. It cost no framework and no dependency, which
 is why it fitted the guidance above rather than contradicting it.
 
 Note what it does *not* settle before leaning on it: external interrupt
-behavior, NMOS decimal flags with invalid BCD operands, instruction timing, and
-undocumented opcodes are all still unverified, as is every part of the machine
-layer. `docs/6502-conformance.md` has the full list. The two obvious follow-on
+delivery, decimal arithmetic with invalid BCD operands, and undocumented
+opcodes are still unverified, as is every part of the machine layer. Decimal
+flag semantics and per-instruction timing are *not* on that list any more —
+the #17 checks cover them, precisely because the functional suite cannot. `docs/6502-conformance.md` has the full list. The two obvious follow-on
 suites are upstream's `6502_interrupt_test`, which needs machine-layer support
 to inject IRQ/NMI, and Bruce Clark's `6502_decimal_test` — the latter being the
 closest to this project's existing CPU fixes (`#4`, `#22`).
