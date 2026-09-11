@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/cpu6502-stack-frames.test.js`, nine checks that pin the physical
+  layout of every 6502 stack frame (#3, #17). They assert the individual bytes
+  in page one rather than only the round trip, because a core that pushes the
+  two halves in the wrong order still returns to the right place — its own pull
+  is wrong in the same way — and the defect only surfaces when a program reads
+  the frame, as the AMICO monitor does when it displays the interrupted PC.
+  Covered: `JSR` return-address order and `RTS` resumption, nested frames,
+  `BRK` pushing the address past its padding byte with `B` set, `RTI` returning
+  without the `RTS` increment, `IRQ` and `NMI` frames with `B` clear and the
+  correct vector, `IRQ` masking, and a frame that wraps within page one.
 - Added `docs/6502-conformance.md`, the reference for the conformance workflow
   (#18): the current result, the single-suite command and its relationship to
   `node --test tests/`, provenance, how a pass is decided and why it is
