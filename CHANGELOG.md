@@ -8,6 +8,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/cpu6502-cycles.test.js`, the timing contract from #5 (#17). It
+  checks all 151 documented opcodes against a reference table of NMOS base
+  cycles and asserts the instruction table holds that set and nothing more, so
+  a typo or an accidentally added undocumented opcode fails the run. Dynamic
+  penalties are then measured through `step()` rather than read off the table:
+  indexed reads pay one extra cycle only when the page changes; stores and
+  read-modify-write never pay it, because their extra address cycle is already
+  in the base cost; branches cost 2, 3 or 4 by outcome, with the page test
+  taken against the address after the operand. A sweep over all eight
+  addressing modes confirms decimal `ADC`/`SBC` costs exactly what binary does,
+  since the extra decimal cycle is 65C02 behaviour and the AMICO 2000 is NMOS.
+- Added `tests/cpu6502-decimal-flags.test.js`, which checks decimal-mode
+  `ADC`/`SBC` against an independent restatement of the documented NMOS
+  algorithm (#4, #22, #17). It sweeps all 20,000 valid-BCD operand pairs with
+  both carry inputs per instruction — 40,000 comparisons of result, `N`, `V`,
+  `Z` and `C`, in about 3ms — and the core agrees on every one. Because the
+  emulator reaches those answers by a visibly different route, agreement is a
+  real cross-check rather than a restatement of the implementation. Named
+  vectors then pin the specific regressions #4 and #22 fixed: `N`/`V` taken
+  from before the high-nibble correction, `Z` taken from the binary sum rather
+  than the wrapped BCD accumulator, and `N` taken from the binary difference
+  rather than the adjusted result. A final check marks the boundary: invalid
+  BCD operands diverge from real silicon here, and that is asserted explicitly
+  so it cannot be mistaken for coverage.
+- Added `tests/cpu6502-stack-frames.test.js`, nine checks that pin the physical
+  layout of every 6502 stack frame (#3, #17). They assert the individual bytes
+  in page one rather than only the round trip, because a core that pushes the
+  two halves in the wrong order still returns to the right place — its own pull
+  is wrong in the same way — and the defect only surfaces when a program reads
+  the frame, as the AMICO monitor does when it displays the interrupted PC.
+  Covered: `JSR` return-address order and `RTS` resumption, nested frames,
+  `BRK` pushing the address past its padding byte with `B` set, `RTI` returning
+  without the `RTS` increment, `IRQ` and `NMI` frames with `B` clear and the
+  correct vector, `IRQ` masking, and a frame that wraps within page one.
+- Added `docs/6502-conformance.md`, the reference for the conformance workflow
+  (#18): the current result, the single-suite command and its relationship to
+  `node --test tests/`, provenance, how a pass is decided and why it is
+  trustworthy, how to diagnose a failure against the upstream listing, and an
+  explicit table of what the suite does **not** cover — external interrupts,
+  NMOS decimal flags, instruction timing, undocumented opcodes, and AMICO 2000
+  hardware integration.
+- Added `tests/conformance-runner.test.js`, 18 checks that the conformance
+  runner itself reports correctly (#18). They drive it with small synthetic
+  programs whose outcome is known by construction and assert that only a
+  self-loop at the verified success address is ever a pass: a failure trap, an
+  illegal-opcode halt, an exception, and a multi-instruction loop that exhausts
+  the budget must all report as failures. Also covers rejection of a missing,
+  truncated or corrupted fixture, the entry-without-reset behaviour, and the
+  contents of the diagnostic report and instruction trace.
+- Added `tests/helpers/6502-conformance.js` and
+  `tests/cpu6502-functional.test.js`, which run the pinned Klaus Dormann 6502
+  functional suite against the CPU core (#18). **The core passes**, reaching the
+  suite's success trap at $3469 after 30,646,177 instructions and 96,241,367
+  cycles in about 0.6s. The runner validates the fixture's checksum before
+  executing it, enters at $0400 without vectoring through reset, treats only a
+  self-loop at the verified success address as a pass, and bounds execution with
+  an instruction budget independent of the CPU's own cycle counter. On failure it
+  reports the address, opcode, registers, decoded status flags, instruction and
+  cycle counts, and a trace of the last 16 instructions. Run it alone with
+  `node --test tests/cpu6502-functional.test.js`.
+- Added `tests/fixtures/6502-functional/`, the Klaus Dormann 6502 functional
+  test suite pinned at upstream revision `7954e2d` (2020-01-05) as a vendored,
+  offline fixture: the 64KB test image, its corresponding assembler source, the
+  upstream GPL-3.0 license, and a `manifest.json` recording the revision,
+  download URLs, SHA-256 checksums, load and trap addresses, assembly-time
+  configuration, and coverage limits. The suite itself is not wired up yet;
+  this commit only pins and documents the fixture (#18).
 - Added `Amico2000.res()`, the board's RES key as a distinct operation from the
   power-on reset (#30). `reset()` keeps its existing cold-start behavior and
   now delegates the CPU/PIA/display half to `res()`.
@@ -51,6 +118,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Reconciled the guidance that recorded #17 as open and unsatisfied. `AGENTS.md`,
+  `README.md`, `NextSession.md` and `docs/6502-conformance.md` now state that
+  the per-fix harness is done and, more usefully, draw the line the two pieces
+  of work fall on either side of: the conformance suite proves the instruction
+  set, while the #17 checks cover what it structurally cannot see — cycles, and
+  the layout of a stack frame in memory. The remaining CPU gaps are narrowed to
+  external interrupt *delivery*, invalid BCD operands and undocumented opcodes,
+  and the machine layer is named as the clearest gap overall.
+- Reconciled guidance that predated the conformance suite (#18). `README.md`
+  gains a Testing section and records that the CPU core passes the functional
+  suite; `AGENTS.md` documents the command, rewrites Known Limitations #5, and
+  narrows Pending Verification Work to what the suite genuinely settles;
+  `NextSession.md` no longer defers the suite as future work. All three now
+  state the same remaining gaps — external interrupts, NMOS decimal flags,
+  instruction timing, undocumented opcodes, and the machine layer — so that a
+  passing run is not read as broader assurance than it is.
+- Tightened the `AGENTS.md` commit guidance to require small commits: one
+  commit per unit of work, each standing on its own with its changelog and
+  engineering-log entries alongside it, and Conventional Commits subject lines.
+  The previous wording allowed "one or more focused logical commits", which did
+  not rule out batching a whole session into a single commit.
 - Recorded completed re-verification and closure of #30 and #31 on
   `develop` at `8f1fa3d`, matching the remote branch. Reviewed all four fix/docs
   commits, their engineering-log sections, and every issue acceptance criterion
@@ -137,6 +225,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Added `.gitattributes`, exempting the vendored
+  `tests/fixtures/6502-functional/6502_functional_test.a65` from `git diff
+  --check`'s whitespace checks. The file is pinned byte-for-byte identical to
+  upstream and verified against its git blob SHA-1 (see the fixture README);
+  its trailing whitespace and missing final newline are upstream's formatting,
+  not a defect to "fix" by editing vendored bytes. `git diff --check
+  master...develop` now passes cleanly; previously it reported 565 whitespace
+  errors in that one file, which had gone unnoticed because `git diff --check`
+  with no range only inspects uncommitted changes, not historical commits.
+
 - Fixed RES not resetting a running or halted CPU (#30). Escape, Backspace and
   the on-screen RES button only set a bit in the scanned key matrix, so they
   could not reach a program that never reads the keyboard, nor a CPU stopped on
