@@ -1,0 +1,130 @@
+{
+  "_comment": "Pinned provenance for the Klaus Dormann 6502 functional test suite. Every address below was derived from the listing at this exact revision (see address_derivation), not carried over from another build.",
+  "suite": "6502 functional test (NMOS, documented opcodes only)",
+  "upstream": {
+    "repository": "https://github.com/Klaus2m5/6502_65C02_functional_tests",
+    "revision": "7954e2dbb49c469ea286070bf46cdd71aeb29e4b",
+    "revision_short": "7954e2d",
+    "revision_date": "2020-01-05T13:10:38Z",
+    "revision_subject": "fixed shifts not testing zero result and flag when last 1-bit is shifted out",
+    "source_version_string": "version 05-jan-2020",
+    "author": "Klaus Dormann",
+    "license": "GPL-3.0-or-later"
+  },
+  "files": {
+    "image": {
+      "role": "test image loaded verbatim into the 64KB address space",
+      "upstream_path": "bin_files/6502_functional_test.bin",
+      "url": "https://raw.githubusercontent.com/Klaus2m5/6502_65C02_functional_tests/7954e2dbb49c469ea286070bf46cdd71aeb29e4b/bin_files/6502_functional_test.bin",
+      "vendored_as": "6502_functional_test.bin",
+      "bytes": 65536,
+      "sha256": "fa12bfc761e6f9057e4cc01a665a7b800ff01ae91f598af1e39a1201d01953fd",
+      "git_blob_sha1": "c9a35e1d6bd2e7d85844da2abf7034d5ed820e6e"
+    },
+    "source": {
+      "role": "corresponding assembler source for the image",
+      "upstream_path": "6502_functional_test.a65",
+      "url": "https://raw.githubusercontent.com/Klaus2m5/6502_65C02_functional_tests/7954e2dbb49c469ea286070bf46cdd71aeb29e4b/6502_functional_test.a65",
+      "vendored_as": "6502_functional_test.a65",
+      "bytes": 148497,
+      "sha256": "f2665bd02288866c2b210b908e3f387926b4c9f0e0af5ad5513c474361ad1265",
+      "git_blob_sha1": "9a2ecbaeadbd644f3fffb59de349b5eec2689745"
+    },
+    "license": {
+      "role": "upstream GPL-3.0 license text",
+      "upstream_path": "license.txt",
+      "url": "https://raw.githubusercontent.com/Klaus2m5/6502_65C02_functional_tests/7954e2dbb49c469ea286070bf46cdd71aeb29e4b/license.txt",
+      "vendored_as": "LICENSE.txt",
+      "bytes": 35147,
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "git_blob_sha1": "94a9ed024d3859793618152ea559a168bbcbb5e2"
+    },
+    "listing": {
+      "role": "assembler listing; NOT vendored (728KB) but checksummed so the addresses below can be re-derived",
+      "upstream_path": "bin_files/6502_functional_test.lst",
+      "url": "https://raw.githubusercontent.com/Klaus2m5/6502_65C02_functional_tests/7954e2dbb49c469ea286070bf46cdd71aeb29e4b/bin_files/6502_functional_test.lst",
+      "vendored_as": null,
+      "bytes": 728468,
+      "sha256": "a85bf71692a7087182f3a574830e74d420d166032f37d385e34940e7bb8d49e3",
+      "git_blob_sha1": "d178888a7af6aff708acbe80bb47583ceac26d56"
+    }
+  },
+  "image": {
+    "size_bytes": 65536,
+    "load_offset": 0,
+    "_load_note": "The image is a full 64KB memory image: byte i belongs at address $i. There is no header and no relocation.",
+    "entry_address": 1024,
+    "entry_address_hex": "$0400",
+    "success_address": 13417,
+    "success_address_hex": "$3469",
+    "_success_note": "Success is the self-loop 'JMP $3469' (4C 69 34) emitted by the success macro. Every failure trap is likewise a self-loop, so a stopped PC alone means nothing; only a self-loop at $3469 is a pass.",
+    "reset_vector_target": 14243,
+    "reset_vector_target_hex": "$37A3",
+    "_reset_note": "The image sets $FFFC to res_trap ($37A3), a failure trap. The runner must set PC = $0400 directly and must NOT vector through reset, which is what the upstream source instructs (\"alter PC to 400 hex (code_segment) and enter a go command\")."
+  },
+  "traps": {
+    "success": {
+      "address": 13417,
+      "address_hex": "$3469",
+      "bytes": "4C 69 34"
+    },
+    "nmi_trap": {
+      "address": 14237,
+      "address_hex": "$379D",
+      "bytes": "4C 9D 37"
+    },
+    "res_trap": {
+      "address": 14243,
+      "address_hex": "$37A3",
+      "bytes": "4C A3 37"
+    },
+    "irq_trap": {
+      "address": 14251,
+      "address_hex": "$37AB",
+      "_note": "BRK/IRQ handler; not a bare self-loop"
+    }
+  },
+  "assembly_configuration": {
+    "_comment": "Equates as assembled at this revision; they fix the memory layout and what is tested.",
+    "ROM_vectors": 1,
+    "load_data_direct": 1,
+    "I_flag": 3,
+    "zero_page": 10,
+    "zero_page_hex": "$000A",
+    "data_segment": 512,
+    "data_segment_hex": "$0200",
+    "code_segment": 1024,
+    "code_segment_hex": "$0400",
+    "disable_selfmod": 0,
+    "report": 0,
+    "disable_decimal": 0,
+    "_report_note": "report = 0 selects the self-trap loops, so the suite needs no I/O channel and no host hooks.",
+    "_decimal_note": "disable_decimal = 0, so decimal ADC/SBC are exercised, but only with valid BCD operands and with N, V and Z ignored. NMOS decimal flag behaviour is therefore NOT covered here.",
+    "_selfmod_note": "disable_selfmod = 0, so parts of the image modify themselves and the whole image must be writable RAM."
+  },
+  "memory_requirements": {
+    "_comment": "Regions the suite reads, writes or executes. The runner loads the whole image, so these are documentation.",
+    "zero_page_used": "$000A-$0059",
+    "zero_page_reserved": "$000A-$005B (82 bytes, per the source comment)",
+    "data_segment_used": "$0200-$0269",
+    "data_segment_reserved": "$0200-$027A (123 bytes, per the source comment)",
+    "code_extent": "$0400-$3832",
+    "vectors": "$FFFA-$FFFF",
+    "stack": "$0100-$01FF (the suite invalidates the stack during the run)"
+  },
+  "address_derivation": {
+    "_comment": "Where each address above comes from in the pinned listing, so a future reader can re-check it.",
+    "listing_file": "bin_files/6502_functional_test.lst @ 7954e2d",
+    "entry_address": "listing line 740: \"0400 : d8   start   cld\" (org code_segment, line 739)",
+    "success_address": "listing line 13377: \"3469 : 4c6934 >  jmp *   ;test passed, no errors\"",
+    "vectors": "listing lines 14349-14351: dw nmi_trap ($379D), res_trap ($37A3), irq_trap ($37AB) at org $FFFA",
+    "cross_check": "The vendored .bin was read at each of these addresses and matches the listing bytes exactly, which confirms the image and the listing are the same build."
+  },
+  "coverage_limits": [
+    "Documented NMOS opcodes only; no undocumented/illegal opcodes.",
+    "Decimal ADC/SBC: valid BCD operands only, with N, V and Z ignored.",
+    "No external interrupt behaviour (that is the separate 6502_interrupt_test, which needs a feedback register).",
+    "No instruction timing or cycle accuracy: the suite checks results and flags, not cycles.",
+    "No AMICO 2000 hardware: no monitor ROM, no 8255 PIA, no display, no keyboard, no cassette."
+  ]
+}

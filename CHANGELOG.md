@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/fixtures/6502-functional/`, the Klaus Dormann 6502 functional
+  test suite pinned at upstream revision `7954e2d` (2020-01-05) as a vendored,
+  offline fixture: the 64KB test image, its corresponding assembler source, the
+  upstream GPL-3.0 license, and a `manifest.json` recording the revision,
+  download URLs, SHA-256 checksums, load and trap addresses, assembly-time
+  configuration, and coverage limits. The suite itself is not wired up yet;
+  this commit only pins and documents the fixture (#17).
 - Added `Amico2000.res()`, the board's RES key as a distinct operation from the
   power-on reset (#30). `reset()` keeps its existing cold-start behavior and
   now delegates the CPU/PIA/display half to `res()`.
