@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/cpu6502-decimal-flags.test.js`, which checks decimal-mode
+  `ADC`/`SBC` against an independent restatement of the documented NMOS
+  algorithm (#4, #22, #17). It sweeps all 20,000 valid-BCD operand pairs with
+  both carry inputs per instruction — 40,000 comparisons of result, `N`, `V`,
+  `Z` and `C`, in about 3ms — and the core agrees on every one. Because the
+  emulator reaches those answers by a visibly different route, agreement is a
+  real cross-check rather than a restatement of the implementation. Named
+  vectors then pin the specific regressions #4 and #22 fixed: `N`/`V` taken
+  from before the high-nibble correction, `Z` taken from the binary sum rather
+  than the wrapped BCD accumulator, and `N` taken from the binary difference
+  rather than the adjusted result. A final check marks the boundary: invalid
+  BCD operands diverge from real silicon here, and that is asserted explicitly
+  so it cannot be mistaken for coverage.
 - Added `tests/cpu6502-stack-frames.test.js`, nine checks that pin the physical
   layout of every 6502 stack frame (#3, #17). They assert the individual bytes
   in page one rather than only the round trip, because a core that pushes the
