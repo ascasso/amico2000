@@ -84,6 +84,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Reconciled guidance that predated the conformance suite (#18). `README.md`
+  gains a Testing section and records that the CPU core passes the functional
+  suite; `AGENTS.md` documents the command, rewrites Known Limitations #5, and
+  narrows Pending Verification Work to what the suite genuinely settles;
+  `NextSession.md` no longer defers the suite as future work. All three now
+  state the same remaining gaps — external interrupts, NMOS decimal flags,
+  instruction timing, undocumented opcodes, and the machine layer — so that a
+  passing run is not read as broader assurance than it is.
 - Tightened the `AGENTS.md` commit guidance to require small commits: one
   commit per unit of work, each standing on its own with its changelog and
   engineering-log entries alongside it, and Conventional Commits subject lines.

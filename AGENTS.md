@@ -54,6 +54,13 @@ python3 -m http.server 8000
 
 - Run the committed regression checks with `node --test tests/`, or a single
   file, e.g. `node --test tests/cpu6502-decimal-sbc.test.js`
+- That includes the Klaus Dormann 6502 functional suite, which the CPU core
+  passes. It is vendored and pinned, so it runs offline with no assembler and
+  no new dependency, and costs about 0.6s. Run it alone with
+  `node --test tests/cpu6502-functional.test.js`. Before concluding it has
+  found a CPU defect, read `docs/6502-conformance.md`: it explains how a pass
+  is decided, how to map a failing address to the upstream listing, and what
+  the suite does not cover
 - Open the browser console (F12) to access debug commands
 - Use `debug.mem(0x0000, 16)` to dump memory
 - Use `debug.state()` to show CPU state
@@ -307,10 +314,17 @@ When implementing changes based on a GitHub issue:
    trapping the IC10 ROM entry points ($FBBC and $FC54), but the analog
    300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
-4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate; sufficient for the monitor ROM and simple programs
-5. **Automated Tests**: Coverage is limited to targeted dependency-free CPU
-   regression checks; running the Klaus Dormann 6502 functional suite against
-   the core would provide broader confidence
+4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate;
+   sufficient for the monitor ROM and simple programs. The functional suite the
+   core passes checks results and flags, never cycles, so a passing run is not
+   evidence about timing in either direction
+5. **Automated Tests**: The CPU core passes the Klaus Dormann 6502 functional
+   suite (#18), which covers every documented NMOS opcode in every addressing
+   mode. Still uncovered: external interrupt behavior, NMOS decimal flag
+   semantics (the suite uses valid BCD operands only and ignores N/V/Z),
+   instruction timing, undocumented opcodes, and the machine layer, which is
+   covered only by the targeted checks in `tests/` and by browser testing. See
+   `docs/6502-conformance.md`
 
 ## Keyboard Mappings
 
@@ -377,7 +391,19 @@ opportunistically rather than treating them as required for any specific task:
 ## Pending Verification Work
 
 - Expand the small Node-compatible regression coverage so the CPU core and
-  machine layer can be smoke-tested without opening a browser.
-- Run a known 6502 functional suite, such as Klaus Dormann's tests, before
-  treating stack behavior, interrupt handling, BCD arithmetic, and page-crossing
-  timing as settled.
+  machine layer can be smoke-tested without opening a browser. The CPU core is
+  now well covered; the machine layer is not.
+- Running a known 6502 functional suite is **done** (#18): the core passes Klaus
+  Dormann's functional test, pinned in `tests/fixtures/6502-functional/`. Of the
+  four areas that motivated it, stack behavior and BCD arithmetic with valid
+  operands are now settled, and page-crossing *address arithmetic* is settled —
+  but page-crossing *timing* is not, because the suite does not check cycles,
+  and **interrupt handling is not**, because external IRQ/NMI delivery is a
+  separate upstream suite needing a feedback register. Do not treat those two as
+  settled on the strength of the functional suite.
+- The obvious next suites, both from the same pinned upstream repository, are
+  `6502_interrupt_test` (needs machine-layer support to inject IRQ/NMI) and
+  Bruce Clark's `6502_decimal_test` (checks decimal flags properly, including
+  invalid BCD operands). Neither is integrated.
+- Issue #17, a targeted per-fix regression harness, is still open and is **not**
+  satisfied by the conformance suite.

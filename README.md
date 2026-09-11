@@ -21,6 +21,8 @@ amico2000/
 ├── display.js           # SVG 7-segment display renderer
 ├── main.js              # Application initialization
 ├── tests/               # Dependency-free regression tests
+│   └── fixtures/        # Pinned third-party test suites
+├── docs/                # Engineering logs and reference notes
 └── README.md           # This file
 ```
 
@@ -158,7 +160,9 @@ aliases back to those four registers using the low two address bits.
 - MOS 6502 @ 1MHz (emulated)
 - All documented opcodes implemented
 - BCD mode supported
-- Accurate flag handling
+- Accurate flag handling — the core passes the Klaus Dormann 6502 functional
+  test suite, which exercises every documented NMOS opcode in every addressing
+  mode. See [Testing](#-testing).
 
 ## 🐛 Debug Console
 
@@ -176,6 +180,31 @@ amico.cpu.PC        // Program Counter
 amico.cpu.A         // Accumulator
 amico.readMemory(0xFE00)  // Read memory
 ```
+
+## 🧪 Testing
+
+The checks are dependency-free and run on Node with no build step, no test
+framework, and no network access:
+
+```bash
+node --test tests/          # everything
+```
+
+That includes the **Klaus Dormann 6502 functional test suite**, which the CPU
+core passes — every documented NMOS opcode in every addressing mode, with heavy
+emphasis on the status flags. It is vendored and pinned in
+`tests/fixtures/6502-functional/`, so it needs no download and no assembler, and
+it adds about 0.6s to the run. To run just that suite:
+
+```bash
+node --test tests/cpu6502-functional.test.js
+```
+
+A passing run means the instruction set is sound. It does **not** cover external
+interrupt behaviour, NMOS decimal flag semantics, instruction timing,
+undocumented opcodes, or any AMICO 2000 hardware. See
+[`docs/6502-conformance.md`](docs/6502-conformance.md) for the full picture and
+for how to diagnose a failure.
 
 ## 📚 History
 
@@ -211,4 +240,6 @@ The original AMICO 2000 ROM is included for preservation purposes.
 
 2. **Keyboard Ghosting**: The emulator does not simulate keyboard matrix ghosting that occurs on real hardware when pressing multiple keys simultaneously. For normal operation this doesn't matter, but some edge cases may behave differently.
 
-3. **Timing Accuracy**: The emulator runs at approximately 1MHz but is not cycle-accurate. This is sufficient for the monitor ROM and simple programs.
+3. **Timing Accuracy**: The emulator runs at approximately 1MHz but is not cycle-accurate. This is sufficient for the monitor ROM and simple programs. The functional test suite the core passes checks results and flags, never cycles, so it says nothing about timing either way.
+
+4. **Untested CPU Areas**: External interrupt delivery, NMOS decimal-mode flag semantics with invalid BCD operands, and undocumented opcodes are outside what the conformance suite covers. See [`docs/6502-conformance.md`](docs/6502-conformance.md).

@@ -38,9 +38,18 @@ Priority order:
   control is now labelled **Cold reset**. Protected by
   `tests/res-reset.test.js`. The two issues were worked together because a
   corrupted `$FFFC` vector defeats every reset path, so #31 had to land first.
-- Remaining items from the prior handoff: `#17`, `#18`, `#19`, `#20`, `#23`.
-- There is no full automated CPU test harness yet. Keep any near-term
-  verification small and directly tied to a behavior fix.
+- `#18` is implemented: the CPU core **passes** the Klaus Dormann 6502
+  functional suite, pinned offline in `tests/fixtures/6502-functional/` and run
+  by `node --test tests/cpu6502-functional.test.js` as part of the normal
+  `node --test tests/`. It stayed dependency-free: no package.json, no
+  framework, no network. See `docs/6502-conformance.md`. The issue has not been
+  closed on GitHub; that is a deliberate hand-back, not an oversight.
+- Remaining items from the prior handoff: `#17`, `#19`, `#20`, `#23`.
+- The CPU core now has broad instruction-level coverage, but the **machine
+  layer still does not**: the PIA, display multiplexing, keyboard matrix and
+  monitor workflow are covered only by the targeted checks in `tests/` and by
+  browser testing. Keep near-term verification there small and tied to a
+  behavior fix.
 
 ## Highest Priority: Machine Fidelity
 
@@ -93,8 +102,17 @@ Use the smallest useful checks:
 - Add a simple committed regression script only if it stays dependency-free and
   directly protects emulator fidelity.
 
-Leave the Klaus Dormann conformance suite (`#18`) for later. It is valuable, but
-not the next priority.
+The Klaus Dormann conformance suite (`#18`) is **done** and the core passes it,
+so it no longer needs deferring. It cost no framework and no dependency, which
+is why it fitted the guidance above rather than contradicting it.
+
+Note what it does *not* settle before leaning on it: external interrupt
+behavior, NMOS decimal flags with invalid BCD operands, instruction timing, and
+undocumented opcodes are all still unverified, as is every part of the machine
+layer. `docs/6502-conformance.md` has the full list. The two obvious follow-on
+suites are upstream's `6502_interrupt_test`, which needs machine-layer support
+to inject IRQ/NMI, and Bruce Clark's `6502_decimal_test` — the latter being the
+closest to this project's existing CPU fixes (`#4`, `#22`).
 
 ## Cassette Work: Secondary
 
