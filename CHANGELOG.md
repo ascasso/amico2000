@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/cpu6502-cycles.test.js`, the timing contract from #5 (#17). It
+  checks all 151 documented opcodes against a reference table of NMOS base
+  cycles and asserts the instruction table holds that set and nothing more, so
+  a typo or an accidentally added undocumented opcode fails the run. Dynamic
+  penalties are then measured through `step()` rather than read off the table:
+  indexed reads pay one extra cycle only when the page changes; stores and
+  read-modify-write never pay it, because their extra address cycle is already
+  in the base cost; branches cost 2, 3 or 4 by outcome, with the page test
+  taken against the address after the operand. A sweep over all eight
+  addressing modes confirms decimal `ADC`/`SBC` costs exactly what binary does,
+  since the extra decimal cycle is 65C02 behaviour and the AMICO 2000 is NMOS.
 - Added `tests/cpu6502-decimal-flags.test.js`, which checks decimal-mode
   `ADC`/`SBC` against an independent restatement of the documented NMOS
   algorithm (#4, #22, #17). It sweeps all 20,000 valid-BCD operand pairs with
