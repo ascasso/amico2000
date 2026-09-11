@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/helpers/6502-conformance.js` and
+  `tests/cpu6502-functional.test.js`, which run the pinned Klaus Dormann 6502
+  functional suite against the CPU core (#17). **The core passes**, reaching the
+  suite's success trap at $3469 after 30,646,177 instructions and 96,241,367
+  cycles in about 0.6s. The runner validates the fixture's checksum before
+  executing it, enters at $0400 without vectoring through reset, treats only a
+  self-loop at the verified success address as a pass, and bounds execution with
+  an instruction budget independent of the CPU's own cycle counter. On failure it
+  reports the address, opcode, registers, decoded status flags, instruction and
+  cycle counts, and a trace of the last 16 instructions. Run it alone with
+  `node --test tests/cpu6502-functional.test.js`.
 - Added `tests/fixtures/6502-functional/`, the Klaus Dormann 6502 functional
   test suite pinned at upstream revision `7954e2d` (2020-01-05) as a vendored,
   offline fixture: the 64KB test image, its corresponding assembler source, the
