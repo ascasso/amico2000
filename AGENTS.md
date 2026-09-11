@@ -12,8 +12,21 @@ This file provides repository guidance for agents working in this repository.
 - For implementation work, update `CHANGELOG.md` under `[Unreleased]` and add
   a concise entry to the dated engineering log in `docs/logs/`.
 - Fully document every change, including its purpose, scope, and verification;
-  commit the complete change in one or more focused logical commits before
-  handoff.
+  commit the complete change before handoff.
+- Commit in small units. One commit is one unit of work — a single fix, a
+  single new test file, a single documented decision, one vendored fixture.
+  Prefer several small commits over one large one, and never batch unrelated
+  units together just because they happened in the same session.
+  - Each commit must stand on its own: its checks pass at that commit, and its
+    message says why the change was made, not only what changed.
+  - Keep a change's `CHANGELOG.md` and `docs/logs/` entries in the same commit
+    as the change they describe, so the history stays self-explanatory. A large
+    change may still separate the code from its longer-form documentation, as
+    the `fix:` / `docs:` commit pairs in the history do.
+  - Subject lines follow Conventional Commits. Prefixes already in use are
+    `docs:`, `fix:`, `feat:`, and `ui:`, optionally scoped as `feat(ui):`; add
+    another type only when none of these fits. Reference the issue number when
+    there is one.
 - Run the narrowest relevant checks before handoff. At minimum, use
   `git diff --check`; for JavaScript changes also run `node --check` on the
   affected files and the targeted Node test when applicable.

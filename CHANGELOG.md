@@ -51,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Tightened the `AGENTS.md` commit guidance to require small commits: one
+  commit per unit of work, each standing on its own with its changelog and
+  engineering-log entries alongside it, and Conventional Commits subject lines.
+  The previous wording allowed "one or more focused logical commits", which did
+  not rule out batching a whole session into a single commit.
 - Recorded completed re-verification and closure of #30 and #31 on
   `develop` at `8f1fa3d`, matching the remote branch. Reviewed all four fix/docs
   commits, their engineering-log sections, and every issue acceptance criterion
