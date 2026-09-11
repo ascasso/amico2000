@@ -1,6 +1,6 @@
 'use strict';
 
-// The real Klaus Dormann 6502 functional suite, run against the CPU core (#17).
+// The real Klaus Dormann 6502 functional suite, run against the CPU core (#18).
 //
 // Run just this file with:
 //   node --test tests/cpu6502-functional.test.js
@@ -22,7 +22,7 @@ const {
     OUTCOME,
 } = require('./helpers/6502-conformance');
 
-test('the CPU core passes the Klaus Dormann 6502 functional suite (#17)', () => {
+test('the CPU core passes the Klaus Dormann 6502 functional suite (#18)', () => {
     const result = runFunctionalSuite();
 
     // Assert on the outcome before `passed`, so a failure reports *how* it

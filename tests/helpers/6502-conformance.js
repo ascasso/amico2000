@@ -1,6 +1,6 @@
 'use strict';
 
-// Runner for the vendored Klaus Dormann 6502 functional test suite (#17).
+// Runner for the vendored Klaus Dormann 6502 functional test suite (#18).
 //
 // This exercises the bare CPU core, not the board: a plain CPU6502 with its
 // writable 64KB array, no monitor ROM, no 8255 PIA, no cassette traps. The

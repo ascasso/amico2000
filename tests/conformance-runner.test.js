@@ -1,6 +1,6 @@
 'use strict';
 
-// Checks of the conformance runner itself (#17).
+// Checks of the conformance runner itself (#18).
 //
 // Run just this file with:
 //   node --test tests/conformance-runner.test.js

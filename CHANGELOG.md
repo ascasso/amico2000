@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added `tests/conformance-runner.test.js`, 18 checks that the conformance
-  runner itself reports correctly (#17). They drive it with small synthetic
+  runner itself reports correctly (#18). They drive it with small synthetic
   programs whose outcome is known by construction and assert that only a
   self-loop at the verified success address is ever a pass: a failure trap, an
   illegal-opcode halt, an exception, and a multi-instruction loop that exhausts
@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contents of the diagnostic report and instruction trace.
 - Added `tests/helpers/6502-conformance.js` and
   `tests/cpu6502-functional.test.js`, which run the pinned Klaus Dormann 6502
-  functional suite against the CPU core (#17). **The core passes**, reaching the
+  functional suite against the CPU core (#18). **The core passes**, reaching the
   suite's success trap at $3469 after 30,646,177 instructions and 96,241,367
   cycles in about 0.6s. The runner validates the fixture's checksum before
   executing it, enters at $0400 without vectoring through reset, treats only a
@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   upstream GPL-3.0 license, and a `manifest.json` recording the revision,
   download URLs, SHA-256 checksums, load and trap addresses, assembly-time
   configuration, and coverage limits. The suite itself is not wired up yet;
-  this commit only pins and documents the fixture (#17).
+  this commit only pins and documents the fixture (#18).
 - Added `Amico2000.res()`, the board's RES key as a distinct operation from the
   power-on reset (#30). `reset()` keeps its existing cold-start behavior and
   now delegates the CPU/PIA/display half to `res()`.
