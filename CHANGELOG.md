@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/conformance-runner.test.js`, 18 checks that the conformance
+  runner itself reports correctly (#17). They drive it with small synthetic
+  programs whose outcome is known by construction and assert that only a
+  self-loop at the verified success address is ever a pass: a failure trap, an
+  illegal-opcode halt, an exception, and a multi-instruction loop that exhausts
+  the budget must all report as failures. Also covers rejection of a missing,
+  truncated or corrupted fixture, the entry-without-reset behaviour, and the
+  contents of the diagnostic report and instruction trace.
 - Added `tests/helpers/6502-conformance.js` and
   `tests/cpu6502-functional.test.js`, which run the pinned Klaus Dormann 6502
   functional suite against the CPU core (#17). **The core passes**, reaching the
