@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `docs/6502-conformance.md`, the reference for the conformance workflow
+  (#18): the current result, the single-suite command and its relationship to
+  `node --test tests/`, provenance, how a pass is decided and why it is
+  trustworthy, how to diagnose a failure against the upstream listing, and an
+  explicit table of what the suite does **not** cover — external interrupts,
+  NMOS decimal flags, instruction timing, undocumented opcodes, and AMICO 2000
+  hardware integration.
 - Added `tests/conformance-runner.test.js`, 18 checks that the conformance
   runner itself reports correctly (#18). They drive it with small synthetic
   programs whose outcome is known by construction and assert that only a
