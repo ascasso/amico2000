@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added the May 1979 Sperimentare AMICO 2000 article scan under `docs/` so
+  its clock program and operating instructions have a stable, reviewable source.
 - Added `tests/cpu6502-cycles.test.js`, the timing contract from #5 (#17). It
   checks all 151 documented opcodes against a reference table of NMOS base
   cycles and asserts the instruction table holds that set and nothing more, so
