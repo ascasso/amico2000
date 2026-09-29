@@ -72,6 +72,9 @@ SOURCE DISCREPANCY
 The operating paragraph says to change the value at $0312 to calibrate the
 clock: lower speeds it up, higher slows it down. In the printed listing,
 $0312 contains the LDA immediate opcode A9; its value $15 is at $0313.
-Changing $0312 would change the instruction. The intended coarse calibration
-byte appears to be $0313. The fine-adjustment byte $95 is at $030E. This
-correction is inferred from the listing; the printed instruction says $0312.
+Changing $0312 would change the instruction. The stated direction matches the
+fine-adjustment byte $95 at $030E: lowering it shortens the DEX/BNE delay.
+The coarse byte at $0313 works oppositely: raising its starting value makes
+$06 wrap to zero in fewer INC iterations and speeds up the clock. Thus $030E
+is the likely intended calibration address, but that is an inference; the
+printed instruction says $0312.

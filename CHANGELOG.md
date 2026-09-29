@@ -230,6 +230,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Corrected the clock transcription and reset documentation's calibration
+  guidance: the May 1979 article prints `$0312`, which is an opcode, while
+  `$030E` is the adjustment byte that matches its stated speed direction.
 - Added `.gitattributes`, exempting the vendored
   `tests/fixtures/6502-functional/6502_functional_test.a65` from `git diff
   --check`'s whitespace checks. The file is pinned byte-for-byte identical to
