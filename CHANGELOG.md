@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a visually checked text transcription of the May 1979 clock program,
+  including its hex bytes, assembly, loading steps, use, and a note on the
+  printed calibration-address discrepancy.
 - Added the May 1979 Sperimentare AMICO 2000 article scan under `docs/` so
   its clock program and operating instructions have a stable, reviewable source.
 - Added `tests/cpu6502-cycles.test.js`, the timing contract from #5 (#17). It

@@ -12,6 +12,11 @@ curated notes, indexes, verified program listings, and emulator test cases in
 tracked files; keep raw OCR/text dumps local unless there is a specific reason
 to publish them.
 
+The May 1979 clock listing and operating steps are transcribed in
+`docs/manual-extraction/listings/orologio-1979-05.txt`. Its code bytes were
+checked against the rendered page, and an apparent printed calibration-address
+error is recorded without silently changing the source.
+
 ## 1980 Supplement Source
 
 - Title page: `costruiamo un vero microelaboratore elettronico e impariamo a programmare`
