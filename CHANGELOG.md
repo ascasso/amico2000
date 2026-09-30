@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a build date beneath the home page credits (`Build YYYYMMDD`) so the
+  emulator revision's date is visible, including when used offline.
+- Added a linked AMICO 2000 user guide covering controls, memory entry, raw
+  binary ROM/program formats, file routing, and cassette LOAD/SAVE. The home
+  page now explains the accepted formats beside the loader, and the file
+  picker includes `.ic9` and `.ic10` PROM dumps.
 - Added a visually checked text transcription of the May 1979 clock program,
   including its hex bytes, assembly, loading steps, use, and a note on the
   printed calibration-address discrepancy.
@@ -123,6 +129,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Clarified that GitHub Pages runs a managed Jekyll build; the footer's
+  committed date still needs to be maintained because that build does not
+  generate the stamp.
 - Reconciled the guidance that recorded #17 as open and unsatisfied. `AGENTS.md`,
   `README.md`, `NextSession.md` and `docs/6502-conformance.md` now state that
   the per-fix harness is done and, more usefully, draw the line the two pieces

@@ -9,13 +9,17 @@ The AMICO 2000 lives again. 🇮🇹💾✨
 1. Open `index.html` in any modern web browser
 2. Press **ESC** (or click RES) to hand control to the monitor
 3. Use the hex keypad to enter programs
-4. Press **Enter** (or click GO) to run
+4. Press **Enter** (or click RUN) to run
+
+See [How to use the AMICO 2000](guide.html) for a walkthrough of the controls,
+program entry, supported file formats, and cassette LOAD/SAVE.
 
 ## 📁 Project Structure
 
 ```
 amico2000/
 ├── index.html          # Main HTML page with UI
+├── guide.html          # User guide and file-format reference
 ├── cpu6502.js          # Complete 6502 CPU emulator
 ├── amico2000.js        # Amico 2000 machine emulation
 ├── display.js           # SVG 7-segment display renderer
