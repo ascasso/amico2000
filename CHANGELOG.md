@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a linked AMICO 2000 user guide covering controls, memory entry, raw
+  binary ROM/program formats, file routing, and cassette LOAD/SAVE. The home
+  page now explains the accepted formats beside the loader, and the file
+  picker includes `.ic9` and `.ic10` PROM dumps.
 - Added a visually checked text transcription of the May 1979 clock program,
   including its hex bytes, assembly, loading steps, use, and a note on the
   printed calibration-address discrepancy.

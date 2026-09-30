@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to use the AMICO 2000</title>
+    <style>
+        /* The guide uses the emulator's bench and paper palette, with room for prose. */
+        :root { --paper: #efe7d8; --ink: #2e2822; --green: #22522c; }
+        * { box-sizing: border-box; }
+        html { background: #6d5540; scroll-behavior: auto; }
+        body {
+            margin: 0; padding: 2rem 1rem; color: var(--ink);
+            background: radial-gradient(120% 80% at 50% 0%, #c8a882, #b09070 45%, #6d5540);
+            font-family: system-ui, sans-serif; line-height: 1.65; min-height: 100vh;
+        }
+        main { max-width: 54rem; margin: auto; padding: clamp(1.25rem, 4vw, 3rem);
+            background: var(--paper); box-shadow: 0 6px 18px rgba(40, 26, 12, 0.28); }
+        h1, h2, h3, code, kbd, .back { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        h1 { font-size: clamp(1.5rem, 4vw, 2.25rem); line-height: 1.25; margin: 1rem 0; }
+        h2 { font-size: 1.3rem; line-height: 1.35; margin: 0 0 1rem; }
+        h3 { font-size: 1rem; margin-top: 1.5rem; }
+        a { color: var(--green); text-underline-offset: 0.18em; }
+        a:focus-visible { outline: 2px solid #8a6a2f; outline-offset: 3px; }
+        .intro { font-size: 1.1rem; }
+        nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin: 1.5rem 0; }
+        section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #c4b8a4; scroll-margin-top: 1rem; }
+        li + li { margin-top: 0.5rem; }
+        ol, ul { padding-left: 1.5rem; }
+        kbd { padding: 0.1em 0.3em; border: 1px solid #b9ae99; border-radius: 2px; background: #e2d8c4; }
+        code { font-size: 0.92em; overflow-wrap: anywhere; }
+        pre { padding: 1rem; background: #e2d8c4; white-space: pre-wrap; overflow-wrap: anywhere; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.7rem 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid #c4b8a4; }
+        th { font-size: 0.9rem; }
+        .callout { border-left: 3px solid var(--green); padding: 0.6rem 1rem; background: #e2d8c4; }
+        footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #c4b8a4; }
+        @media (max-width: 480px) { body { padding: 0.5rem; } th, td { padding: 0.5rem 0.25rem; } }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <a class="back" href="index.html">Back to the emulator</a>
+        <h1>How to use the AMICO 2000</h1>
+        <p class="intro">A keypad, six red digits, and 6502 machine code. The monitor
+            is the small built-in program that lets you inspect memory, enter bytes,
+            and start your own programs.</p>
+    </header>
+    <nav aria-label="Guide contents">
+        <a href="#getting-started">Getting started</a>
+        <a href="#keypad">Keypad and memory</a>
+        <a href="#file-formats">File formats</a>
+        <a href="#cassette">Cassette LOAD/SAVE</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+    </nav>
+
+    <section id="getting-started">
+        <h2>Getting started</h2>
+        <p>The emulator starts running automatically with the monitor ROM already
+            installed. You do not need to load a file to use it. Click or tap the
+            board's keys, or use the keyboard shortcuts below.</p>
+        <p>The four digits on the left normally show an address; the two on the
+            right show the byte at that address. Everything is hexadecimal:
+            digits <code>0-9</code> and <code>A-F</code>. A dollar sign marks a hex
+            value, so <code>$0200</code> is an address and <code>$EA</code> is a byte.</p>
+        <ul>
+            <li><strong>RES</strong> (Escape or Backspace) returns to the monitor,
+                even from a stuck program, and keeps RAM.</li>
+            <li><strong>Cold reset</strong> clears the emulator's 2 KB of RAM.
+                Use it when you want to start over.</li>
+            <li>The bench <strong>Stop/Run</strong> button pauses or resumes the
+                processor. Leave it running to use the keypad: the monitor must
+                execute to read your keys.</li>
+            <li><strong>Step</strong> executes one CPU instruction while paused.
+                The Processor state panel shows the CPU's live registers.</li>
+        </ul>
+        <p class="callout">The board's RUN key starts a user program through the
+            monitor. The bench Run button resumes the emulator after a pause.
+            RES and Cold reset do not resume a paused emulator.</p>
+    </section>
+
+    <section id="keypad">
+        <h2>Keypad and memory</h2>
+        <p class="callout">The sequence below describes the original monitor's
+            controls. Some emulator function keys currently share input mappings,
+            which can prevent the keypad entry/RUN sequence from working as on
+            the original hardware. Use the <a href="#console-program">console
+            example</a> to load and execute a program directly.</p>
+        <table>
+            <thead><tr><th scope="col">Board key</th><th scope="col">Keyboard shortcut</th></tr></thead>
+            <tbody>
+                <tr><td>Hex digits</td><td><kbd>0</kbd>-<kbd>9</kbd>, <kbd>A</kbd>-<kbd>F</kbd></td></tr>
+                <tr><td>AD (address)</td><td>Arrow Up</td></tr>
+                <tr><td>DA (data)</td><td>Arrow Down</td></tr>
+                <tr><td>Increment (up-arrow legend)</td><td><kbd>+</kbd> or <kbd>=</kbd></td></tr>
+                <tr><td>RUN</td><td>Enter or <kbd>G</kbd></td></tr>
+                <tr><td>REG</td><td><kbd>R</kbd></td></tr>
+                <tr><td>HLT</td><td><kbd>P</kbd></td></tr>
+                <tr><td>RES</td><td>Escape or Backspace</td></tr>
+            </tbody>
+        </table>
+        <h3>Inspect or change a byte</h3>
+        <ol>
+            <li>Press <strong>RES</strong>, then <strong>AD</strong> and four
+                address digits, for example <code>0 2 0 0</code>.</li>
+            <li>Press <strong>DA</strong>, then two digits to write a byte,
+                for example <code>E A</code> (the 6502 NOP instruction).</li>
+            <li>Press <strong>Increment</strong> to move to the next address.
+                Enter the next two digits; DA mode remains selected.</li>
+            <li>To inspect another location, press <strong>AD</strong> and its
+                four digits. Increment lets you walk through successive bytes.</li>
+        </ol>
+        <p>Use <code>$0000-$07FF</code> for the board's RAM. ROM locations are
+            read-only; typing data there cannot modify the monitor.</p>
+        <h3>Enter a small program</h3>
+        <p>At <code>$0200</code>, enter these seven bytes, pressing Increment
+            between bytes:</p>
+        <pre><code>A9 42 85 20 4C 22 FE</code></pre>
+        <p>This program stores <code>$42</code> at <code>$0020</code>, then jumps
+            back to the monitor. Select its start with <strong>AD</strong>
+            <code>0 2 0 0</code>, then press <strong>RUN</strong>. Inspect
+            <code>$0020</code> with AD to see the result.</p>
+        <p>If the keypad sequence does not produce the expected result, use the
+            console example below; use RES to recover from a running program.</p>
+    </section>
+
+    <section id="file-formats">
+        <h2>What files can I load?</h2>
+        <p>Choose <strong>Load ROM or tape</strong> on the home page. The picker
+            offers <code>.bin</code>, <code>.rom</code>, <code>.ic9</code>,
+            <code>.ic10</code>, and <code>.amtape</code> files.</p>
+        <p><strong>ROM and program files are raw binary bytes</strong>, without
+            a header or an embedded load address. A text file containing
+            <code>A9 42</code>, an assembly listing, or an Intel HEX file must
+            be converted to raw binary first. Renaming it does not convert it.</p>
+        <table>
+            <thead><tr><th scope="col">File</th><th scope="col">How the loader handles it</th></tr></thead>
+            <tbody>
+                <tr><td><code>.amtape</code></td><td>Imports an emulator cassette record
+                    for a later LOAD. It does not immediately copy the program into RAM.</td></tr>
+                <tr><td>Name contains <code>ic9</code> or <code>monitor</code></td>
+                    <td>Installs a monitor ROM at <code>$FE00</code>, then cold resets.
+                        A complete image is 512 bytes; larger files are rejected.</td></tr>
+                <tr><td>Name contains <code>ic10</code> or <code>cassette</code></td>
+                    <td>Installs a cassette ROM at <code>$FB00</code>, then cold resets.
+                        A complete image is 512 bytes; larger files are rejected.</td></tr>
+                <tr><td>Any other 512-byte file</td><td>Installs it as a monitor ROM,
+                    then cold resets, even if the extension is <code>.bin</code>.</td></tr>
+                <tr><td>Other raw binary files</td><td>Copies bytes to <code>$0000</code>
+                    without resetting or starting the program. Select its entry address
+                    and use RUN afterwards.</td></tr>
+            </tbody>
+        </table>
+        <p>Names are matched without regard to case, in the order above.
+            A name containing <code>tape</code> is also treated as a tape image
+            before any ROM or size checks. Use names such as
+            <code>prom.ic9</code>, <code>prom.ic10</code>, or <code>program.bin</code>
+            to avoid accidental classification. Short ROM files are accepted as
+            partial writes, so use a complete 512-byte dump to replace a PROM.</p>
+        <p class="callout">Loading either ROM clears RAM. For a raw program
+            requiring another load address, or a 512-byte program that would be
+            mistaken for a ROM, use the console method below.</p>
+        <h3 id="console-program">Load and run at a chosen address (console)</h3>
+        <p>Open your browser's developer console. This example loads and runs the
+            seven-byte program above at <code>$0200</code>:</p>
+        <pre><code>amico.stop();
+amico.res();
+amico.loadProgram(new Uint8Array([0xA9, 0x42, 0x85, 0x20, 0x4C, 0x22, 0xFE]), 0x0200);
+amico.cpu.PC = 0x0200;
+amico.start();
+debug.mem(0x0020, 1);</code></pre>
+        <p>Run <code>debug.mem(0x0020, 1)</code> after execution to see
+            <code>42</code>. For your own program, substitute its bytes, load address,
+            and entry address. Do not cold reset between loading and running.</p>
+    </section>
+
+    <section id="cassette">
+        <h2>Cassette LOAD and SAVE</h2>
+        <p>An <code>.amtape</code> is the emulator's binary cassette format,
+            containing a program identifier, recorded address range, program bytes,
+            and checksum. It is produced by this emulator; it is not a WAV/MP3
+            recording or a raw ROM dump. Audio recordings need a separate decoding
+            step before they can be used here.</p>
+        <p>The emulator intercepts the cassette entry points directly, so these
+            file operations do not require an additional cassette ROM. They return
+            to the monitor after the operation.</p>
+        <h3>LOAD an imported tape</h3>
+        <ol>
+            <li>Choose the <code>.amtape</code> with <strong>Load ROM or tape</strong>.
+                Its identifier and recorded addresses are logged in the browser console.</li>
+            <li>Enter its identifier at <code>$0000</code>. For the recorded load
+                address, put <code>00</code> at <code>$0001</code> and <code>FF</code>
+                at <code>$0002</code>. To relocate instead, put the desired address's
+                low byte at <code>$0001</code> and high byte at <code>$0002</code>.</li>
+            <li>Select <code>$FC54</code> with AD and RUN to perform LOAD.
+                This loads bytes; start the program separately at its entry address.</li>
+        </ol>
+        <p>For example, to LOAD tape identifier <code>01</code> at its recorded
+            address through the console:</p>
+        <pre><code>amico.stop();
+amico.res();
+amico.writeMemory(0x0000, 0x01);
+amico.writeMemory(0x0001, 0x00);
+amico.writeMemory(0x0002, 0xFF);
+amico.cpu.PC = 0xFC54;
+amico.start();</code></pre>
+        <p>A missing identifier or a destination overlapping ROM causes LOAD to
+            fail with <code>FF</code> at <code>$0000</code>. Inspect the destination
+            bytes before starting the program.</p>
+        <h3>SAVE and download a tape</h3>
+        <p>Enter the start address's low/high bytes at <code>$0000/$0001</code>,
+            the inclusive end address's low/high bytes at <code>$0002/$0003</code>,
+            and the identifier at <code>$0004</code>. For <code>$0200-$0206</code>
+            with identifier <code>01</code>, these five bytes are
+            <code>00 02 06 02 01</code>.</p>
+        <p>RUN from <code>$FBBC</code> to SAVE. Once back in the monitor, execute
+            <code>debug.saveTape()</code> in the browser console to download an
+            <code>.amtape</code> file. SAVE alone keeps the record only in the
+            current page session; download it before closing or reloading the page.</p>
+        <p>To save the example program through the console, after loading it at
+            <code>$0200</code>:</p>
+        <pre><code>amico.stop();
+amico.res();
+amico.writeMemory(0x0000, 0x00);
+amico.writeMemory(0x0001, 0x02);
+amico.writeMemory(0x0002, 0x06);
+amico.writeMemory(0x0003, 0x02);
+amico.writeMemory(0x0004, 0x01);
+amico.cpu.PC = 0xFBBC;
+amico.start();</code></pre>
+        <p>Then run <code>debug.saveTape()</code> to download the result.</p>
+    </section>
+
+    <section id="troubleshooting">
+        <h2>If something goes wrong</h2>
+        <ul>
+            <li><strong>Keys do nothing:</strong> resume with the bench Run button,
+                then press RES. On a narrow screen, scroll the board sideways to
+                reach all keys.</li>
+            <li><strong>A program is stuck:</strong> press RES. If the monitor still
+                fails, Cold reset restores its RAM setup and clears your program.</li>
+            <li><strong>A file does not load:</strong> read the error alert and check
+                its name, byte count, and format. A 512-byte program uses the ROM
+                fallback; a renamed audio or text file is not a binary tape or ROM.</li>
+            <li><strong>Need to inspect memory:</strong> in the browser console, use
+                <code>debug.mem(0x0200, 16)</code> or <code>debug.state()</code>.
+                After using console start/stop commands, the bench button label may
+                be out of sync; use <code>amico.start()</code> to resume.</li>
+            <li><strong>Work disappeared after a reload:</strong> RAM and imported
+                tapes are held in this page session. Save and download a tape to
+                keep a program.</li>
+        </ul>
+    </section>
+    <footer><a href="index.html">Back to the emulator</a></footer>
+</main>
+</body>
+</html>

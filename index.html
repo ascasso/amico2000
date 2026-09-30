@@ -615,6 +615,11 @@
         }
         .control-btn-primary:hover { background: #3a8047; }
 
+        /* Keep format help next to the picker instead of hiding it in a tooltip. */
+        .load-help { margin: 0 0 1.1rem; font-size: 0.8rem; line-height: 1.6; }
+        .load-help a { color: #22522c; text-underline-offset: 0.15em; }
+        .load-help a:focus-visible { outline: 2px solid #8a6a2f; outline-offset: 2px; }
+
         .regs {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(5rem, max-content));
@@ -885,8 +890,15 @@
                 <button class="control-btn control-btn-primary" id="btn-run">Run</button>
                 <button class="control-btn" id="btn-step">Step</button>
                 <button class="control-btn" id="btn-reset" title="Power-on reset — clears RAM, the way switching the board off and on does. The board&rsquo;s own RES key keeps RAM.">Cold reset</button>
-                <button class="control-btn" id="btn-load">Load ROM or tape</button>
+                <button class="control-btn" id="btn-load" aria-describedby="load-help">Load ROM or tape</button>
             </div>
+            <p class="load-help" id="load-help">
+                Raw binary ROMs/programs (<code>.bin</code>, <code>.rom</code>,
+                <code>.ic9</code>, <code>.ic10</code>) or <code>.amtape</code> tape images.
+                <!-- Help opens separately so reading it does not discard the current RAM. -->
+                <a href="guide.html#file-formats" target="_blank" rel="noopener">File formats</a>
+                &middot; <a href="guide.html" target="_blank" rel="noopener">How to use the AMICO 2000</a>
+            </p>
             <h2>Processor state</h2>
             <div class="regs">
                 <div><span class="k">PC</span><span class="v" id="reg-pc">0000</span></div>
@@ -947,7 +959,7 @@
     </main>
 
     <!-- Hidden file input for ROM, program, and mock cassette tape loading -->
-    <input type="file" id="rom-file" accept=".bin,.rom,.amtape" style="display: none">
+    <input type="file" id="rom-file" accept=".bin,.rom,.ic9,.ic10,.amtape" style="display: none">
 
     <!-- Scripts -->
     <script src="cpu6502.js"></script>
