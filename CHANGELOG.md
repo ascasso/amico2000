@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a build date beneath the home page credits (`Build YYYYMMDD`) so the
+  emulator revision's date is visible, including when used offline.
 - Added a linked AMICO 2000 user guide covering controls, memory entry, raw
   binary ROM/program formats, file routing, and cassette LOAD/SAVE. The home
   page now explains the accepted formats beside the loader, and the file

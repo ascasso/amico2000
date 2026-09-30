@@ -13,6 +13,11 @@ This file provides repository guidance for agents working in this repository.
   a concise entry to the dated engineering log in `docs/logs/`.
 - Fully document every change, including its purpose, scope, and verification;
   commit the complete change before handoff.
+- Keep the home page's `build-date` stamp in sync with the committer's calendar
+  date of the commit being created: `YYYYMMDD` text and `YYYY-MM-DD` in its
+  `datetime` attribute. `git show -s --format=%cs HEAD` shows the existing
+  commit date; advance the stamp when making a commit on a later day. The
+  static site has no build step to refresh it automatically.
 - Commit in small units. One commit is one unit of work — a single fix, a
   single new test file, a single documented decision, one vendored fixture.
   Prefer several small commits over one large one, and never batch unrelated

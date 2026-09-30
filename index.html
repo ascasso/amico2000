@@ -660,6 +660,7 @@
         }
 
         .colophon a { color: #3b2f20; }
+        .colophon .build-stamp { margin: 0.6rem 0 0; color: var(--paper); }
 
         @media (max-width: 780px) {
             .bench { grid-template-columns: 1fr; }
@@ -954,6 +955,8 @@
             Emulator by Andrea Scasso &middot; original design by A.S.E.L. Milano, 1978 &middot;
             <a href="https://github.com/ascasso/amico2000" target="_blank" rel="noopener">Source code on GitHub</a> &middot;
             <a href="https://web.archive.org/web/20260113032804/https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117" target="_blank" rel="noopener">board photographs on ComputerHistory.it</a>
+            <!-- Committed stamp: keep the date aligned with the commit, even when opened offline. -->
+            <p class="build-stamp">Build <time id="build-date" datetime="2026-09-29">20260929</time></p>
         </div>
 
     </main>
