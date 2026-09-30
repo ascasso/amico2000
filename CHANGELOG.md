@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a visually checked text transcription of the May 1979 clock program,
+  including its hex bytes, assembly, loading steps, use, and a note on the
+  printed calibration-address discrepancy.
+- Added the May 1979 Sperimentare AMICO 2000 article scan under `docs/` so
+  its clock program and operating instructions have a stable, reviewable source.
 - Added `tests/cpu6502-cycles.test.js`, the timing contract from #5 (#17). It
   checks all 151 documented opcodes against a reference table of NMOS base
   cycles and asserts the instruction table holds that set and nothing more, so
@@ -225,6 +230,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Corrected the clock transcription and reset documentation's calibration
+  guidance: the May 1979 article prints `$0312`, which is an opcode, while
+  `$030E` is the adjustment byte that matches its stated speed direction.
 - Added `.gitattributes`, exempting the vendored
   `tests/fixtures/6502-functional/6502_functional_test.a65` from `git diff
   --check`'s whitespace checks. The file is pinned byte-for-byte identical to

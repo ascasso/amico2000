@@ -1,15 +1,23 @@
 # Manual Extraction Notes
 
-This directory documents the extraction process for the local scanned manual:
+This directory documents extraction from two scanned Sperimentare sources:
 
-`docs/Sperimentare_1980_05_supplemento.pdf`
+- `docs/Sperimentare_1979_05.pdf` - the May 1979 AMICO 2000 article, part four,
+  printed pages 431-438 (tracked source scan).
+- `docs/Sperimentare_1980_05_supplemento.pdf` - the later supplement (local,
+  ignored source scan).
 
-The PDF itself and generated raw extraction artifacts are intentionally ignored
-by Git. Keep curated notes, indexes, verified program listings, and emulator
-test cases in tracked files; keep raw OCR/text dumps local unless there is a
-specific reason to publish them.
+Generated raw extraction artifacts are intentionally ignored by Git. Keep
+curated notes, indexes, verified program listings, and emulator test cases in
+tracked files; keep raw OCR/text dumps local unless there is a specific reason
+to publish them.
 
-## Current Source
+The May 1979 clock listing and operating steps are transcribed in
+`docs/manual-extraction/listings/orologio-1979-05.txt`. Its code bytes were
+checked against the rendered page, and an apparent printed calibration-address
+error is recorded without silently changing the source.
+
+## 1980 Supplement Source
 
 - Title page: `costruiamo un vero microelaboratore elettronico e impariamo a programmare`
 - Authors: Giovanni Ghiringhelli and Giuseppe Fusaroli

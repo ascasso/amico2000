@@ -202,10 +202,13 @@ vectors at `$03FC-$03FF` to `$FE30`, then call `res()`. It is what `main.js`
 runs at startup and what the bench **Cold reset** control invokes.
 
 **RES preserves RAM.** This is a deliberate fidelity decision, not an
-oversight. The Sperimentare clock tutorial has the reader press RES to stop the
-program at `$0300`, then re-enter values at `$0000-$0002` and tune `$0312`; the
-program is plainly still in memory afterwards. Two consequences follow, both
-matching the hardware: `$03FC-$03FF` keep whatever a program left in them,
+oversight. The May 1979 Sperimentare clock article has the reader press RES to
+stop the program at `$0300`, then re-enter values at `$0000-$0002` and calibrate
+the clock; the program is plainly still in memory afterwards. The article
+prints `$0312` as the calibration address, but the listing makes it an opcode;
+`$030E` is the likely intended operand (see the clock transcription). Two
+consequences follow, both matching the hardware: `$03FC-$03FF` keep whatever a
+program left in them,
 because `$FE22` reinitialises `$FA`, `$FB` and `$FE` but not those, so the
 power-on reset is the only way back from a program that trashed them; and RES
 does not touch `this.running`, because pausing is a debugging facility with no

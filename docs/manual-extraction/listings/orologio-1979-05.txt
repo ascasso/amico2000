@@ -1,0 +1,80 @@
+PROGRAMMA DI OROLOGIO - AMICO 2000/A
+====================================
+
+Source: Sperimentare, May 1979, "Home Computer AMICO 2000", part four
+Scan: docs/Sperimentare_1979_05.pdf
+Printed pages: 436 (description), 437 (loading and use), 438 (code listing)
+PDF pages: 6-8
+Status: bytes and instructions visually transcribed from the rendered scan.
+This is a source transcription, not a claim that the emulator has run it.
+
+The article stores seconds, minutes, and hours in $F9, $FA, and $FB. It uses
+decimal mode so the values are packed decimal digits. The limits at $0003-$0005
+are $60, $60, and $24. SCADS is the monitor display routine at $FF0C.
+
+CODE LISTING (printed page 438)
+--------------------------------
+Each row gives the address of its first byte. Remaining bytes occupy the next
+addresses. Enter every byte in the order shown, from $0300 through $033E.
+
+Address  Hex bytes  Assembly       Source comment / role
+0300     F8         SED            Count in decimal.
+0301     A5 00      LDA $00        Read starting seconds.
+0303     85 F9      STA $F9        Seconds counter.
+0305     A5 01      LDA $01        Read starting minutes.
+0307     85 FA      STA $FA        Minutes counter.
+0309     A5 02      LDA $02        Read starting hours.
+030B     85 FB      STA $FB        Hours counter.
+030D     A2 95      LDX #$95      Fine timing adjustment.
+030F     CA         DEX
+0310     D0 FD      BNE $030F
+0312     A9 15      LDA #$15      Coarse timing adjustment.
+0314     85 06      STA $06       Delay counter in zero page.
+0316     E6 06      INC $06
+0318     D0 1A      BNE $0334     Refresh display while waiting.
+031A     A2 00      LDX #$00      Start scanning time fields.
+031C     A0 01      LDY #$01      Increment by one.
+031E     18         CLC
+031F     98         TYA
+0320     75 F9      ADC $F9,X
+0322     D5 03      CMP $03,X     Compare with 60, 60, or 24.
+0324     D0 04      BNE $032A
+0326     A9 00      LDA #$00      Reset a field at its limit.
+0328     F0 03      BEQ $032D
+032A     A0 00      LDY #$00      No carry into the next field.
+032C     EA         NOP
+032D     95 F9      STA $F9,X
+032F     E8         INX
+0330     E0 03      CPX #$03
+0332     D0 EB      BNE $031F
+0334     20 0C FF   JSR $FF0C    SCADS: light/refresh the display.
+0337     EA         NOP
+0338     A5 06      LDA $06
+033A     D0 DA      BNE $0316
+033C     4C 0D 03   JMP $030D
+
+LOADING AND USING THE CLOCK (printed page 437)
+----------------------------------------------
+1. Enter the program from $0300. Press AD, enter 0300, press DA, enter F8,
+   then use the up-arrow key to advance after each byte. The next byte at
+   $0301 is A5; continue through $033E = 03.
+2. Enter the time limits: AD 0003, DA 60; up-arrow to $0004 and enter 60;
+   up-arrow to $0005 and enter 24. These are the article's hex input bytes
+   for 60 seconds, 60 minutes, and 24 hours in decimal mode.
+3. Choose a starting time a few minutes ahead of the actual time. Press RES,
+   then DA and enter seconds (ss) at $0000; use up-arrow to enter minutes (mm)
+   at $0001 and hours (hh) at $0002. Use two decimal digits for each field.
+4. Set the start PC with AD 0300. Press RUN when the chosen time arrives.
+5. To change the time, press RES and repeat the starting-time entry and start.
+
+SOURCE DISCREPANCY
+------------------
+The operating paragraph says to change the value at $0312 to calibrate the
+clock: lower speeds it up, higher slows it down. In the printed listing,
+$0312 contains the LDA immediate opcode A9; its value $15 is at $0313.
+Changing $0312 would change the instruction. The stated direction matches the
+fine-adjustment byte $95 at $030E: lowering it shortens the DEX/BNE delay.
+The coarse byte at $0313 works oppositely: raising its starting value makes
+$06 wrap to zero in fewer INC iterations and speeds up the clock. Thus $030E
+is the likely intended calibration address, but that is an inference; the
+printed instruction says $0312.

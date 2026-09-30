@@ -1,7 +1,7 @@
 # Manual Code Listings
 
 This directory contains transcribed AMICO 2000 code listings from the
-Sperimentare supplement.
+Sperimentare sources.
 
 ## Status Levels
 
@@ -50,6 +50,7 @@ They establish the workflow and are easier to check:
 | `trasformazione-complemento-due-0200.hex` | candidate | PDF page 62, Programma 1 | `0230` | Convert positive/negative decimal numbers to two's complement. |
 | `master-mind-0200.hex` | candidate | PDF page 62, Programma 2 | `02A0` | Master Mind game. |
 | `21-fiammiferi-0200.hex` | candidate | PDF page 103, Appendix 2 | `0200` | Matchstick game against AMICO 2000. |
+| `orologio-1979-05.txt` | verified transcription | May 1979 article, printed pages 436-438 | `0300` | Clock code, manual entry, use, and a flagged calibration-address discrepancy. |
 
 Appendix 2 programs should be split into one file per program after visual
 verification of the OCR-heavy listings.

@@ -723,10 +723,12 @@ class Amico2000 {
      * clearing the PIA and the display here.
      *
      * RAM is preserved, which is the part worth being explicit about. The
-     * Sperimentare supplement's clock tutorial has the reader press RES to
-     * stop the program at $0300, then re-enter values at $0000-$0002 and tune
-     * $0312 - the program itself is still there afterwards. Wiping RAM would
-     * make that workflow impossible. Power-on clearing lives in reset().
+     * May 1979 Sperimentare clock article has the reader press RES to stop
+     * the program at $0300, then re-enter values at $0000-$0002 and calibrate
+     * the clock - the program itself is still there afterwards. Its printed
+     * calibration address $0312 is an opcode; $030E matches the stated
+     * adjustment direction. Wiping RAM would make that workflow impossible.
+     * Power-on clearing lives in reset().
      *
      * Two consequences follow from preserving RAM, and both match the
      * hardware. The monitor's RAM-resident IRQ/NMI vectors at $03FC-$03FF keep
