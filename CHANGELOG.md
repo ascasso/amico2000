@@ -129,6 +129,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Clarified that GitHub Pages runs a managed Jekyll build; the footer's
+  committed date still needs to be maintained because that build does not
+  generate the stamp.
 - Reconciled the guidance that recorded #17 as open and unsatisfied. `AGENTS.md`,
   `README.md`, `NextSession.md` and `docs/6502-conformance.md` now state that
   the per-fix harness is done and, more usefully, draw the line the two pieces

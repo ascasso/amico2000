@@ -17,7 +17,7 @@ This file provides repository guidance for agents working in this repository.
   date of the commit being created: `YYYYMMDD` text and `YYYY-MM-DD` in its
   `datetime` attribute. `git show -s --format=%cs HEAD` shows the existing
   commit date; advance the stamp when making a commit on a later day. The
-  static site has no build step to refresh it automatically.
+  managed GitHub Pages/Jekyll build does not refresh this stamp automatically.
 - Commit in small units. One commit is one unit of work — a single fix, a
   single new test file, a single documented decision, one vendored fixture.
   Prefer several small commits over one large one, and never batch unrelated
