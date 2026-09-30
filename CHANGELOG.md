@@ -239,6 +239,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed the user guide's console example so memory is inspected in a separate
+  command after execution. Pasting the original block could report the old
+  byte before the first animation frame ran (PR #39).
 - Corrected the clock transcription and reset documentation's calibration
   guidance: the May 1979 article prints `$0312`, which is an opcode, while
   `$030E` is the adjustment byte that matches its stated speed direction.
