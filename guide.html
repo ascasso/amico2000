@@ -221,6 +221,9 @@ amico.start();</code></pre>
             <code>debug.saveTape()</code> in the browser console to download an
             <code>.amtape</code> file. SAVE alone keeps the record only in the
             current page session; download it before closing or reloading the page.</p>
+        <p>An end address before the start address, or the whole
+            <code>$0000-$FFFF</code> range, which is more than a tape image can
+            hold, causes SAVE to fail with <code>FF</code> at <code>$0000</code>.</p>
         <p>To save the example program through the console, after loading it at
             <code>$0200</code>:</p>
         <pre><code>amico.stop();

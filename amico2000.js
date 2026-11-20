@@ -626,6 +626,20 @@ class Amico2000 {
             throw new Error('Cassette save end address is before start address');
         }
 
+        // The .amtape header holds the byte count in 16 bits, so the one range
+        // longer than that, the whole $0000-$FFFF address space, used to save
+        // with a count of 0 and report success, leaving an image that could
+        // never be loaded back. That range also covers the ROMs and the PIA,
+        // which no program on a 2KB board needs, so refuse it like an inverted
+        // range rather than change the file format and break existing tapes.
+        const length = end - start + 1;
+        if (length > 0xFFFF) {
+            this.cpu.memory[0x0000] = 0xFF;
+            throw new Error(
+                `Cassette save of ${length} bytes exceeds the tape image limit of 65535`
+            );
+        }
+
         const data = this.cpu.memory.slice(start, end + 1);
         const checksum = data.reduce((sum, value) => (sum + value) & 0xFF, id);
         const record = { id, start, end, checksum, data };

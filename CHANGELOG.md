@@ -239,6 +239,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed cassette SAVE of the whole `$0000-$FFFF` range reporting success while
+  exporting a tape that could never be loaded back. The `.amtape` header holds
+  the byte count in 16 bits, so 65,536 bytes was recorded as 0 and `loadTape()`
+  rejected the image. SAVE now refuses that range with the routine's `$0000 =
+  $FF` error status, as it does for an end address before the start; every
+  smaller range, up to 65,535 bytes, saves and loads as before. The user guide
+  lists both failure cases. Covered by `tests/cassette-tape-length.test.js`.
 - Fixed an uncaught console error when releasing the `"` key. The on-screen
   key highlight built its CSS selector from the raw key name, so a double quote
   produced an invalid selector; the name is now escaped with `CSS.escape()`. The emulator itself was unaffected, because the key had
