@@ -385,47 +385,40 @@ function updateRunButton() {
     }
 }
 
-function highlightButton(key) {
-    // Map keyboard keys to button data-key attributes
-    const keyMap = {
-        'arrowup': 'ad',
-        'arrowdown': 'da',
-        'enter': 'go',
-        'escape': 'res',
-        'backspace': 'res',
-        '=': '+',
-        'r': 'reg',
-        'g': 'go'
-    };
-    
+// Keyboard keys whose on-screen button has a different data-key; every other
+// key ('0'-'f', '+') is its own data-key. One table serves press and release,
+// so the two cannot drift apart.
+const BUTTON_FOR_KEY = {
+    'arrowup': 'ad',
+    'arrowdown': 'da',
+    'enter': 'go',
+    'escape': 'res',
+    'backspace': 'res',
+    '=': '+',
+    'r': 'reg',
+    'g': 'go'
+};
+
+function keyButton(key) {
     // The table is keyed lowercase but `key` keeps its case for named keys, so
     // 'Escape' missed 'escape' and the RES cap never moved. Same for the other
     // named keys (#30).
-    const buttonKey = keyMap[key.toLowerCase()] || key;
-    // `key` is the browser's KeyboardEvent.key, so it can be any character;
-    // escape it so a double quote cannot break the selector.
-    const button = document.querySelector(`.key[data-key="${CSS.escape(buttonKey)}"]`);
+    const buttonKey = BUTTON_FOR_KEY[key.toLowerCase()] || key;
+    // `key` is the browser's KeyboardEvent.key, so it can be any character,
+    // and every keyup arrives here, mapped or not: escape it so a double quote
+    // cannot break the selector.
+    return document.querySelector(`.key[data-key="${CSS.escape(buttonKey)}"]`);
+}
+
+function highlightButton(key) {
+    const button = keyButton(key);
     if (button) {
         button.style.transform = 'translateY(3px)';
     }
 }
 
 function unhighlightButton(key) {
-    const keyMap = {
-        'arrowup': 'ad',
-        'arrowdown': 'da',
-        'enter': 'go',
-        'escape': 'res',
-        'backspace': 'res',
-        '=': '+',
-        'r': 'reg',
-        'g': 'go'
-    };
-    
-    const buttonKey = keyMap[key.toLowerCase()] || key;
-    // Every keyup reaches this, mapped or not: unescaped, releasing `"` built
-    // an invalid selector and querySelector() threw.
-    const button = document.querySelector(`.key[data-key="${CSS.escape(buttonKey)}"]`);
+    const button = keyButton(key);
     if (button) {
         button.style.transform = '';
     }

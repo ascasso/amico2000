@@ -129,6 +129,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `main.js` keeps one key-to-button table for the on-screen key animation
+  instead of identical copies in `highlightButton()` and
+  `unhighlightButton()`, so press and release cannot drift apart. No visible
+  change.
 - Cross-referenced the two memory initializations in comments: `CPU6502`
   fills all 64KB with `$FF`, and `Amico2000.reset()` then clears the board's
   2KB of RAM to `$00` for the monitor; each comment now points at the other.
