@@ -275,12 +275,29 @@ function setupControls() {
     });
 }
 
+// Nothing larger than this can load: a ROM or program cannot exceed the 6502's
+// 64KB address space, and a tape image adds only an 18-byte header to that.
+// Twice the address space leaves headroom, so the limit never refuses a file
+// a loader would accept.
+const MAX_LOAD_BYTES = 2 * 0x10000;
+
 function setupFileLoader() {
     document.getElementById('rom-file').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         try {
+            // Check the size before reading: the loaders would refuse an
+            // oversized file anyway, but only after FileReader had pulled all
+            // of it into memory, and a multi-gigabyte file picked by mistake
+            // could stall the tab first.
+            if (file.size > MAX_LOAD_BYTES) {
+                throw new Error(
+                    `${file.name} is ${file.size} bytes; the largest file the ` +
+                    `AMICO 2000 can load is ${MAX_LOAD_BYTES} bytes`
+                );
+            }
+
             const data = await readFileAsArrayBuffer(file);
             const rom = new Uint8Array(data);
             

@@ -314,6 +314,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   review found no injection bug for it to stop; it is there so a future one
   could not run code. The emulator runs unchanged from a web server and from
   a file opened directly.
+- The ROM and tape loader now refuses a file over 128KB before reading it.
+  Every loader already rejected such a file, but only after reading all of it
+  into memory, so a very large file picked by mistake could stall the tab.
+  128KB is twice the 6502's address space, so no file a loader would accept is
+  turned away.
 
 ## [1.0.0] - 2026-01-12
 
