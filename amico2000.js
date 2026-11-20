@@ -104,7 +104,13 @@ class Amico2000 {
         // Callbacks for UI
         this.onDisplayUpdate = null;
         this.onStateUpdate = null;
-        
+        // Called with the new value whenever `running` changes, from whichever
+        // caller changed it. The bench controls are not the only way to start
+        // or stop the machine: the user guide's console examples call start()
+        // and stop() directly, and a UI that tracked its own copy of the state
+        // fell out of step with them.
+        this.onRunStateChange = null;
+
         // Setup I/O
         this._setupIO();
         this._setupCassetteROMTraps();
@@ -799,20 +805,31 @@ class Amico2000 {
      */
     start() {
         if (this.running) return;
-        
+
         this.running = true;
+        this._notifyRunState();
         this.lastFrameTime = performance.now();
         this._runFrame();
     }
-    
+
     /**
      * Stop the emulator
      */
     stop() {
+        const wasRunning = this.running;
         this.running = false;
         if (this.frameRequest) {
             cancelAnimationFrame(this.frameRequest);
             this.frameRequest = null;
+        }
+        if (wasRunning) {
+            this._notifyRunState();
+        }
+    }
+
+    _notifyRunState() {
+        if (this.onRunStateChange) {
+            this.onRunStateChange(this.running);
         }
     }
     

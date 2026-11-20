@@ -250,9 +250,7 @@ amico.start();</code></pre>
                 its name, byte count, and format. A 512-byte program uses the ROM
                 fallback; a renamed audio or text file is not a binary tape or ROM.</li>
             <li><strong>Need to inspect memory:</strong> in the browser console, use
-                <code>debug.mem(0x0200, 16)</code> or <code>debug.state()</code>.
-                After using console start/stop commands, the bench button label may
-                be out of sync; use <code>amico.start()</code> to resume.</li>
+                <code>debug.mem(0x0200, 16)</code> or <code>debug.state()</code>.</li>
             <li><strong>Work disappeared after a reload:</strong> RAM and imported
                 tapes are held in this page session. Save and download a tape to
                 keep a program.</li>

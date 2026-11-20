@@ -239,6 +239,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed the bench Run/Stop label and RUN LED falling out of step when the
+  machine was started or stopped from the browser console, as the user guide's
+  own examples do. `main.js` kept a separate copy of the run state that only
+  the bench button updated, so after a console `amico.stop()` the label still
+  read Stop and the Step button refused to step a paused machine. The machine
+  now reports run-state changes through `Amico2000.onRunStateChange`, the bench
+  controls read `amico.running`, and the guide no longer warns about the
+  mismatch. Covered by `tests/run-state.test.js`.
 - Fixed cassette SAVE of the whole `$0000-$FFFF` range reporting success while
   exporting a tape that could never be loaded back. The `.amtape` header holds
   the byte count in 16 bits, so 65,536 bytes was recorded as 0 and `loadTape()`

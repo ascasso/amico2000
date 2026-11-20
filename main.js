@@ -131,7 +131,6 @@ const CASSETTE_ROM = new Uint8Array([
 
 let amico = null;
 let display = null;
-let isRunning = false;
 
 // ============================================================================
 // Initialization
@@ -153,26 +152,26 @@ document.addEventListener('DOMContentLoaded', () => {
     amico.onStateUpdate = (state) => {
         updateStatusDisplay(state);
     };
-    
+
+    // The machine owns its run state; the bench controls only reflect it, so
+    // a console start() or stop() updates the label and RUN LED as well.
+    amico.onRunStateChange = updateRunButton;
+
     // Load monitor ROM
     amico.loadMonitorROM(MONITOR_ROM);
 
     // Initialize and start (CPU runs continuously like real hardware)
     amico.reset();
     amico.start();
-    isRunning = true;
 
     // Setup UI
     setupKeyboard();
     setupControls();
     setupFileLoader();
 
-    // Turn on power LED and run LED
+    // The power LED is decorative and always on; the RUN LED and the Run/Stop
+    // label were already set by onRunStateChange when start() ran.
     document.getElementById('led-power').classList.add('on');
-    document.getElementById('led-run').classList.add('on');
-
-    // Update run button state
-    updateRunButton();
 
     console.log('AMICO 2000 Emulator initialized and running');
     console.log('Initial CPU state:');
@@ -251,13 +250,11 @@ function setupControls() {
     // Run/Stop button
     document.getElementById('btn-run').addEventListener('click', () => {
         amico.toggle();
-        isRunning = !isRunning;
-        updateRunButton();
     });
-    
+
     // Step button
     document.getElementById('btn-step').addEventListener('click', () => {
-        if (!isRunning) {
+        if (!amico.running) {
             amico.step();
         }
     });
@@ -375,8 +372,8 @@ function updateStatusDisplay(state) {
 function updateRunButton() {
     const btn = document.getElementById('btn-run');
     const led = document.getElementById('led-run');
-    
-    if (isRunning) {
+
+    if (amico.running) {
         btn.textContent = 'Stop';
         led.classList.add('on');
     } else {
