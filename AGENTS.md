@@ -394,10 +394,6 @@ opportunistically rather than treating them as required for any specific task:
 - Fold the archive links from `original-documentation.html` into `README.md`
   under Credits, History, or References, then remove the standalone skeleton if
   it no longer adds value.
-- The keyboard matrix comments are reconciled, so archive or remove the stale
-  keyboard-discovery scaffolding that is no longer part of the active workflow:
-  `keyboard-test.html`, `keyboard-debug.html`, `keyboard-matrix-test.js`,
-  and `KEYBOARD_TESTING_GUIDE.md`.
 
 ## Pending Verification Work
 

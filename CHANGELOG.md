@@ -242,6 +242,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   continue to reset after loading. This documents the asymmetry introduced
   in #21 and resolves #25.
 
+### Removed
+- Removed the keyboard-discovery scaffolding: `keyboard-test.html`,
+  `keyboard-debug.html`, `keyboard-matrix-test.js` and
+  `KEYBOARD_TESTING_GUIDE.md`. They found matrix positions by trial and error,
+  the method that produced the wrong keypad map, and the key positions are now
+  derived from the monitor ROM and checked by `tests/keyboard-matrix.test.js`.
+  The two pages were also published on GitHub Pages and wrote typed input
+  into the page as HTML (a self-XSS, harmless to other visitors), and could
+  not take the site's Content Security Policy because their scripts are
+  inline. They remain in git history.
+
 ### Fixed
 - Fixed the keypad map, which sent the wrong codes to the monitor for `0`, AD,
   RUN and REG. Typing `0` reset the address instead of entering a zero; AD ran
