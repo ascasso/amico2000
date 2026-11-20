@@ -239,6 +239,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed an uncaught console error when releasing the `"` key. The on-screen
+  key highlight built its CSS selector from the raw key name, so a double quote
+  produced an invalid selector; the name is now escaped with `CSS.escape()`. The emulator itself was unaffected, because the key had
+  already been released in the machine before the error was thrown.
 - Fixed the user guide's console example so memory is inspected in a separate
   command after execution. Pasting the original block could report the old
   byte before the first animation frame ran (PR #39).

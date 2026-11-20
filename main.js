@@ -386,7 +386,9 @@ function highlightButton(key) {
     // 'Escape' missed 'escape' and the RES cap never moved. Same for the other
     // named keys (#30).
     const buttonKey = keyMap[key.toLowerCase()] || key;
-    const button = document.querySelector(`.key[data-key="${buttonKey}"]`);
+    // `key` is the browser's KeyboardEvent.key, so it can be any character;
+    // escape it so a double quote cannot break the selector.
+    const button = document.querySelector(`.key[data-key="${CSS.escape(buttonKey)}"]`);
     if (button) {
         button.style.transform = 'translateY(3px)';
     }
@@ -406,7 +408,9 @@ function unhighlightButton(key) {
     };
     
     const buttonKey = keyMap[key.toLowerCase()] || key;
-    const button = document.querySelector(`.key[data-key="${buttonKey}"]`);
+    // Every keyup reaches this, mapped or not: unescaped, releasing `"` built
+    // an invalid selector and querySelector() threw.
+    const button = document.querySelector(`.key[data-key="${CSS.escape(buttonKey)}"]`);
     if (button) {
         button.style.transform = '';
     }
