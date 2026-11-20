@@ -379,9 +379,6 @@ opportunistically rather than treating them as required for any specific task:
   matrix positions because the monitor ROM disambiguates them by context.
   Note that RES no longer shares a position with AD/REG: it left the matrix
   entirely in #30.
-- `main.js`: `window.amico` is declared as `null` and then re-assigned inside a
-  second `DOMContentLoaded` handler. Fold the assignment into the main init
-  path so there is a single startup sequence.
 - `cpu6502.js` / `amico2000.js`: cross-reference the RAM initialization
   behavior in comments. `cpu6502.js` initializes memory to `$FF`, while
   `amico2000.js` clears AMICO RAM to `$00` during machine reset for monitor ROM

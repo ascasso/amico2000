@@ -129,6 +129,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `main.js` now has a single startup sequence: `window.amico` is published as
+  soon as the emulator is created, instead of being set to `null` and filled
+  in by a second `DOMContentLoaded` handler. The console commands behave as
+  before.
 - Clarified that GitHub Pages runs a managed Jekyll build; the footer's
   committed date still needs to be maintained because that build does not
   generate the stamp.

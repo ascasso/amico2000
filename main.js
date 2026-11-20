@@ -137,9 +137,12 @@ let display = null;
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Create emulator
+    // Create emulator. A top-level `let` does not become a window property,
+    // so publish it explicitly for the console commands the guide documents
+    // (amico.cpu.PC, amico.writeMemory() and so on).
     amico = new Amico2000();
-    
+    window.amico = amico;
+
     // Create display renderer
     display = new DisplayRenderer('display');
     
@@ -459,8 +462,6 @@ function downloadBytes(filename, bytes, type = 'application/octet-stream') {
 // Debug Functions (available in console)
 // ============================================================================
 
-window.amico = null;  // Will be set after init
-
 window.debug = {
     // Dump memory range
     mem: (start, length = 16) => {
@@ -539,8 +540,3 @@ window.debug = {
         console.log(`Exported tape image (${bytes.length} bytes)`);
     }
 };
-
-// Make amico globally accessible after init
-document.addEventListener('DOMContentLoaded', () => {
-    window.amico = amico;
-});
