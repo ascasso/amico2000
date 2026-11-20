@@ -240,6 +240,19 @@ Features:
 - Optional cassette interface
 - Expansion bus for additional boards
 
+### Original documentation
+
+Scans on the Internet Archive:
+
+- [Sperimentare, December 1978](https://archive.org/details/Sperimentare_1978_12/page/n19/mode/2up):
+  the AMICO 2000's first appearance in the magazine
+- [Sperimentare, May 1980 supplement](https://archive.org/details/Sperimentare_1980_05_supplemento):
+  the AMICO 2000 manual, including the monitor keys and the cassette chapter
+- [Istruzioni per il montaggio](https://archive.org/details/amico2000istruzionimontaggio):
+  the kit's assembly instructions
+- [Il BASIC del sistema AMICO 2000](https://archive.org/details/amico2000basic/)
+- [MePC, page 44](https://archive.org/details/MePC011/page/44/mode/2up)
+
 ## 🙏 Credits
 
 - **Original Design**: ASEL Milano, 1978

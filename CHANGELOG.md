@@ -249,6 +249,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Removed
+- Removed `original-documentation.html`, a bare page of Internet Archive links
+  that nothing linked to. The links, each with a note on what it is, are now
+  under History in `README.md`.
 - Removed the keyboard-discovery scaffolding: `keyboard-test.html`,
   `keyboard-debug.html`, `keyboard-matrix-test.js` and
   `KEYBOARD_TESTING_GUIDE.md`. They found matrix positions by trial and error,

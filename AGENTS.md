@@ -388,9 +388,7 @@ None are open at the moment.
 
 ## Pending Documentation Cleanups
 
-- Fold the archive links from `original-documentation.html` into `README.md`
-  under Credits, History, or References, then remove the standalone skeleton if
-  it no longer adds value.
+None are open at the moment.
 
 ## Pending Verification Work
 
