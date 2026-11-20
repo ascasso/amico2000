@@ -129,6 +129,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The README and two `main.js` comments now call the loader button by its
+  on-screen name, **Load ROM or tape**, instead of "Load ROM/Tape" and
+  "Load ROM".
+- `main.js` keeps one key-to-button table for the on-screen key animation
+  instead of identical copies in `highlightButton()` and
+  `unhighlightButton()`, so press and release cannot drift apart. No visible
+  change.
+- Cross-referenced the two memory initializations in comments: `CPU6502`
+  fills all 64KB with `$FF`, and `Amico2000.reset()` then clears the board's
+  2KB of RAM to `$00` for the monitor; each comment now points at the other.
+  The same block in `reset()` had the RAM vectors swapped: `$03FC` is the NMI
+  vector (`$FFFA` -> `$FE1C`: `JMP ($03FC)`) and `$03FE` the IRQ/BRK vector, not
+  the reverse. Comments only; behavior is unchanged.
+- `main.js` now has a single startup sequence: `window.amico` is published as
+  soon as the emulator is created, instead of being set to `null` and filled
+  in by a second `DOMContentLoaded` handler. The console commands behave as
+  before.
 - Clarified that GitHub Pages runs a managed Jekyll build; the footer's
   committed date still needs to be maintained because that build does not
   generate the stamp.
@@ -238,7 +255,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   continue to reset after loading. This documents the asymmetry introduced
   in #21 and resolves #25.
 
+### Removed
+- Removed `original-documentation.html`, a bare page of Internet Archive links
+  that nothing linked to. The links, each with a note on what it is, are now
+  under History in `README.md`.
+- Removed the keyboard-discovery scaffolding: `keyboard-test.html`,
+  `keyboard-debug.html`, `keyboard-matrix-test.js` and
+  `KEYBOARD_TESTING_GUIDE.md`. They found matrix positions by trial and error,
+  the method that produced the wrong keypad map, and the key positions are now
+  derived from the monitor ROM and checked by `tests/keyboard-matrix.test.js`.
+  The two pages were also published on GitHub Pages and wrote typed input
+  into the page as HTML (a self-XSS, harmless to other visitors), and could
+  not take the site's Content Security Policy because their scripts are
+  inline. They remain in git history.
+
 ### Fixed
+- Fixed the keypad map, which sent the wrong codes to the monitor for `0`, AD,
+  RUN and REG. Typing `0` reset the address instead of entering a zero; AD ran
+  the program at the displayed address; RUN and HLT acted as DA; and REG ran
+  code. Each matrix position is now derived from the monitor's own GETKEY
+  routine (`$FF57`), which decodes code = 7 x row + (6 - bit), so all 21
+  positions hold distinct keys and the keypad sequences in the manual and the
+  user guide work: entering bytes with AD/DA/+, AD then RUN, and REG then RUN.
+  The guide's warning that the keypad might not work is removed. REG is
+  described as what the ROM and manual say it is, recalling the saved program
+  counter at `$00F6/$00F7`, rather than "show registers". HLT is not part of
+  the matrix (on the board it raises a CPU interrupt, line undocumented), so it
+  is no longer mapped to `P`, where it typed DA; it is documented as not
+  emulated. Covered by `tests/keyboard-matrix.test.js`, which checks every key
+  against the ROM decode and drives the keypad workflows end to end.
+- Fixed the keyboard scan throwing `ReferenceError: window is not defined`
+  outside a browser whenever it found a pressed key. `_scanKeyboard()` read
+  `window.debugKeyboard` directly instead of through the existing
+  `_keyboardDebug()` guard, so keypad behavior could not be tested in Node.
+  The browser was unaffected. Covered by `tests/keyboard-matrix.test.js`.
+- Fixed the bench Run/Stop label and RUN LED falling out of step when the
+  machine was started or stopped from the browser console, as the user guide's
+  own examples do. `main.js` kept a separate copy of the run state that only
+  the bench button updated, so after a console `amico.stop()` the label still
+  read Stop and the Step button refused to step a paused machine. The machine
+  now reports run-state changes through `Amico2000.onRunStateChange`, the bench
+  controls read `amico.running`, and the guide no longer warns about the
+  mismatch. Covered by `tests/run-state.test.js`.
+- Fixed cassette SAVE of the whole `$0000-$FFFF` range reporting success while
+  exporting a tape that could never be loaded back. The `.amtape` header holds
+  the byte count in 16 bits, so 65,536 bytes was recorded as 0 and `loadTape()`
+  rejected the image. SAVE now refuses that range with the routine's `$0000 =
+  $FF` error status, as it does for an end address before the start; every
+  smaller range, up to 65,535 bytes, saves and loads as before. The user guide
+  lists both failure cases. Covered by `tests/cassette-tape-length.test.js`.
+- Fixed an uncaught console error when releasing the `"` key. The on-screen
+  key highlight built its CSS selector from the raw key name, so a double quote
+  produced an invalid selector; the name is now escaped with `CSS.escape()`. The emulator itself was unaffected, because the key had
+  already been released in the machine before the error was thrown.
+- Fixed the user guide's console example so memory is inspected in a separate
+  command after execution. Pasting the original block could report the old
+  byte before the first animation frame ran (PR #39).
 - Corrected the clock transcription and reset documentation's calibration
   guidance: the May 1979 article prints `$0312`, which is an opcode, while
   `$030E` is the adjustment byte that matches its stated speed direction.
@@ -298,6 +370,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   adjustment are handled consistently with NMOS 6502 behavior (#4).
 - Fixed 6502 16-bit stack byte order so JSR, BRK, IRQ, and NMI stack frames
   match real hardware while preserving RTS/RTI behavior (#3).
+
+### Security
+- Added a Content Security Policy to `index.html` and `guide.html` as a
+  `<meta>` tag, since GitHub Pages cannot send response headers. Scripts may
+  load only from the site's own files; plugins, form submissions and `<base>`
+  changes are refused; inline styles stay allowed for the board layout. A security
+  review found no injection bug for it to stop; it is there so a future one
+  could not run code. The emulator runs unchanged from a web server and from
+  a file opened directly.
+- The ROM and tape loader now refuses a file over 128KB before reading it.
+  Every loader already rejected such a file, but only after reading all of it
+  into memory, so a very large file picked by mistake could stall the tab.
+  128KB is twice the 6502's address space, so no file a loader would accept is
+  turned away.
 
 ## [1.0.0] - 2026-01-12
 

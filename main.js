@@ -68,7 +68,7 @@ const MONITOR_ROM = new Uint8Array([
 ]);
 
 // Note: The ROM data above is the authentic ASEL Amico 2000 monitor ROM.
-// You can also load different ROMs using the "Load ROM" button.
+// You can also load different ROMs using the "Load ROM or tape" button.
 
 // ============================================================================
 // Cassette ROM Data ($FB00-$FCFF, 512 bytes) - OPTIONAL
@@ -131,16 +131,18 @@ const CASSETTE_ROM = new Uint8Array([
 
 let amico = null;
 let display = null;
-let isRunning = false;
 
 // ============================================================================
 // Initialization
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Create emulator
+    // Create emulator. A top-level `let` does not become a window property,
+    // so publish it explicitly for the console commands the guide documents
+    // (amico.cpu.PC, amico.writeMemory() and so on).
     amico = new Amico2000();
-    
+    window.amico = amico;
+
     // Create display renderer
     display = new DisplayRenderer('display');
     
@@ -153,26 +155,26 @@ document.addEventListener('DOMContentLoaded', () => {
     amico.onStateUpdate = (state) => {
         updateStatusDisplay(state);
     };
-    
+
+    // The machine owns its run state; the bench controls only reflect it, so
+    // a console start() or stop() updates the label and RUN LED as well.
+    amico.onRunStateChange = updateRunButton;
+
     // Load monitor ROM
     amico.loadMonitorROM(MONITOR_ROM);
 
     // Initialize and start (CPU runs continuously like real hardware)
     amico.reset();
     amico.start();
-    isRunning = true;
 
     // Setup UI
     setupKeyboard();
     setupControls();
     setupFileLoader();
 
-    // Turn on power LED and run LED
+    // The power LED is decorative and always on; the RUN LED and the Run/Stop
+    // label were already set by onRunStateChange when start() ran.
     document.getElementById('led-power').classList.add('on');
-    document.getElementById('led-run').classList.add('on');
-
-    // Update run button state
-    updateRunButton();
 
     console.log('AMICO 2000 Emulator initialized and running');
     console.log('Initial CPU state:');
@@ -251,13 +253,11 @@ function setupControls() {
     // Run/Stop button
     document.getElementById('btn-run').addEventListener('click', () => {
         amico.toggle();
-        isRunning = !isRunning;
-        updateRunButton();
     });
-    
+
     // Step button
     document.getElementById('btn-step').addEventListener('click', () => {
-        if (!isRunning) {
+        if (!amico.running) {
             amico.step();
         }
     });
@@ -269,18 +269,35 @@ function setupControls() {
         amico.reset();
     });
     
-    // Load ROM button
+    // Load ROM or tape button
     document.getElementById('btn-load').addEventListener('click', () => {
         document.getElementById('rom-file').click();
     });
 }
 
+// Nothing larger than this can load: a ROM or program cannot exceed the 6502's
+// 64KB address space, and a tape image adds only an 18-byte header to that.
+// Twice the address space leaves headroom, so the limit never refuses a file
+// a loader would accept.
+const MAX_LOAD_BYTES = 2 * 0x10000;
+
 function setupFileLoader() {
     document.getElementById('rom-file').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         try {
+            // Check the size before reading: the loaders would refuse an
+            // oversized file anyway, but only after FileReader had pulled all
+            // of it into memory, and a multi-gigabyte file picked by mistake
+            // could stall the tab first.
+            if (file.size > MAX_LOAD_BYTES) {
+                throw new Error(
+                    `${file.name} is ${file.size} bytes; the largest file the ` +
+                    `AMICO 2000 can load is ${MAX_LOAD_BYTES} bytes`
+                );
+            }
+
             const data = await readFileAsArrayBuffer(file);
             const rom = new Uint8Array(data);
             
@@ -358,8 +375,8 @@ function updateStatusDisplay(state) {
 function updateRunButton() {
     const btn = document.getElementById('btn-run');
     const led = document.getElementById('led-run');
-    
-    if (isRunning) {
+
+    if (amico.running) {
         btn.textContent = 'Stop';
         led.classList.add('on');
     } else {
@@ -368,45 +385,40 @@ function updateRunButton() {
     }
 }
 
-function highlightButton(key) {
-    // Map keyboard keys to button data-key attributes
-    const keyMap = {
-        'arrowup': 'ad',
-        'arrowdown': 'da',
-        'enter': 'go',
-        'escape': 'res',
-        'backspace': 'res',
-        '=': '+',
-        'p': 'pc',
-        'r': 'reg',
-        'g': 'go'
-    };
-    
+// Keyboard keys whose on-screen button has a different data-key; every other
+// key ('0'-'f', '+') is its own data-key. One table serves press and release,
+// so the two cannot drift apart.
+const BUTTON_FOR_KEY = {
+    'arrowup': 'ad',
+    'arrowdown': 'da',
+    'enter': 'go',
+    'escape': 'res',
+    'backspace': 'res',
+    '=': '+',
+    'r': 'reg',
+    'g': 'go'
+};
+
+function keyButton(key) {
     // The table is keyed lowercase but `key` keeps its case for named keys, so
     // 'Escape' missed 'escape' and the RES cap never moved. Same for the other
     // named keys (#30).
-    const buttonKey = keyMap[key.toLowerCase()] || key;
-    const button = document.querySelector(`.key[data-key="${buttonKey}"]`);
+    const buttonKey = BUTTON_FOR_KEY[key.toLowerCase()] || key;
+    // `key` is the browser's KeyboardEvent.key, so it can be any character,
+    // and every keyup arrives here, mapped or not: escape it so a double quote
+    // cannot break the selector.
+    return document.querySelector(`.key[data-key="${CSS.escape(buttonKey)}"]`);
+}
+
+function highlightButton(key) {
+    const button = keyButton(key);
     if (button) {
         button.style.transform = 'translateY(3px)';
     }
 }
 
 function unhighlightButton(key) {
-    const keyMap = {
-        'arrowup': 'ad',
-        'arrowdown': 'da',
-        'enter': 'go',
-        'escape': 'res',
-        'backspace': 'res',
-        '=': '+',
-        'p': 'pc',
-        'r': 'reg',
-        'g': 'go'
-    };
-    
-    const buttonKey = keyMap[key.toLowerCase()] || key;
-    const button = document.querySelector(`.key[data-key="${buttonKey}"]`);
+    const button = keyButton(key);
     if (button) {
         button.style.transform = '';
     }
@@ -440,8 +452,6 @@ function downloadBytes(filename, bytes, type = 'application/octet-stream') {
 // ============================================================================
 // Debug Functions (available in console)
 // ============================================================================
-
-window.amico = null;  // Will be set after init
 
 window.debug = {
     // Dump memory range
@@ -521,8 +531,3 @@ window.debug = {
         console.log(`Exported tape image (${bytes.length} bytes)`);
     }
 };
-
-// Make amico globally accessible after init
-document.addEventListener('DOMContentLoaded', () => {
-    window.amico = amico;
-});

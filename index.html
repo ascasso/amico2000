@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Defense in depth: GitHub Pages cannot send headers, so the policy is a
+         meta tag. Scripts come only from this site's own files, never inline,
+         so an injection bug elsewhere could not run code. Inline styles stay
+         allowed because the board layout uses <style> and style attributes. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>AMICO 2000 Emulator</title>
     <style>
         /* ================================================================
@@ -841,11 +846,11 @@
                 <span class="legend">RES</span>
             </div>
             <div class="keycell">
-                <button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — halt (P)"></button>
+                <button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — not emulated: on the board it raises a CPU interrupt"></button>
                 <span class="legend">HLT</span>
             </div>
             <div class="keycell">
-                <button class="key key-func" data-key="reg" aria-label="REG" title="REG — show registers (R)"></button>
+                <button class="key key-func" data-key="reg" aria-label="REG" title="REG — recall the saved program counter (R)"></button>
                 <span class="legend">REG</span>
             </div>
             <div class="keycell">
@@ -920,7 +925,7 @@
                 <tr><td>Increment</td><td>+ or =</td></tr>
                 <tr><td>RUN</td><td>Enter</td></tr>
                 <tr><td>REG</td><td>R</td></tr>
-                <tr><td>HLT</td><td>P</td></tr>
+                <tr><td>HLT</td><td>not emulated</td></tr>
                 <tr><td>RES</td><td>Escape or Backspace</td></tr>
             </table>
             <p>
@@ -956,7 +961,7 @@
             <a href="https://github.com/ascasso/amico2000" target="_blank" rel="noopener">Source code on GitHub</a> &middot;
             <a href="https://web.archive.org/web/20260113032804/https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117" target="_blank" rel="noopener">board photographs on ComputerHistory.it</a>
             <!-- Committed stamp: keep the date aligned with the commit, even when opened offline. -->
-            <p class="build-stamp">Build <time id="build-date" datetime="2026-09-29">20260929</time></p>
+            <p class="build-stamp">Build <time id="build-date" datetime="2026-11-19">20261119</time></p>
         </div>
 
     </main>

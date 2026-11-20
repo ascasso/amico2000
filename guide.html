@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Same policy as index.html; keep the two in step. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>How to use the AMICO 2000</title>
     <style>
         /* The guide uses the emulator's bench and paper palette, with room for prose. */
@@ -82,11 +84,6 @@
 
     <section id="keypad">
         <h2>Keypad and memory</h2>
-        <p class="callout">The sequence below describes the original monitor's
-            controls. Some emulator function keys currently share input mappings,
-            which can prevent the keypad entry/RUN sequence from working as on
-            the original hardware. Use the <a href="#console-program">console
-            example</a> to load and execute a program directly.</p>
         <table>
             <thead><tr><th scope="col">Board key</th><th scope="col">Keyboard shortcut</th></tr></thead>
             <tbody>
@@ -95,8 +92,9 @@
                 <tr><td>DA (data)</td><td>Arrow Down</td></tr>
                 <tr><td>Increment (up-arrow legend)</td><td><kbd>+</kbd> or <kbd>=</kbd></td></tr>
                 <tr><td>RUN</td><td>Enter or <kbd>G</kbd></td></tr>
-                <tr><td>REG</td><td><kbd>R</kbd></td></tr>
-                <tr><td>HLT</td><td><kbd>P</kbd></td></tr>
+                <tr><td>REG (recall the saved program counter)</td><td><kbd>R</kbd></td></tr>
+                <tr><td>HLT</td><td>Not emulated. On the board it raises a CPU
+                    interrupt, and the manual does not say which one.</td></tr>
                 <tr><td>RES</td><td>Escape or Backspace</td></tr>
             </tbody>
         </table>
@@ -121,8 +119,8 @@
             back to the monitor. Select its start with <strong>AD</strong>
             <code>0 2 0 0</code>, then press <strong>RUN</strong>. Inspect
             <code>$0020</code> with AD to see the result.</p>
-        <p>If the keypad sequence does not produce the expected result, use the
-            console example below; use RES to recover from a running program.</p>
+        <p>To load and run a program without typing it, use the console example
+            below. RES recovers from a program that does not return.</p>
     </section>
 
     <section id="file-formats">
@@ -168,10 +166,11 @@
 amico.res();
 amico.loadProgram(new Uint8Array([0xA9, 0x42, 0x85, 0x20, 0x4C, 0x22, 0xFE]), 0x0200);
 amico.cpu.PC = 0x0200;
-amico.start();
-debug.mem(0x0020, 1);</code></pre>
-        <p>Run <code>debug.mem(0x0020, 1)</code> after execution to see
-            <code>42</code>. For your own program, substitute its bytes, load address,
+amico.start();</code></pre>
+        <p>Wait for the emulator to run and return to the monitor, then paste
+            this as a separate console command to inspect the result:</p>
+        <pre><code>debug.mem(0x0020, 1);</code></pre>
+        <p>Expect <code>42</code>. For your own program, substitute its bytes, load address,
             and entry address. Do not cold reset between loading and running.</p>
     </section>
 
@@ -218,6 +217,9 @@ amico.start();</code></pre>
             <code>debug.saveTape()</code> in the browser console to download an
             <code>.amtape</code> file. SAVE alone keeps the record only in the
             current page session; download it before closing or reloading the page.</p>
+        <p>An end address before the start address, or the whole
+            <code>$0000-$FFFF</code> range, which is more than a tape image can
+            hold, causes SAVE to fail with <code>FF</code> at <code>$0000</code>.</p>
         <p>To save the example program through the console, after loading it at
             <code>$0200</code>:</p>
         <pre><code>amico.stop();
@@ -244,9 +246,7 @@ amico.start();</code></pre>
                 its name, byte count, and format. A 512-byte program uses the ROM
                 fallback; a renamed audio or text file is not a binary tape or ROM.</li>
             <li><strong>Need to inspect memory:</strong> in the browser console, use
-                <code>debug.mem(0x0200, 16)</code> or <code>debug.state()</code>.
-                After using console start/stop commands, the bench button label may
-                be out of sync; use <code>amico.start()</code> to resume.</li>
+                <code>debug.mem(0x0200, 16)</code> or <code>debug.state()</code>.</li>
             <li><strong>Work disappeared after a reload:</strong> RAM and imported
                 tapes are held in this page session. Save and download a tape to
                 keep a program.</li>

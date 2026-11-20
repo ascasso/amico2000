@@ -19,7 +19,15 @@ Priority order:
 
 ## Current Status
 
-- `develop` matches `origin/develop`.
+- As of 2026-11-19, `develop` is pushed and open as a pull request into
+  `master`. GitHub Pages builds from `master`, so nothing below reaches the
+  live site until that is merged.
+- 2026-11-19 session (no GitHub issue work, at the owner's request): a security
+  review of the public pages (CSP added, oversized files refused before
+  reading, selector escaping), the keypad map rebuilt from the ROM's decode,
+  the bench Run/Stop state fixed, the keyboard scan made Node-safe, the
+  keyboard test pages and `original-documentation.html` removed, and every
+  pending cleanup in `AGENTS.md` done. `docs/logs/2026-11-19.md` has each one.
 - `#25` is done/closed: raw `.bin` program loads intentionally do not call
   `amico.reset()`.
 - `#22` is implemented: decimal-mode SBC now derives `N` from the binary
@@ -51,27 +59,78 @@ Priority order:
   sweeps all 20,000 valid-BCD operand pairs per instruction against an
   independent reference (#4, #22), and `tests/cpu6502-cycles.test.js` checks
   the base cost of all 151 documented opcodes plus every dynamic penalty (#5).
-  `node --test tests/` is now 76 checks.
-- Remaining items from the prior handoff: `#19`, `#20`, `#23`.
+  `node --test tests/` was 76 checks then and is 90 after 2026-11-19.
+- Open on GitHub: `#19`, `#20`, `#23`, `#35`. `#23` is in fact fixed by commit
+  `1ecbfaf`, which takes the issue's first suggested option, but that commit
+  does not name the issue and the issue is still open; see Outstanding below.
 - The CPU core now has broad instruction-level coverage *and* per-fix
-  regression coverage, but the **machine layer still does not**: the PIA,
-  display multiplexing, keyboard matrix and monitor workflow are covered only
-  by the targeted checks in `tests/` and by browser testing. That is the
-  clearest remaining gap. Keep near-term verification there small and tied to a
-  behavior fix.
+  regression coverage. The **machine layer is only partly covered**: the
+  keyboard matrix and keypad workflow (`tests/keyboard-matrix.test.js`), run
+  state (`tests/run-state.test.js`), resets, ROM protection and the cassette
+  traps have checks, but display multiplexing, segment patterns and the PIA's
+  partial address decoding do not. That is the clearest remaining gap. Keep
+  near-term verification there small and tied to a behavior fix.
+
+## Outstanding (as of 2026-11-19)
+
+Known open work, in rough priority order. None of it is started.
+
+1. **Close or reference `#23`.** Commit `1ecbfaf` refuses a SAVE of the whole
+   `$0000-$FFFF` range with the routine's `$0000 = $FF` status, which is
+   option 1 in the issue, and `tests/cassette-tape-length.test.js` covers it.
+   The commit message does not mention `#23` because the owner had asked for
+   no GitHub issue work in that session. The issue needs closing with a pointer
+   to the commit; no code change is needed.
+2. **HLT is not emulated.** The manual's key list says only that HLT
+   "genera una interruzione a livello CPU"; it is not in the key matrix (all 21
+   cells are taken, see `keyMap` in `amico2000.js`), so the on-screen key does
+   nothing and `P` is unmapped. To implement it, establish from the manual's
+   interrupt chapter or the schematic: (a) whether HLT drives NMI or IRQ; and
+   (b) what the RAM vectors hold when it fires. NMI goes `$FFFA` -> `$FE1C` ->
+   `JMP ($03FC)`; IRQ/BRK goes `$FFFE` -> `$FE1F` -> `JMP ($03FE)`. The ROM
+   never writes those RAM vectors; the emulator's power-on reset seeds both
+   with `$FE30`, the monitor loop, which is an emulator choice, not ROM
+   behavior. A strong lead, unverified: the code at `$FE00` is an
+   interrupt-entry register save. It stores A, X, Y and SP, pulls P and the
+   return PC off the stack, keeps them in `$F3-$FE` (the PC at `$F6/$F7`,
+   which REG recalls, and in `$FA/$FB`, so the display shows it), then enters
+   the monitor. No JMP or JSR in the ROM targets `$FE00` and no hardware vector
+   points at it, so it can only be reached through those RAM vectors. If HLT plus a vector set to `$FE00` is the intended halt-and-resume
+   path, then REG followed by RUN would resume the halted program. Confirm in
+   the manual before building it.
+3. **Machine-layer checks** for what is still uncovered: display multiplexing
+   and the segment patterns at `$FFEA` (the monitor's digit table), and the
+   `$FD00-$FDFF` partial decoding. The keypad tests show the pattern: run the
+   real monitor in Node and assert on RAM or PIA state, with no DOM.
+4. **`#35`**: when it is worked, the stale "Load ROM" mention and the claim
+   that cassette needs the ROM, in the `CASSETTE_ROM` comment in `main.js`,
+   belong to the same change; they were left alone on 2026-11-19 for that
+   reason.
+5. **`#19`, `#20`**: unchanged; see Cassette Work below.
+
+Browser checks, learned on 2026-11-19: the pages' CSP forbids inline scripts,
+so an automated check needs a scratch copy of `index.html` without the CSP
+meta tag and with absolute `src` paths. Headless Chrome under
+`--virtual-time-budget` does not fire `requestAnimationFrame`, so the emulator
+only runs the frame that `start()` executes synchronously; for anything longer,
+call `amico.stop()` and drive `amico.cpu.run(16667)` from `setInterval`. Firefox
+headless `--screenshot` is a quick way to confirm a page renders under
+`file://`.
 
 ## Highest Priority: Machine Fidelity
 
 Re-check the user-visible AMICO 2000 workflow against the original monitor
 behavior:
 
-- Reset is done (`#30`). Address entry (`AD`), data entry (`DA`), increment
-  (`+`), run (`GO`), register display (`REG`), and halt (`HLT`) are still
-  unverified against the monitor ROM; `HLT` is mapped to `P` on inference from
-  board position, and the manual describes it as generating a CPU-level
-  interrupt, which the emulator does not do.
+- Reset is done (`#30`). The matrix keys are now verified against the monitor
+  ROM (2026-11-19): every key decodes through GETKEY at `$FF57` to the code its
+  function needs, and AD, DA, increment, RUN and REG work end to end
+  (`tests/keyboard-matrix.test.js`). The old hand-built map was wrong for `0`,
+  AD, RUN and REG. `HLT` is still open: the manual says it generates a
+  CPU-level interrupt without saying which line, so it is not emulated and no
+  longer has a keyboard shortcut.
 - Keyboard matrix behavior, including row/column assumptions and active-low
-  reads.
+  reads: done on 2026-11-19 with the keypad fix above.
 - Display multiplexing and seven-segment patterns.
 - RAM/ROM/PIA memory map, especially `$FD00-$FDFF` partial decoding.
 - Manual program listings under `docs/manual-extraction/listings/` as practical
@@ -118,7 +177,7 @@ is why it fitted the guidance above rather than contradicting it.
 
 Note what it does *not* settle before leaning on it: external interrupt
 delivery, decimal arithmetic with invalid BCD operands, and undocumented
-opcodes are still unverified, as is every part of the machine layer. Decimal
+opcodes are still unverified, as is most of the machine layer. Decimal
 flag semantics and per-instruction timing are *not* on that list any more —
 the #17 checks cover them, precisely because the functional suite cannot. `docs/6502-conformance.md` has the full list. The two obvious follow-on
 suites are upstream's `6502_interrupt_test`, which needs machine-layer support
@@ -131,8 +190,9 @@ Cassette support is nice to have, but do it after core machine and CPU behavior.
 
 Relevant open items:
 
-- `#23`: full `$0000-$FFFF` SAVE produces a 64KB data payload that cannot fit in
-  the current 16-bit `.amtape` length field.
+- `#23`: full `$0000-$FFFF` SAVE produced a 64KB data payload that cannot fit in
+  the 16-bit `.amtape` length field. Fixed in `1ecbfaf` (SAVE refuses that
+  range); only closing the issue remains.
 - `#35`: the `CASSETTE_ROM` array in `main.js` does not disassemble as coherent
   6502 code at `$FB00`: the ROM's own `JMP $FC54` at `$FBF3` lands on `$FB`, an
   invalid opcode, because `$FC52` holds `JSR $FB00`. It is not loaded by
