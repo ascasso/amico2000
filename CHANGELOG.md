@@ -306,6 +306,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed 6502 16-bit stack byte order so JSR, BRK, IRQ, and NMI stack frames
   match real hardware while preserving RTS/RTI behavior (#3).
 
+### Security
+- Added a Content Security Policy to `index.html` and `guide.html` as a
+  `<meta>` tag, since GitHub Pages cannot send response headers. Scripts may
+  load only from the site's own files; plugins, form submissions and `<base>`
+  changes are refused; inline styles stay allowed for the board layout. A security
+  review found no injection bug for it to stop; it is there so a future one
+  could not run code. The emulator runs unchanged from a web server and from
+  a file opened directly.
+
 ## [1.0.0] - 2026-01-12
 
 ### 🎉 Major Milestone: Emulator Fully Functional

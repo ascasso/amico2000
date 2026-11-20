@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Defense in depth: GitHub Pages cannot send headers, so the policy is a
+         meta tag. Scripts come only from this site's own files, never inline,
+         so an injection bug elsewhere could not run code. Inline styles stay
+         allowed because the board layout uses <style> and style attributes. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>AMICO 2000 Emulator</title>
     <style>
         /* ================================================================
