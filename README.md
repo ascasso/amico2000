@@ -110,7 +110,7 @@ Example: `AD → 0 0 2 0 → DA → E A → + → F0`
 
 ## 💾 Loading ROMs And Tapes
 
-Click the **Load ROM/Tape** button to load:
+Click the **Load ROM or tape** button under Bench controls to load:
 - **prom.ic9** - Monitor ROM (loads at $FE00)
 - **prom.ic10** - Cassette ROM (loads at $FB00)
 - **.amtape** - Mock cassette tape image for the IC10 LOAD routine

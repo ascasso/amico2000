@@ -68,7 +68,7 @@ const MONITOR_ROM = new Uint8Array([
 ]);
 
 // Note: The ROM data above is the authentic ASEL Amico 2000 monitor ROM.
-// You can also load different ROMs using the "Load ROM" button.
+// You can also load different ROMs using the "Load ROM or tape" button.
 
 // ============================================================================
 // Cassette ROM Data ($FB00-$FCFF, 512 bytes) - OPTIONAL
@@ -269,7 +269,7 @@ function setupControls() {
         amico.reset();
     });
     
-    // Load ROM button
+    // Load ROM or tape button
     document.getElementById('btn-load').addEventListener('click', () => {
         document.getElementById('rom-file').click();
     });

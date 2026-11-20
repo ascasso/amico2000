@@ -129,6 +129,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The README and two `main.js` comments now call the loader button by its
+  on-screen name, **Load ROM or tape**, instead of "Load ROM/Tape" and
+  "Load ROM".
 - `main.js` keeps one key-to-button table for the on-screen key animation
   instead of identical copies in `highlightButton()` and
   `unhighlightButton()`, so press and release cannot drift apart. No visible
