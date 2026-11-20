@@ -341,9 +341,11 @@ When implementing changes based on a GitHub issue:
    mode, and targeted checks now protect each earlier CPU fix (#17): stack
    frame layout, decimal flag semantics, and instruction timing. Still
    uncovered: external interrupt *delivery* under load, decimal arithmetic with
-   invalid BCD operands, undocumented opcodes, and the machine layer, which is
-   covered only by the targeted checks in `tests/` and by browser testing. See
-   `docs/6502-conformance.md`
+   invalid BCD operands, undocumented opcodes, and most of the machine layer,
+   which beyond the keypad, resets, ROM protection and cassette traps is
+   covered only by browser testing. See `docs/6502-conformance.md`
+6. **HLT**: the HLT key is not emulated. On the board it raises a CPU
+   interrupt, but the manual does not say which line; see Keyboard Mappings
 
 ## Keyboard Mappings
 
@@ -395,8 +397,14 @@ None are open at the moment.
 - Expand the small Node-compatible regression coverage so the machine layer
   can be smoke-tested without opening a browser. The CPU core is now well
   covered — broadly by the functional suite (#18) and per-fix by the targeted
-  checks (#17) — and the machine layer is the remaining gap: the PIA, display
-  multiplexing, keyboard matrix and monitor workflow.
+  checks (#17) — and the machine layer is the remaining gap. The keyboard
+  matrix and keypad workflow (`tests/keyboard-matrix.test.js`) and run-state
+  reporting (`tests/run-state.test.js`) are now covered; display multiplexing,
+  the segment patterns and the PIA's `$FD00-$FDFF` partial decoding are not.
+  `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
+  Node and assert on RAM or PIA state.
+- HLT is not emulated (see Keyboard Mappings). `NextSession.md` records what
+  has to be established first and a lead from the ROM.
 - Running a known 6502 functional suite is **done** (#18): the core passes Klaus
   Dormann's functional test, pinned in `tests/fixtures/6502-functional/`. Of the
   four areas that motivated it, stack behavior and BCD arithmetic with valid
