@@ -16,7 +16,11 @@ This file provides repository guidance for agents working in this repository.
 - Keep the home page's `build-date` stamp in sync with the committer's calendar
   date of the commit being created: `YYYYMMDD` text and `YYYY-MM-DD` in its
   `datetime` attribute. `git show -s --format=%cs HEAD` shows the existing
-  commit date; advance the stamp when making a commit on a later day. The
+  commit date; advance the stamp when making a commit on a later day. The date
+  is the committer's local calendar date, in the time zone recorded on the
+  commit, which is what `%cs` prints; it is not the UTC date. An evening commit
+  in a US time zone is already the next day in UTC, and an automated review
+  that compares the stamp with UTC will report a false mismatch. The
   managed GitHub Pages/Jekyll build does not refresh this stamp automatically.
 - Commit in small units. One commit is one unit of work — a single fix, a
   single new test file, a single documented decision, one vendored fixture.
