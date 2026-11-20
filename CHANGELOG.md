@@ -243,6 +243,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed the keyboard scan throwing `ReferenceError: window is not defined`
+  outside a browser whenever it found a pressed key. `_scanKeyboard()` read
+  `window.debugKeyboard` directly instead of through the existing
+  `_keyboardDebug()` guard, so keypad behavior could not be tested in Node.
+  The browser was unaffected. Covered by `tests/keyboard-matrix.test.js`.
 - Fixed the bench Run/Stop label and RUN LED falling out of step when the
   machine was started or stopped from the browser console, as the user guide's
   own examples do. `main.js` kept a separate copy of the run state that only

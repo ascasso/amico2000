@@ -336,8 +336,10 @@ class Amico2000 {
             }
         }
 
-        // DEBUG: Log keyboard scans when keys are detected
-        if (result !== 0xFF && window.debugKeyboard) {
+        // DEBUG: Log keyboard scans when keys are detected. Use the guarded
+        // check: a bare `window` reference threw in Node whenever a pressed
+        // key was scanned, which kept keypad tests out of the Node suite.
+        if (result !== 0xFF && this._keyboardDebug()) {
             console.log(`[SCAN] portB=${portB.toString(16).padStart(2,'0')} row=${row} result=${result.toString(16).padStart(2,'0')} (bit cleared for pressed key)`);
         }
 
