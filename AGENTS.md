@@ -382,12 +382,9 @@ The AMICO 2000 was published in "Sperimentare" magazine starting December 1978, 
 ## Pending Source-Level Cleanups
 
 These are small code-hygiene items, tracked here so future agents pick them up
-opportunistically rather than treating them as required for any specific task:
+opportunistically rather than treating them as required for any specific task.
 
-- `cpu6502.js` / `amico2000.js`: cross-reference the RAM initialization
-  behavior in comments. `cpu6502.js` initializes memory to `$FF`, while
-  `amico2000.js` clears AMICO RAM to `$00` during machine reset for monitor ROM
-  compatibility; both choices are intentional, but easy to misread in isolation.
+None are open at the moment.
 
 ## Pending Documentation Cleanups
 

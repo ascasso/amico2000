@@ -50,6 +50,12 @@ class CPU6502 {
         // RAM typically powers up with bits high or random values. Using $FF prevents
         // issues with indirect jumps reading uninitialized RAM (common pattern in 6502 ROMs).
         // $FF as address = $FFFF (ROM), $FF as opcode = invalid (clear error).
+        //
+        // On the AMICO 2000 this fill is not what a program sees in RAM: the
+        // machine layer's power-on Amico2000.reset() then clears the board's
+        // 2KB ($0000-$07FF) to $00, because the monitor expects cleared RAM.
+        // The $FF fill survives in the unpopulated space above the RAM, and
+        // wherever this core runs without the machine layer, as in the tests.
         this.memory = new Uint8Array(65536);
         this.memory.fill(0xFF);
         

@@ -129,6 +129,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Cross-referenced the two memory initializations in comments: `CPU6502`
+  fills all 64KB with `$FF`, and `Amico2000.reset()` then clears the board's
+  2KB of RAM to `$00` for the monitor; each comment now points at the other.
+  The same block in `reset()` had the RAM vectors swapped: `$03FC` is the NMI
+  vector (`$FFFA` -> `$FE1C`: `JMP ($03FC)`) and `$03FE` the IRQ/BRK vector, not
+  the reverse. Comments only; behavior is unchanged.
 - `main.js` now has a single startup sequence: `window.amico` is published as
   soon as the emulator is created, instead of being set to `null` and filled
   in by a second `DOMContentLoaded` handler. The console commands behave as

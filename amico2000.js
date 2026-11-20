@@ -738,14 +738,16 @@ class Amico2000 {
         // Initialize ALL RAM to $00 (not just zero page)
         // The ROM expects RAM to be cleared on power-up, and uses various RAM locations
         // for indirect jumps and function pointers. Clear all 2KB ($0000-$07FF).
+        // This deliberately overrides the $FF fill CPU6502's constructor gives
+        // the whole address space; above $07FF that fill is left in place.
         for (let i = 0; i < 0x0800; i++) {
             this.cpu.memory[i] = 0x00;
         }
 
         // Initialize ROM's IRQ/NMI vectors in RAM to point to main loop
         // The ROM uses indirect jumps through these RAM locations:
-        // $03FC/$03FD = IRQ vector (ROM does JMP ($03FC))
-        // $03FE/$03FF = NMI vector (ROM does JMP ($03FE))
+        // $03FC/$03FD = NMI vector ($FFFA -> $FE1C: JMP ($03FC))
+        // $03FE/$03FF = IRQ/BRK vector ($FFFE -> $FE1F: JMP ($03FE))
         // Point both to $FE30 (main monitor loop) as safe default
         this.cpu.memory[0x03FC] = 0x30;  // Low byte of $FE30
         this.cpu.memory[0x03FD] = 0xFE;  // High byte of $FE30
