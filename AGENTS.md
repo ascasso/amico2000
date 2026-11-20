@@ -229,11 +229,21 @@ by `tests/res-reset.test.js`.
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
 Keyboard input is active-low: unpressed columns read high, and a pressed key clears the corresponding Port A bit.
 
+The key positions in `Amico2000.keyMap` are derived from the monitor's GETKEY
+routine at `$FF57-$FF7D`, which returns code = 7 x row + (6 - bit). The 21
+cells therefore hold 21 distinct codes: the hex digits `$00-$0F` and the five
+function codes the main loop dispatches at `$FE5B-$FE6D` (`$10` AD, `$11` DA,
+`$12` increment, `$13` RUN, `$14` REG). No two keys share a cell. An earlier
+hand-built table did share cells and was wrong for `0`, AD, RUN and REG;
+`tests/keyboard-matrix.test.js` checks every key against the ROM decode and
+drives the keypad workflows end to end, so change the table only with that
+test passing.
+
 The `archived/` directory is kept for historical safekeeping only. Its review
 notes and handoff files can provide context, but they are not ongoing project
 guidance. Treat `AGENTS.md` and the current source files as authoritative; in
-particular, `archived/GEMINI3.md` contains a keyboard matrix table that does not
-match the current working implementation.
+particular, `archived/GEMINI3.md` contains a keyboard matrix table that matches
+neither the current implementation nor the ROM's decode.
 
 ### ROM Data
 The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loading ROM files:
@@ -342,21 +352,23 @@ When implementing changes based on a GitHub issue:
 | 0-9, A-F  | 0-9, A-F |
 | AD        | ↑ (Arrow Up) |
 | DA        | ↓ (Arrow Down) |
-| HLT       | P |
 | REG       | R |
 | ↑ (increment) | + or = |
 | RUN       | Enter or G |
 | RES       | Escape or Backspace |
+| HLT       | none (not emulated) |
 
-RES is not a matrix key; see Reset Semantics above.
+RES is not a matrix key; see Reset Semantics above. Neither is HLT: the manual
+says it "genera una interruzione a livello CPU" but not which line, so it is not
+emulated, and its on-screen key does nothing. Implementing it means settling
+NMI versus IRQ from evidence, and what the RAM vectors at `$03FC-$03FF` should
+hold when it fires.
 
 The on-screen keys are labelled with the legends silkscreened on the original
 board. Two of them were previously labelled after their emulator identity rather
 than the hardware: `RUN` was shown as `GO`, and `HLT` was shown as `PC`. The
-`data-key` values in `index.html` still read `go` and `pc`, and the matrix
-positions in `amico2000.js` are unchanged, so the rename is presentational only.
-The `HLT`/`pc` correspondence is inferred from key position on the board and is
-not confirmed against the monitor ROM.
+`data-key` values in `index.html` still read `go` and `pc`; only the labels
+changed.
 
 ## Historical Context
 
@@ -372,13 +384,6 @@ The AMICO 2000 was published in "Sperimentare" magazine starting December 1978, 
 These are small code-hygiene items, tracked here so future agents pick them up
 opportunistically rather than treating them as required for any specific task:
 
-- `amico2000.js`: the `keyMap` row/col comments are out of sync with the actual
-  table (e.g. `e` is `[2, 6]` but the comments still describe row 2 bit 6 as
-  unknown and row 0 bit 6 as `E`). Reconcile the comments with the table.
-  While doing this, document that some function keys intentionally share
-  matrix positions because the monitor ROM disambiguates them by context.
-  Note that RES no longer shares a position with AD/REG: it left the matrix
-  entirely in #30.
 - `cpu6502.js` / `amico2000.js`: cross-reference the RAM initialization
   behavior in comments. `cpu6502.js` initializes memory to `$FF`, while
   `amico2000.js` clears AMICO RAM to `$00` during machine reset for monitor ROM
@@ -389,7 +394,7 @@ opportunistically rather than treating them as required for any specific task:
 - Fold the archive links from `original-documentation.html` into `README.md`
   under Credits, History, or References, then remove the standalone skeleton if
   it no longer adds value.
-- Once the keyboard matrix comments are reconciled, archive or remove stale
+- The keyboard matrix comments are reconciled, so archive or remove the stale
   keyboard-discovery scaffolding that is no longer part of the active workflow:
   `keyboard-test.html`, `keyboard-debug.html`, `keyboard-matrix-test.js`,
   and `KEYBOARD_TESTING_GUIDE.md`.

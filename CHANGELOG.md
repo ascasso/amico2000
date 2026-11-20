@@ -243,6 +243,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in #21 and resolves #25.
 
 ### Fixed
+- Fixed the keypad map, which sent the wrong codes to the monitor for `0`, AD,
+  RUN and REG. Typing `0` reset the address instead of entering a zero; AD ran
+  the program at the displayed address; RUN and HLT acted as DA; and REG ran
+  code. Each matrix position is now derived from the monitor's own GETKEY
+  routine (`$FF57`), which decodes code = 7 x row + (6 - bit), so all 21
+  positions hold distinct keys and the keypad sequences in the manual and the
+  user guide work: entering bytes with AD/DA/+, AD then RUN, and REG then RUN.
+  The guide's warning that the keypad might not work is removed. REG is
+  described as what the ROM and manual say it is, recalling the saved program
+  counter at `$00F6/$00F7`, rather than "show registers". HLT is not part of
+  the matrix (on the board it raises a CPU interrupt, line undocumented), so it
+  is no longer mapped to `P`, where it typed DA; it is documented as not
+  emulated. Covered by `tests/keyboard-matrix.test.js`, which checks every key
+  against the ROM decode and drives the keypad workflows end to end.
 - Fixed the keyboard scan throwing `ReferenceError: window is not defined`
   outside a browser whenever it found a pressed key. `_scanKeyboard()` read
   `window.debugKeyboard` directly instead of through the existing

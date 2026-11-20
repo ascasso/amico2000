@@ -37,11 +37,17 @@ amico2000/
 | 0-9, A-F  | 0-9, A-F |
 | AD        | ↑ (Arrow Up) |
 | DA        | ↓ (Arrow Down) |
-| PC        | P |
+| ↑ (increment) | + or = |
+| RUN       | Enter or G |
 | REG       | R |
-| +         | + or = |
-| GO        | Enter or G |
 | RES       | Escape or Backspace |
+| HLT       | not emulated |
+
+Each key reaches the monitor as the code its ROM expects: the emulator's key
+matrix follows the monitor's own decode routine, and
+`tests/keyboard-matrix.test.js` checks every key against it. HLT is not part
+of that matrix: on the board it raises a CPU interrupt, and the manual does not
+say which one, so it is not emulated.
 
 RES is wired the way it is on the real board: it drives the processor's reset
 line rather than sitting in the scanned key matrix (#30). So it stops whatever
@@ -86,17 +92,21 @@ Example: `AD → 0 0 2 0 → DA → E A → + → F0`
 
 1. Enter your program at the desired address
 2. Press **AD**, then enter the start address
-3. Press **GO** (Enter) to run
+3. Press **RUN** (Enter) to run
 
-### Viewing Registers
+### Recalling the Program Counter
 
-- Press **REG** (R) to cycle through CPU registers
+- Press **REG** (R) to set the address display to the program counter saved
+  at $00F6/$00F7. The manual uses it to restart a program: put its start
+  address in $00F6/$00F7 once, then **REG** followed by **RUN** reruns it.
 
 ### ⚠️ Important Notes
 
-- **Don't press AD multiple times** without completing the sequence. Each function key expects specific input: AD expects 4 hex digits, then you must press DA.
-- If you break the sequence, press **RES** to start over — there's no undo.
-- Pressing **+** advances to the next address in memory.
+- Hex digits go into the address after **AD** and into the byte at that
+  address after **DA**; each digit shifts in from the right. Press **AD** or
+  **DA** at any time to switch.
+- If a program does not return to the monitor, press **RES**.
+- Pressing **+** advances to the next address in memory; holding it repeats.
 
 ## 💾 Loading ROMs And Tapes
 

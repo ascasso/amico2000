@@ -65,11 +65,13 @@ Priority order:
 Re-check the user-visible AMICO 2000 workflow against the original monitor
 behavior:
 
-- Reset is done (`#30`). Address entry (`AD`), data entry (`DA`), increment
-  (`+`), run (`GO`), register display (`REG`), and halt (`HLT`) are still
-  unverified against the monitor ROM; `HLT` is mapped to `P` on inference from
-  board position, and the manual describes it as generating a CPU-level
-  interrupt, which the emulator does not do.
+- Reset is done (`#30`). The matrix keys are now verified against the monitor
+  ROM (2026-11-19): every key decodes through GETKEY at `$FF57` to the code its
+  function needs, and AD, DA, increment, RUN and REG work end to end
+  (`tests/keyboard-matrix.test.js`). The old hand-built map was wrong for `0`,
+  AD, RUN and REG. `HLT` is still open: the manual says it generates a
+  CPU-level interrupt without saying which line, so it is not emulated and no
+  longer has a keyboard shortcut.
 - Keyboard matrix behavior, including row/column assumptions and active-low
   reads.
 - Display multiplexing and seven-segment patterns.

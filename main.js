@@ -394,7 +394,6 @@ function highlightButton(key) {
         'escape': 'res',
         'backspace': 'res',
         '=': '+',
-        'p': 'pc',
         'r': 'reg',
         'g': 'go'
     };
@@ -419,7 +418,6 @@ function unhighlightButton(key) {
         'escape': 'res',
         'backspace': 'res',
         '=': '+',
-        'p': 'pc',
         'r': 'reg',
         'g': 'go'
     };

@@ -42,36 +42,55 @@ class Amico2000 {
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         this.currentDigit = 0;
         
-        // Keyboard state - ROM scans 3 rows × 7 columns (port B = 1, 3, 5)
-        // Final empirically-determined layout - ALL 16 HEX KEYS WORKING!
+        // Keyboard state: the monitor scans 3 rows x 7 columns, selecting a
+        // row with Port B = 1, 3, 5 and reading the columns as Port A bits 0-6.
+        // Each cell holds the key named in the keyMap comment below.
         this.keyMatrix = [
-            [false, false, false, false, false, false, false],  // Row 0 (portB=1): 6,5,4,3,2,1,E
-            [false, false, false, false, false, false, false],  // Row 1 (portB=3): D,C,B,A,9,8,7
-            [false, false, false, false, false, false, false],  // Row 2 (portB=5): 0,AD,+,DA,?,F,?
+            [false, false, false, false, false, false, false],  // Row 0 (portB=1)
+            [false, false, false, false, false, false, false],  // Row 1 (portB=3)
+            [false, false, false, false, false, false, false],  // Row 2 (portB=5)
         ];
 
-        // Key mapping: keyboard key -> [row, col]
-        // Final empirically-determined layout - ALL 16 HEX KEYS WORKING!
-        // Row 0 (portB=1): bit 0=6, bit 1=5, bit 2=4, bit 3=3, bit 4=2, bit 5=1, bit 6=E
-        // Row 1 (portB=3): bit 0=D, bit 1=C, bit 2=B, bit 3=A, bit 4=9, bit 5=8, bit 6=7
-        // Row 2 (portB=5): bit 0=0, bit 1=AD, bit 2=+, bit 3=DA, bit 4=?, bit 5=F, bit 6=?
+        // Key mapping: keyboard key -> [row, col], where col is the Port A bit.
         //
+        // The positions follow from the monitor's own decode, not from trial
+        // and error. GETKEY at $FF57-$FF7D returns code = 7 x row + (6 - bit)
+        // for the pressed key, so the 21 cells hold 21 distinct codes:
+        //
+        //           bit 0  bit 1  bit 2  bit 3  bit 4  bit 5  bit 6
+        //   Row 0     6      5      4      3      2      1      0
+        //   Row 1     D      C      B      A      9      8      7
+        //   Row 2    REG    RUN     +      DA     AD     F      E
+        //
+        // Codes $00-$0F are the hex digits. The main loop dispatches $10-$14
+        // at $FE5B-$FE6D: $10 AD selects address entry ($FF = 1), $11 DA
+        // selects data entry ($FF = 0), $12 increments the address and repeats
+        // while held, $13 RUN restores the saved registers and RTIs to the
+        // displayed address, and $14 REG reloads the address from the saved PC
+        // at $00F6/$00F7 (the manual: "REG = Registro Program Counter").
+        //
+        // No two keys share a cell. An earlier hand-built table put 0 on REG's
+        // cell, AD and REG on RUN's, and RUN and HLT on DA's, which the monitor
+        // could not tell apart; tests/keyboard-matrix.test.js now checks every
+        // key against the ROM decode.
+        //
+        // RES and HLT are not in the matrix. RES drives the reset line (see
+        // resetKeys). HLT, per the manual, "genera una interruzione a livello
+        // CPU"; which interrupt line it drives is not documented, so it is not
+        // emulated and has no keyboard shortcut.
         this.keyMap = {
-            // Hex keys - ALL 16 KEYS CONFIRMED WORKING!
-            '0': [2, 0], '1': [0, 5], '2': [0, 4], '3': [0, 3],
+            '0': [0, 6], '1': [0, 5], '2': [0, 4], '3': [0, 3],
             '4': [0, 2], '5': [0, 1], '6': [0, 0], '7': [1, 6],
             '8': [1, 5], '9': [1, 4], 'a': [1, 3], 'b': [1, 2],
             'c': [1, 1], 'd': [1, 0], 'e': [2, 6], 'f': [2, 5],
 
-            // Function keys - known working positions
-            'ArrowUp': [2, 1],    // AD
-            'ArrowDown': [2, 3],  // DA
-            '+': [2, 2],          // +
-            '=': [2, 2],          // + alternate
-            'Enter': [2, 3],      // GO (shares with DA)
-            'g': [2, 3],          // GO alternate
-            'r': [2, 1],          // REG (shares with AD)
-            'p': [2, 3],          // PC (shares with DA/GO)
+            'ArrowUp': [2, 4],    // AD, code $10
+            'ArrowDown': [2, 3],  // DA, code $11
+            '+': [2, 2],          // increment, code $12
+            '=': [2, 2],          // increment, unshifted on US layouts
+            'Enter': [2, 1],      // RUN, code $13
+            'g': [2, 1],          // RUN alternate ("go")
+            'r': [2, 0],          // REG, code $14
         };
 
         // Alternate key mappings for function keys
@@ -423,9 +442,10 @@ class Amico2000 {
             '4': '4', '5': '5', '6': '6', '7': '7',
             '8': '8', '9': '9', 'a': 'a', 'b': 'b',
             'c': 'c', 'd': 'd', 'e': 'e', 'f': 'f',
-            'ad': 'ArrowUp', 'da': 'ArrowDown',
-            'pc': 'p', 'reg': 'r',
+            'ad': 'ArrowUp', 'da': 'ArrowDown', 'reg': 'r',
             '+': '+', 'go': 'Enter', 'res': 'Escape'
+            // 'pc' (the HLT button) is deliberately absent: HLT is an
+            // interrupt line, not a matrix key, and is not emulated.
         };
         
         const key = nameToKey[keyName];

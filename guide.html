@@ -84,11 +84,6 @@
 
     <section id="keypad">
         <h2>Keypad and memory</h2>
-        <p class="callout">The sequence below describes the original monitor's
-            controls. Some emulator function keys currently share input mappings,
-            which can prevent the keypad entry/RUN sequence from working as on
-            the original hardware. Use the <a href="#console-program">console
-            example</a> to load and execute a program directly.</p>
         <table>
             <thead><tr><th scope="col">Board key</th><th scope="col">Keyboard shortcut</th></tr></thead>
             <tbody>
@@ -97,8 +92,9 @@
                 <tr><td>DA (data)</td><td>Arrow Down</td></tr>
                 <tr><td>Increment (up-arrow legend)</td><td><kbd>+</kbd> or <kbd>=</kbd></td></tr>
                 <tr><td>RUN</td><td>Enter or <kbd>G</kbd></td></tr>
-                <tr><td>REG</td><td><kbd>R</kbd></td></tr>
-                <tr><td>HLT</td><td><kbd>P</kbd></td></tr>
+                <tr><td>REG (recall the saved program counter)</td><td><kbd>R</kbd></td></tr>
+                <tr><td>HLT</td><td>Not emulated. On the board it raises a CPU
+                    interrupt, and the manual does not say which one.</td></tr>
                 <tr><td>RES</td><td>Escape or Backspace</td></tr>
             </tbody>
         </table>
@@ -123,8 +119,8 @@
             back to the monitor. Select its start with <strong>AD</strong>
             <code>0 2 0 0</code>, then press <strong>RUN</strong>. Inspect
             <code>$0020</code> with AD to see the result.</p>
-        <p>If the keypad sequence does not produce the expected result, use the
-            console example below; use RES to recover from a running program.</p>
+        <p>To load and run a program without typing it, use the console example
+            below. RES recovers from a program that does not return.</p>
     </section>
 
     <section id="file-formats">
