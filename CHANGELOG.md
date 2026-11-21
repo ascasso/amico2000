@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a link to the published emulator, `https://ascasso.github.io/amico2000/`,
+  near the top of the README, so a visitor to the repository can run it
+  without downloading anything.
 - Added a build date beneath the home page credits (`Build YYYYMMDD`) so the
   emulator revision's date is visible, including when used offline.
 - Added a linked AMICO 2000 user guide covering controls, memory entry, raw
