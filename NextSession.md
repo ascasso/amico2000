@@ -46,11 +46,9 @@ Priority order:
   TIL312 has two decimal points and not one, and the lamp beside the
   registers said "running" over a halted processor. `AGENTS.md` has a Board
   Artwork section on how the drawing is organised and on the privacy rule for
-  the photographs; `docs/logs/2026-11-21.md` has each step. The owner pushed
-  all of it to `origin/develop` the same day. None of it is on `master`,
-  which stands at the merge of PR #43, made from `develop` just before the
-  redraw began, so the published site still shows the earlier board until
-  `develop` is merged again.
+  the photographs; `docs/logs/2026-11-21.md` has each step. It was merged to
+  `master` in PR #44 and published the same day, with the Readable/Authentic
+  display toggle that followed it.
 - `#25` is done/closed: raw `.bin` program loads intentionally do not call
   `amico.reset()`.
 - `#22` is implemented: decimal-mode SBC now derives `N` from the binary
