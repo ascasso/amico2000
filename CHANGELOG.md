@@ -152,6 +152,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The home page's "board photographs on ComputerHistory.it" link points at
+  the live article again, `https://computerhistory.it/computer/asel/amico-2000`,
+  instead of a Wayback Machine snapshot taken while the site was down.
 - The guide's "What files can I load?" section and the README now say first
   that nothing needs loading: both ROMs are built in and fitted when the page
   opens, and loading a ROM file only replaces one. The home page's **File
