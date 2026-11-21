@@ -145,6 +145,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `AGENTS.md` now records how the four LEDs D4-D7 are wired, read from the
+  schematic on page 28 of the supplement and checked against the cassette
+  PROM: each is lit while Port B bit 7 and its own Port A bit are both high.
+  The assignment of the LEDs to Port A bits 0-3 had been an inference. The
+  monitor never sets that bit, so the LEDs are dark on an idle board, as the
+  home page draws them. No behaviour changed.
 - `AGENTS.md` has a Board Artwork section: how the board drawing in
   `index.html` is organised, what in it is measured, read or guessed, what
   the scripts depend on, and the rule that the photographs it was drawn from

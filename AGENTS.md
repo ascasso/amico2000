@@ -342,13 +342,30 @@ checked by running the real routine in `tests/cassette-rom-mapping.test.js`:
   1 and then offset 0. LOAD stores the bytes the same way round.
 - The checksum is the 8-bit sum of the start byte, the header and the data.
 - The four phase LEDs of the manual's Fig. 26 are Port A bits 0-3: D4 leader,
-  D5 text, D6 recording, D7 reading. That assignment is inferred: it is the
-  one that makes the values the routines write match the LEDs the manual says
-  light in each phase. The home page draws D4-D7, but nothing lights them: the
-  traps stand in for the routines that would, and with the trap off the
-  machine layer has no model of the LEDs. How they are wired, and why a
-  photograph of a powered board shows D7 lit while the monitor idles, is not
-  established.
+  D5 text, D6 recording, D7 reading. The supplement's schematic of the
+  display, keyboard and cassette interface (page 28) shows the wiring. Each
+  LED runs from +5 V through a resistor, R34 to R37, to an open-collector NAND
+  gate of IC21, a 74LS38. Each gate has one Port A line, PA0 to PA3 for D4 to
+  D7, on one input and Port B bit 7 on the other, which all four share. An LED
+  is lit while both are high.
+- The PROM agrees with that schematic. Every LED pattern it puts on Port A
+  goes out with Port B bit 7 set: `$87` in LOAD, `$86` and the `$E1`/`$A1`
+  waveform values in SAVE. The patterns are `$89` and `$8A` in LOAD, leader or
+  text together with reading, and `$05` and `$06` in SAVE, leader or text
+  together with recording. LOAD only pulses the LEDs, for about 0.7 ms at
+  each refresh, between spells of reading the tape with Port A as an input.
+- The monitor never sets Port B bit 7, so by that schematic all four LEDs are
+  dark while it idles, which is how the home page draws them. Nothing lights
+  them there: the traps stand in for the routines that would, and the machine
+  layer has no model of the LEDs. One photograph of a powered board shows D7
+  lit with the monitor idle. The schematic does not account for that, and it
+  is not modelled.
+- The same schematic has the 74LS145's inputs on PB1-PB4, its outputs 0-2 on
+  the three key rows and its outputs 4-9 on the six digit transistors, as the
+  display and keyboard code assume. Output 3 goes nowhere, which is why the
+  monitor can park Port B at `$07` after each keyboard scan. The key matrix
+  is drawn with its columns on PA0-PA6, pulled up by R8-R14, and its keys
+  where `keyMap` has them; the schematic calls REG's key `PC`.
 - Tape input is sampled on Port A bit 7. LOAD switches Port A between output,
   to set the LEDs, and input, to read the tape, with 8255 control words `$89`
   and `$99`.

@@ -176,6 +176,21 @@ Known open work, in rough priority order. None of it is started.
      The key legends use the two DIN faces macOS ships; elsewhere they fall
      back to another face at pinned widths, which nobody has looked at.
      Touch input was not exercised.
+   - The four LEDs D4-D7 are drawn and never lit. How they are wired is
+     settled from the supplement's schematic (`AGENTS.md`, Cassette Interface
+     Reference): an LED is lit while Port B bit 7 and its own Port A bit are
+     both high. Lighting them is a small, well-defined piece of machine-layer
+     work, not started: for each frame, add up how long each LED's condition
+     held, and give the page the four duties. Two details matter. LOAD only
+     pulses the LEDs, so sampling the ports once a frame would flicker. And a
+     real 8255 is said to reset its output registers whenever a mode word is
+     written to its control register, which `_writePIA` does not do, so Port B
+     bit 7 could linger where the real chip has dropped it; that is from
+     memory of the 8255A data sheet and should be confirmed before it is
+     built on. The LEDs would show only with the trap off and IC10 fitted,
+     since the traps return at once. One photograph of a powered board shows
+     D7 lit with the monitor idle, against the schematic; nothing explains
+     it yet.
    - On a phone the board pans sideways and the keys start off screen, as
      before the redraw. Whether to reflow it, or start it scrolled to the
      keys, is an owner decision.

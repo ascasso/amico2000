@@ -365,10 +365,14 @@
            Four 5 mm red diffused LEDs in a row, 0.3 inch apart, each with
            its designator printed beneath. They belong to the cassette
            interface: the manual's Fig. 26 has D4 for the leader, D5 for
-           the text, D6 for recording and D7 for reading. Nothing in the
-           emulator drives them, because the cassette is file-backed and
-           the routines that would light them are trapped, so they are
-           drawn dark. The lit style is here for whenever something does.
+           the text, D6 for recording and D7 for reading. On the manual's
+           schematic (page 28) an LED lights only while Port B bit 7 and
+           its own Port A bit are both high, and the monitor never sets
+           that bit, so dark is how they stand on a board that is merely
+           idling. Nothing in the emulator drives them either: the
+           cassette is file-backed and the routines that would light them
+           are trapped. The lit style is here for whenever something
+           does.
            --------------------------------------------------------------- */
 
         .led-bank { display: flex; }
@@ -1125,7 +1129,7 @@
                     <path class="ic-notch" d="M164.92,27.8a0.8,0.8 0 0 0 1.6,0z"/>
                     <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(165.18 38.55) rotate(90)">MM2114N-3</text>
                 </g>
-                <!-- A socketed 14-pin part. Its marking is not legible; taken as IC21, the 74LS38 of the cassette interface, which is a guess. -->
+                <!-- A socketed 14-pin part whose marking is not legible. Taken as IC21, the 74LS38: on the manual's schematic its four gates drive the LEDs, which stand just above it. -->
                 <g class="ic socketed">
                     <rect class="socket" x="175.22" y="26.95" width="9.8" height="19.3" rx="0.25"/>
                     <path class="pin l" d="M176.12,28.43V44.77"/>
