@@ -23,11 +23,15 @@
            ================================================================ */
 
         :root {
-            /* Solder mask */
-            --pcb-green:        #1a7a3f;
-            --pcb-green-dark:   #0d4d26;
-            --pcb-green-light:  #2a9a55;
-            --pcb-edge:         #0a3a1d;
+            /* Solder mask, sampled on unit B. Over bare laminate it is a deep
+               green leaning to blue, #09563e in the middle of the range.
+               Over a copper trace it reads lighter and bluer still, because
+               the trace stands proud and its edges catch the light. */
+            --pcb-green:        #09563e;
+            --pcb-edge:         #04301f;
+            --trace:            #22947a;
+            --trace-rail:       #137558;
+            --via:              #5b988d;
 
             /* Silkscreen ink. On unit B it is a mustard yellow: the core of
                the thick strokes samples at about #a0a020, set a little
@@ -124,27 +128,20 @@
             min-width: 760px;
             max-width: 1120px;
             margin: 0 auto;
-            aspect-ratio: 1120 / 386;
-            border-radius: 0.4cqw;
+            /* The board is 300 x 100 mm: the pin pitch of its two 40-pin
+               packages on unit B gives 299 x 99.6. */
+            aspect-ratio: 3 / 1;
+            border-radius: 0.25cqw;
             background:
-                /* fibreglass weave, barely there */
-                repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 4px),
-                repeating-linear-gradient(0deg,  rgba(0,0,0,0.05) 0 1px, transparent 1px 4px),
-                radial-gradient(140% 110% at 25% 0%, var(--pcb-green-light) 0%, var(--pcb-green) 38%, var(--pcb-green-dark) 100%);
+                /* daylight from the upper left, as unit B is lit: a broad
+                   sheen there and the far corner a little in shade */
+                radial-gradient(120% 170% at 10% -30%, rgba(140, 235, 190, 0.17) 0%, rgba(140, 235, 190, 0.05) 42%, rgba(0, 0, 0, 0) 64%),
+                linear-gradient(168deg, rgba(0, 0, 0, 0) 52%, rgba(0, 18, 10, 0.30) 100%),
+                var(--pcb-green);
             box-shadow:
                 0 1.6cqw 3cqw rgba(40, 26, 12, 0.55),
-                inset 0 0 0 0.18cqw var(--pcb-edge),
-                inset 0 0.25cqw 0.5cqw rgba(255,255,255,0.10);
-        }
-
-        /* Copper routing, drawn as one quiet layer under the parts */
-        .traces {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            opacity: 0.62;
+                inset 0 0 0 0.12cqw var(--pcb-edge),
+                inset 0.1cqw 0.14cqw 0.2cqw rgba(190, 255, 225, 0.16);
         }
 
         /* Every fixed part is placed in board coordinates (% of the slab) */
@@ -166,6 +163,60 @@
             pointer-events: none;
         }
 
+        /* --- Copper -----------------------------------------------------
+           Under the mask a trace shows as a lighter line. The runs drawn
+           are the bundles that can be made out on unit B: the bus off
+           the processor, the comb between the memory chips, the fan from
+           the 8255, the lines up to the display transistors and into the
+           keys. They are in the right places and of the right number,
+           but the routing is simplified, and what lies under a part is
+           guessed. Power rails are wider and, being broad, catch less
+           light. A via is a small tinned ring with its hole.
+           --------------------------------------------------------------- */
+
+        .copper .trace {
+            fill: none;
+            stroke: var(--trace);
+            stroke-width: 0.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .copper .trace.mid  { stroke-width: 0.8; }
+        .copper .trace.rail { stroke: var(--trace-rail); stroke-width: 1.3; }
+
+        /* Each via is a zero-length stroke with a round cap, so the whole
+           set is one path drawn twice: wide for the ring, narrow for the
+           hole. */
+        .copper .via-ring,
+        .copper .via-hole {
+            fill: none;
+            stroke-linecap: round;
+        }
+        .copper .via-ring { stroke: var(--via); stroke-width: 1.7; }
+        .copper .via-hole { stroke: #06281c; stroke-width: 0.7; }
+
+        /* Copper poured as a solid area lifts the mask only slightly. */
+        .copper .pour { fill: rgba(60, 170, 130, 0.10); }
+
+        /* --- Mounting holes ---------------------------------------------
+           Six, about 3 mm, unplated: a plain drilled hole with the bench
+           showing dark through it and a faint lighter ring where the
+           mask stops short of the edge.
+           --------------------------------------------------------------- */
+
+        .holes .hole-ring {
+            fill: none;
+            stroke: rgba(150, 225, 190, 0.2);
+            stroke-width: 0.45;
+        }
+
+        .holes .hole {
+            fill: #231a12;
+            stroke: #04261a;
+            stroke-width: 0.3;
+        }
+
         /* --- Silkscreen ------------------------------------------------- */
 
         .silk text {
@@ -181,16 +232,6 @@
             stroke: var(--silk);
             stroke-linejoin: round;
             stroke-linecap: round;
-        }
-
-        /* --- Mounting holes ------------------------------------------- */
-
-        .hole {
-            width: 1.5cqw;
-            height: 1.5cqw;
-            border-radius: 50%;
-            background: radial-gradient(circle at 40% 35%, #e7dcc4 0%, #b9ac90 55%, #6b6250 100%);
-            box-shadow: inset 0 0 0 0.14cqw rgba(0,0,0,0.35);
         }
 
         /* --- Edge connector, left edge -------------------------------- */
@@ -816,37 +857,34 @@
     <div class="board-scroll">
       <div class="pcb">
 
-        <!-- Copper routing -->
-        <svg class="traces" viewBox="0 0 1120 386" preserveAspectRatio="none" aria-hidden="true">
-            <g fill="none" stroke="#3cc472" stroke-width="1.6" stroke-opacity="0.42">
-                <path d="M52 40 H300 V96 H520 V150 H700"/>
-                <path d="M52 58 H286 V118 H520 V168 H700"/>
-                <path d="M52 76 H272 V140 H520 V186 H700"/>
-                <path d="M52 94 H258 V162 H500 V204 H700"/>
-                <path d="M330 30 H620 V70 H880"/>
-                <path d="M330 46 H606 V88 H880"/>
-                <path d="M300 300 H520 V262 H760"/>
-                <path d="M300 318 H506 V280 H760"/>
-                <path d="M120 300 H262 V336 H600"/>
-                <path d="M900 40 V120 H1040 V300"/>
-                <path d="M920 40 V132 H1020 V300"/>
-                <path d="M760 210 H1060"/>
-                <path d="M760 228 H1060"/>
-                <path d="M760 246 H1060"/>
-            </g>
-            <g fill="#d3a044" fill-opacity="0.75">
-                <circle cx="300" cy="96" r="3.2"/><circle cx="520" cy="150" r="3.2"/>
-                <circle cx="286" cy="118" r="3.2"/><circle cx="520" cy="168" r="3.2"/>
-                <circle cx="272" cy="140" r="3.2"/><circle cx="520" cy="186" r="3.2"/>
-                <circle cx="620" cy="70" r="3.2"/><circle cx="606" cy="88" r="3.2"/>
-                <circle cx="520" cy="262" r="3.2"/><circle cx="506" cy="280" r="3.2"/>
-                <circle cx="1040" cy="120" r="3.2"/><circle cx="1020" cy="132" r="3.2"/>
-                <circle cx="262" cy="336" r="3.2"/>
-            </g>
-        </svg>
-
         <!-- Board artwork in millimetres (see .board-art). -->
         <svg class="board-art" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <defs>
+                <path id="board-vias" d="M47.7,19.9h0M51.9,22.3h0M54,23.6h0M53.7,24.9h0M50.1,27h0M55.8,29.5h0M52.8,22.3h0M53.1,23.5h0M51.9,25.7h0M129.3,21.3h0M130.8,22.6h0M147.6,20.2h0M165,21.8h0M167.7,22.4h0M135.3,10.7h0M134.7,12.5h0M132.6,44.6h0M132.9,46.4h0M111.6,52.6h0M110.1,54.5h0M113.4,55.6h0M111.6,59.6h0M109.5,71h0M113.1,71h0M102.9,78.3h0M110.7,78.2h0M113.4,80.4h0M75,67.6h0M94.65,63.4h0M91.65,69.8h0M94.65,69.8h0M93.3,73.6h0M79.2,78h0M80.7,80.3h0M186.6,51h0M189.6,52.3h0M182.7,53.4h0M185.1,54.8h0M194.7,53.5h0M194.7,55.7h0M191.7,57.8h0M193.2,59.3h0M196.5,60.2h0M156.9,58.2h0M158.4,60.6h0M144,60.6h0M160.2,63.2h0M162.6,61.2h0M165,61.3h0M165,63.6h0M165,66.2h0M165,68.5h0M190.2,61.1h0M182.7,62.4h0M186.3,63.5h0M188.7,63.5h0M177.6,65.9h0M160.2,78.5h0M166.8,81.8h0M185.1,16.6h0M183.6,19.3h0M194.4,20.8h0M191.7,23.3h0M189,25.9h0M186.6,28.3h0M196.5,30.3h0M192.6,31.7h0M189.6,33h0M191.1,38.4h0M192,42.1h0M189,44.7h0M201.6,38.6h0M203.7,38.9h0M209.1,38.6h0M209.7,43h0M210,44.6h0M210,46h0M211.8,63.7h0M203.4,94.7h0"/>
+            </defs>
+
+            <!-- Copper, under the solder mask. Generated from the trace bundles
+                 and via positions measured on unit B; see the note on .copper. -->
+            <g class="copper">
+                <rect class="pour" x="100.2" y="84" width="15.6" height="12.5"/>
+                <rect class="pour" x="174" y="93.2" width="114" height="6.3"/>
+                <path class="trace rail" d="M43.5,1.6H56.7M57.9,20.9H105M115.2,26.6L118.8,24.4H184.2M157.2,24.4V27.6M169.8,24.4V27.6M183.9,24.4V27.6M73.5,97.6L154.2,97L162.3,89.8H169.8L175.8,95L203.1,94.8M77.7,79V54.5H85.5L87.9,56H100.8L103.2,57.7H115.5M108,62.5H115.8M100.2,82.8H114L115.8,81.5"/>
+                <path class="trace mid" d="M36.9,14.6H49.2M36.9,16.2H49.2M36.9,18.3H54.9M36.9,19.8H47.7M36.9,22.3H51.9M36.9,24.8H53.7M36.9,27.4H50.1M36.9,29.2H55.5M36.9,31.3H41.7M36.9,33.6H41.7M36.9,35H41.7M36.9,37.5H41.7M36.9,39.3H41.7M202.5,2L204.6,3V13.5"/>
+                <path class="trace" d="M19.2,6.6H13.5L3.21,12.2V62.2L5.46,64.4M19.2,7.5H14.55L4.35,12.9V61.5L6.6,63.7M19.2,8.4H15.6L5.79,13.6V60.8L8.04,63M47.1,3.4H55.5M47.1,5.1H55.5M47.1,6.9H55.5M58.5,26.5L64.2,23.6M80.85,25.3L83.7,24M80.85,27.85L83.7,26.55M80.85,30.4L83.7,29.1M80.85,32.95L83.7,31.65M80.85,35.5L83.7,34.2M80.85,38.05L83.7,36.75M80.85,40.6L83.7,39.3M80.85,43.15L83.7,41.85M80.85,45.7L83.7,44.4M80.85,48.25L83.7,46.95M80.85,50.8L83.7,49.5M80.85,53.35L83.7,52.05M103.5,1.9H149.1L152.1,4.3M110.1,4.6H118.2L120.3,2.8H147.6M113.7,10.9H135.6M115.5,17.5L120.9,19.7H147.9M112.8,19L118.2,21.2H150.9M111.3,20.4L116.7,22.6H168.9M114.6,26.3H135M114.6,26.6H116.7L118.5,27.5H135M114.6,28.85H135M114.6,29.2H116.7L118.5,30.1H135M114.6,31.3H135M114.6,31.7H116.7L118.5,32.6H135M114.6,33.8H135M114.6,34.2H116.7L118.5,35.1H135M114.6,36.35H135M114.6,36.7H116.7L118.5,37.6H135M114.6,38.9H135M114.6,39.3H116.7L118.5,40.2H135M114.6,41.4H135M114.6,41.85H116.7L118.5,42.75H135M145.5,27.7H148.5M145.5,30.25H148.5M145.5,32.8H148.5M145.5,35.35H148.5M145.5,37.9H148.5M145.5,40.45H148.5M145.5,43H148.5M145.5,45.55H148.5M145.5,48.1H148.5M158.1,28.5H161.4M158.1,29.72H161.4M158.1,30.94H161.4M158.1,32.16H161.4M158.1,33.38H161.4M158.1,34.59H161.4M158.1,35.81H161.4M158.1,37.03H161.4M158.1,38.25H161.4M158.1,39.47H161.4M158.1,40.69H161.4M158.1,41.91H161.4M158.1,43.12H161.4M158.1,44.34H161.4M158.1,45.56H161.4M158.1,46.78H161.4M158.1,48H161.4M135.6,46.55L139.8,50.75H169.8L171,49.75H186.6M135.6,47.9L139.8,52.1H169.8L171,51.1H189.6M135.6,48.85L139.8,53.05H169.8L171,52.05H182.7M135.6,49.7L139.8,53.9H169.8L171,52.9H194.7M135.6,50.8L139.8,55H169.8L171,54H185.1M135.6,51.65L139.8,55.85H169.8L171,54.85H194.7M135.6,52.55L139.8,56.75H169.8L171,55.75H191.7M135.6,53.9L139.8,58.1H169.8L171,57.1H193.2M135.6,55.25L139.8,59.45H169.8L171,58.45H196.5M135.6,56.2L139.8,60.4H158.4M165,61H190.2M165,63.6H188.7M165,66.2H177.6M165,68.4L168.9,68M162.6,61.3V74L165.6,77H170.7M155.7,73H158.1L164.7,78.6H170.7M134.4,60.5H144M134.7,70.6L141.3,63.4H145.2M211.86,50V13.2L220.5,4.6H288M213.24,50V12.9L220.5,5.6H276M214.59,50V12.5L220.5,6.6H261M215.85,50V12.25L220.5,7.6H249M217.29,50V11.8L220.5,8.6H237M218.76,50V11.3L220.5,9.6H225M218.76,50V52H232.8M217.29,50V54H232.8M215.85,50V59.8H232.8M214.59,50V62H224.7V65.4H232.8M213.24,50V63.7H210.9M211.86,50V60.4H201M222.3,60.4V44.8H232.8M226.5,66.5V92H232.8M226.5,72.7H232.8M226.5,85.9H232.8M220.2,19.4H295.5M220.2,21.85H295.5M220.2,24.5H295.5M220.2,27H295.5M220.2,29.5H295.5M220.2,32H295.5M220.2,34.7H295.5M198,16.6H185.1M198,19.3H183.6M198,20.8H194.4M198,23.3H191.7M198,25.9H189M198,28.3H186.6M198,30.5H196.5M198,33H189.6M207.6,38.6H209.1M207.6,43H209.7M207.6,44.6H210M207.6,46H210M192,42.1H197.1M189,44.7H197.1M178.5,47.4H197.1M178.5,49.5H197.1M75,53V67.6M90,59.6L92.4,57.9H96.9M90,60.9L92.4,59.2H96.9M90,62.2L92.4,60.5H96.9M90,63.5L92.4,61.8H96.9M90,66H96.9M90,71H96.9M90,72.2H96.9M108,64H115.8M108,66H115.8M115.8,59.6H111.6M115.8,71H109.5M115.8,71H113.1M157.2,9.7H170.7"/>
+                <use href="#board-vias" class="via-ring"/>
+                <use href="#board-vias" class="via-hole"/>
+            </g>
+
+            <!-- Mounting holes: the four corners and the middle of each long edge. -->
+            <g class="holes">
+                <circle class="hole-ring" cx="4.8" cy="4.2" r="2.1"/><circle class="hole" cx="4.8" cy="4.2" r="1.4"/>
+                <circle class="hole-ring" cx="5.1" cy="96.6" r="2.1"/><circle class="hole" cx="5.1" cy="96.6" r="1.4"/>
+                <circle class="hole-ring" cx="165" cy="4.2" r="2.1"/><circle class="hole" cx="165" cy="4.2" r="1.55"/>
+                <circle class="hole-ring" cx="165" cy="94.9" r="2.1"/><circle class="hole" cx="165" cy="94.9" r="1.45"/>
+                <circle class="hole-ring" cx="294.81" cy="3.85" r="2.1"/><circle class="hole" cx="294.81" cy="3.85" r="1.55"/>
+                <circle class="hole-ring" cx="294.75" cy="95.0" r="2.1"/><circle class="hole" cx="294.75" cy="95.0" r="1.6"/>
+            </g>
+
             <g class="silk">
                 <!-- The maker's mark runs up the right-hand edge and reads from
                      the bottom. It is drawn upright here, from the lower left
@@ -866,13 +904,6 @@
                 <rect x="291.6" y="99" width="7.5" height="0.8"/>
             </g>
         </svg>
-
-        <!-- Mounting holes -->
-        <div class="part hole" style="left:1.1%;  top:4%;"></div>
-        <div class="part hole" style="left:1.1%;  top:88%;"></div>
-        <div class="part hole" style="left:49%;   top:4%;"></div>
-        <div class="part hole" style="left:97.2%; top:4%;"></div>
-        <div class="part hole" style="left:97.2%; top:88%;"></div>
 
         <!-- Left edge: bus connector -->
         <div class="part edge-fingers" style="left:2.6%; top:14%; width:3.4%;">

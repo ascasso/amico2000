@@ -145,6 +145,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The board itself is redrawn from a photograph of a real one. It is the deep,
+  slightly blue green of the real solder mask instead of a bright grass green,
+  and it has the real proportions, 300 x 100 mm, where it was a little too
+  tall. The copper under the mask follows the runs visible on the real board:
+  the bus off the processor, the comb between the memory chips, the fan from
+  the 8255, the six lines up to the display transistors and the lines into the
+  keys, with their vias. The six mounting holes are where the board has them,
+  the four corners and the middle of each long edge, in place of five plated
+  ones.
 - The board's printed legends are now the mustard yellow of a real board's
   silkscreen instead of white, and the maker's mark is the real one: the boxed
   monogram, `A.S.EL` and `AMICO 2000` running up the right-hand edge and
