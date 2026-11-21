@@ -145,6 +145,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The two part drawings the board reuses, the resistor and the ceramic bead,
+  have the ids `part-resistor` and `part-bead` instead of `res` and `bead`.
+  An element's id becomes a property of the page's `window`, and `res` is too
+  close to the documented console command `amico.res()`. No visible change.
 - The whole board now carries the parts a real one does, each where a
   photograph of a surviving board has it. On the left: the 6502
   standing upright at the edge beside the 40-pad bus field, the four
