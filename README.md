@@ -20,7 +20,7 @@ program entry, supported file formats, and cassette LOAD/SAVE.
 
 ```
 amico2000/
-├── index.html          # Main HTML page with UI
+├── index.html          # Main page: the board, drawn from photographs of real ones, and the bench controls
 ├── guide.html          # User guide and file-format reference
 ├── cpu6502.js          # Complete 6502 CPU emulator
 ├── amico2000.js        # Amico 2000 machine emulation

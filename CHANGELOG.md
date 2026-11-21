@@ -145,6 +145,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `AGENTS.md` has a Board Artwork section: how the board drawing in
+  `index.html` is organised, what in it is measured, read or guessed, what
+  the scripts depend on, and the rule that the photographs it was drawn from
+  are private and their owners are never named. `NextSession.md` records the
+  redraw and what is left unverified, and notes a way to check the page in a
+  browser without the workarounds it described before.
 - The two part drawings the board reuses, the resistor and the ceramic bead,
   have the ids `part-resistor` and `part-bead` instead of `res` and `bead`.
   An element's id becomes a property of the page's `window`, and `res` is too

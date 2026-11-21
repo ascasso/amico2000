@@ -34,6 +34,20 @@ Priority order:
   was opened for what that fix showed about the cassette traps. `develop` was
   pushed, at the owner's direction, so that the closing comment could link the
   fix. `docs/logs/2026-11-21.md` has each one.
+- 2026-11-21, later the same day: the home page's board was redrawn from two
+  photographs of surviving boards, in seven agreed steps, each its own commit
+  or commits: key caps with their legends on them; the displays as six
+  separate TIL312 packages; the colour and bloom of lit segments; the four
+  phase LEDs D4-D7 in place of five invented ones; the silkscreen in yellow
+  with the real maker's mark; the board's colour, 3 to 1 proportions, copper
+  and mounting holes; and the real part population in place of an invented
+  one. A second agent's review of the first five commits found three things,
+  all fixed: the display test did not look at where segments are drawn, the
+  TIL312 has two decimal points and not one, and the lamp beside the
+  registers said "running" over a halted processor. `AGENTS.md` has a Board
+  Artwork section on how the drawing is organised and on the privacy rule for
+  the photographs; `docs/logs/2026-11-21.md` has each step. The first five
+  commits are on `origin/develop`; the rest are local.
 - `#25` is done/closed: raw `.bin` program loads intentionally do not call
   `amico.reset()`.
 - `#22` is implemented: decimal-mode SBC now derives `N` from the binary
@@ -157,6 +171,29 @@ Known open work, in rough priority order. None of it is started.
    other links carry the same 2026-01-13 timestamp, to images, PDFs and
    magazine scans, and none of them has been tested.
 6. **`#19`, `#20`**: see Cassette Work below.
+7. **The board drawing, unverified and unfinished ends** (2026-11-21):
+   - It has been looked at in Chrome only. Safari and Firefox were not run.
+     The key legends use the two DIN faces macOS ships; elsewhere they fall
+     back to another face at pinned widths, which nobody has looked at.
+     Touch input was not exercised.
+   - On a phone the board pans sideways and the keys start off screen, as
+     before the redraw. Whether to reflow it, or start it scrolled to the
+     keys, is an owner decision.
+   - The measurement table the drawing was made from, and the scripts that
+     drove Chrome and compared screenshots with the photographs, are kept with
+     the private photographs, outside the repository. Neither contains a name
+     or image data. Whether either belongs in the repository is the owner's
+     call.
+   - Not started, from the owner's earlier list of ideas: one consistent
+     pass on wear and physical irregularity, sound, and a desk scene around
+     the board.
+
+Browser checks, learned on 2026-11-21: driving headless Chrome over the
+DevTools protocol in real time avoids both problems described next. A script
+evaluated through the protocol is not subject to the page's CSP, so the real
+`index.html` can be checked as served, and `requestAnimationFrame` fires at
+60 Hz, so the emulator runs normally. Real mouse and key events can be sent
+the same way.
 
 Browser checks, learned on 2026-11-19: the pages' CSP forbids inline scripts,
 so an automated check needs a scratch copy of `index.html` without the CSP
