@@ -11,7 +11,9 @@
  * no colon and no caption on the board. The geometry and colours below were
  * measured on a photograph of a surviving board taken from straight above,
  * called unit B in the comments; that photograph is private and is not in the
- * repository.
+ * repository. What a photograph cannot settle, the lean of the digit and the
+ * number of decimal points, is from Texas Instruments' data sheet for the
+ * TIL312 family (bulletin DL-S 12129, November 1974, revised July 1978).
  *
  * Author: Andrea Scasso / Claude
  * License: MIT
@@ -40,34 +42,49 @@ const DISPLAY_LAYOUT = (() => {
         totalW: digitX[5] + faceW,
         sideW: 5,                   // strip left of each face, see _createPackage()
 
-        // The digit: 46.5 x 77 before it is slanted, strokes 10 thick, leaning
-        // 8 degrees. It sits in the middle of the face, so nearly a third of
-        // the package above and below it is blank.
-        glyphW: 46.5,
+        // The digit: 44.5 x 77 before it is slanted, strokes 10 thick. It
+        // sits in the middle of the face, so nearly a third of the package
+        // above and below it is blank. The data sheet's drawing gives the
+        // lean as 10 degrees; unit B measures between 7 and 10 depending on
+        // the edge taken, so the drawn figure is the maker's. glyphX puts the
+        // middle of the leaning digit on the package's centre line, where the
+        // data sheet has it.
+        glyphW: 44.5,
         glyphH: 77,
         stroke: 10,
         segmentGap: 1.1,
-        slantDegrees: 8,
-        glyphX: 29.8,               // top-left corner of the unslanted digit box
+        slantDegrees: 10,
+        glyphX: 34.5,               // top-left corner of the unslanted digit box
         glyphY: 50.6,
 
-        // The decimal point is at the digit's lower left: the TIL312 is a
-        // left-decimal part, and the displays are fitted with the point toward
-        // the keys (manual, PDF page 25). The moulding has a matching mark at
-        // the lower right, greyer than the segments on unit B; it is drawn but
-        // it is not a light.
-        decimalPoint: Object.freeze({ x: 12.4, y: 124.6, r: 2.7 }),
-        mouldMark: Object.freeze({ x: 85.5, y: 126.5, r: 2.7 }),
+        // A TIL312 has two decimal points, one each side of the digit's foot
+        // and the same distance from its centre line (data sheet: "common
+        // anode, two decimals", pins 6 and 9). The displays are fitted with
+        // the points toward the keys (manual, PDF page 25). On unit B the
+        // left one has the segments' tint and the right one looks greyer;
+        // they are drawn as photographed, and why they differ is not known.
+        decimalPoints: Object.freeze({
+            left: Object.freeze({ x: 11, y: 125.6, r: 2.7 }),
+            right: Object.freeze({ x: 89, y: 125.6, r: 2.7 }),
+        }),
 
         // Segment name -> pattern bit. Port A bit 0 drives segment a, round to
-        // g on bit 6, with the decimal point on bit 7:
+        // g on bit 6:
         //
         //     aaa
         //    f   b
         //     ggg
         //    e   c
         //     ddd
-        //  dp
+        //  dp     dp
+        //
+        // Bit 7 is called dp here, but the board does not appear to wire it
+        // to either decimal point: the monitor's digit table sets bit 7 in
+        // all sixteen entries, and unit A, powered and showing 0000 1C, has
+        // no point lit. The machine layer drops the bit before a pattern
+        // gets here. What it lights is therefore this renderer's own choice,
+        // and it lights both points, so that test() shows every light the
+        // part has.
         segmentBits: Object.freeze({ a: 0, b: 1, c: 2, d: 3, e: 4, f: 5, g: 6, dp: 7 }),
     });
 })();
@@ -213,7 +230,6 @@ class DisplayRenderer {
         // on the left of each face.
         this._el('rect', { x: -L.sideW + 1, y: 1.5, width: L.sideW - 1.5, height: L.faceH - 3, fill: '#c9c4c1' }, group);
         this._el('rect', { x: 0, y: 0, width: L.faceW, height: L.faceH, rx: 2.2, fill: 'url(#amico-display-face)' }, group);
-        this._el('circle', { cx: L.mouldMark.x, cy: L.mouldMark.y, r: L.mouldMark.r, fill: '#55454f' }, group);
 
         // Real segments lean: the top of the digit is to the right of its foot.
         const slant = `translate(${L.glyphX}, ${L.glyphY}) skewX(${-L.slantDegrees})`;
@@ -240,15 +256,20 @@ class DisplayRenderer {
             }, litGlyph);
         }
 
-        const dp = L.decimalPoint;
+        // The two decimal points, unlit as photographed on unit B, and a lit
+        // copy of each in one group that bit 7 shows or hides.
+        const { left, right } = L.decimalPoints;
         this._el('circle', {
-            cx: dp.x, cy: dp.y, r: dp.r, fill: this.colorOff,
+            cx: left.x, cy: left.y, r: left.r, fill: this.colorOff,
             stroke: this.colorOffRim, 'stroke-width': 0.6,
         }, group);
-        segments.dp = this._el('circle', {
-            cx: dp.x, cy: dp.y, r: dp.r + 1.2, fill: this.colorOn, class: 'segment',
-            'data-bit': L.segmentBits.dp, visibility: 'hidden',
+        this._el('circle', { cx: right.x, cy: right.y, r: right.r, fill: '#55454f' }, group);
+        segments.dp = this._el('g', {
+            class: 'segment', 'data-bit': L.segmentBits.dp, visibility: 'hidden',
         }, litGroup);
+        for (const point of [left, right]) {
+            this._el('circle', { cx: point.x, cy: point.y, r: point.r + 1.2, fill: this.colorOn }, segments.dp);
+        }
 
         group.segments = segments;
         return group;

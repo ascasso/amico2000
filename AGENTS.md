@@ -121,7 +121,8 @@ SVG-based seven-segment display renderer:
   `[A3][A2][A1][A0]  [D1][D0]`. The board has no colon and no captions
 - Slanted segments; an unlit segment stays visible in dusty red, so an idle
   digit reads as a faint 8
-- Each digit has a decimal point at its lower left. Nothing lights it: the
+- Each digit has two decimal points, one each side of its foot, as a TIL312
+  does. Nothing lights them: the board does not appear to wire them, and the
   machine layer drops bit 7 before a pattern reaches the renderer
 - Red LED appearance with glow effects
 - The machine layer calls `update()` once per frame (60 fps, from its
