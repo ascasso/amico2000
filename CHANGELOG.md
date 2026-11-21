@@ -141,6 +141,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Lit display segments are now the deep red of the real displays instead of
+  an orange-red, and they bloom: a lit segment swells past its window, the
+  hairlines between segments close, and a faint red halo lies on the package
+  around the digit, as in a photograph of a powered board. The indicator LEDs
+  take the same red.
 - The display is now drawn as the board has it: six separate display packages,
   four for the address and two for the data with a gap between the groups,
   hard against the top right corner. The digits lean, and an unlit segment

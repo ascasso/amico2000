@@ -376,9 +376,15 @@
             transition: background 90ms linear, box-shadow 90ms linear;
         }
 
+        /* Lit, the same deep red as the display segments (see display.js),
+           with the near-white centre and the halo that the lit LED shows
+           in the unit A photograph. */
         .led.on {
-            background: radial-gradient(circle at 35% 30%, #ffd8c0 0%, #ff3a12 45%, #c01000 100%);
-            box-shadow: 0 0 1.4cqw rgba(255, 60, 20, 0.85), inset 0 0 0 0.1cqw rgba(0,0,0,0.3);
+            background: radial-gradient(circle at 42% 38%, #fff6d8 0%, #ff6a7c 26%, #ff1f45 58%, #c4002c 100%);
+            box-shadow:
+                0 0 0.5cqw 0.1cqw rgba(255, 31, 69, 0.9),
+                0 0 1.6cqw 0.3cqw rgba(255, 31, 69, 0.45),
+                inset 0 0 0 0.1cqw rgba(0, 0, 0, 0.25);
         }
 
         .led-slot b {

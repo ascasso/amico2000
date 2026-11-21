@@ -77,8 +77,11 @@ class DisplayRenderer {
         this.container = document.getElementById(containerId);
         this.digits = [];
 
-        // Colors
-        this.colorOn = '#ff2200';       // Lit segment
+        // Colors. A lit TIL312 is a deep red, about 660 nm, with none of the
+        // orange an early red LED is often drawn with. Unit A's photograph
+        // records it as #fe085b; cameras push that wavelength toward pink,
+        // so the red here is the same hue pulled back a little.
+        this.colorOn = '#ff1f45';       // Lit segment
         // An unlit segment on unit B is not a flat bar: it is a dusty red
         // window with a paler rim, darker in the middle, so the idle "8"
         // looks drawn in outline.
@@ -108,17 +111,26 @@ class DisplayRenderer {
 
         const defs = this._el('defs', {}, svg);
 
-        // Glow for lit segments. One filter over one group holding every lit
-        // segment, with a fixed region, so the blur is computed for the whole
+        // Bloom for lit segments. On unit A, powered, a lit segment spreads
+        // well past its window: the bars swell, the hairlines between them
+        // close, and a dim red halo lies on the face around the digit. Two
+        // blurs give that, a tight one for the swelling and a wide faint one
+        // for the halo. It is one filter over one group holding every lit
+        // segment, with a fixed region, so it is computed for the whole
         // display at once and only when a segment actually changes.
         const glow = this._el('filter', {
             id: 'amico-display-glow',
             filterUnits: 'userSpaceOnUse',
             x: -L.sideW, y: 0, width: L.totalW + L.sideW, height: L.faceH,
+            'color-interpolation-filters': 'sRGB',
         }, defs);
-        this._el('feGaussianBlur', { stdDeviation: 3, result: 'coloredBlur' }, glow);
+        this._el('feGaussianBlur', { in: 'SourceGraphic', stdDeviation: 9, result: 'wide' }, glow);
+        const dim = this._el('feComponentTransfer', { in: 'wide', result: 'halo' }, glow);
+        this._el('feFuncA', { type: 'linear', slope: 0.6 }, dim);
+        this._el('feGaussianBlur', { in: 'SourceGraphic', stdDeviation: 2.6, result: 'bloom' }, glow);
         const merge = this._el('feMerge', {}, glow);
-        this._el('feMergeNode', { in: 'coloredBlur' }, merge);
+        this._el('feMergeNode', { in: 'halo' }, merge);
+        this._el('feMergeNode', { in: 'bloom' }, merge);
         this._el('feMergeNode', { in: 'SourceGraphic' }, merge);
 
         // The face is matt plastic, a shade lighter toward the top where the
@@ -214,13 +226,17 @@ class DisplayRenderer {
         const litGroup = this._el('g', { transform: `translate(${x}, 0)` }, litLayer);
         const litGlyph = this._el('g', { transform: slant }, litGroup);
 
+        // A lit segment is drawn with a round-jointed stroke of its own
+        // colour, so it stands wider than its unlit window, loses its sharp
+        // points and closes the hairline to its neighbours, as on unit A.
         const segments = {};
         for (const [name, outline] of Object.entries(DisplayRenderer._segmentOutlines())) {
             const points = outline.map(([px, py]) => `${px},${py}`).join(' ');
             this._el('polygon', { points }, unlit);
             segments[name] = this._el('polygon', {
-                points, fill: this.colorOn, class: 'segment',
-                'data-bit': L.segmentBits[name], visibility: 'hidden',
+                points, fill: this.colorOn,
+                stroke: this.colorOn, 'stroke-width': 3.2, 'stroke-linejoin': 'round',
+                class: 'segment', 'data-bit': L.segmentBits[name], visibility: 'hidden',
             }, litGlyph);
         }
 
@@ -230,7 +246,7 @@ class DisplayRenderer {
             stroke: this.colorOffRim, 'stroke-width': 0.6,
         }, group);
         segments.dp = this._el('circle', {
-            cx: dp.x, cy: dp.y, r: dp.r, fill: this.colorOn, class: 'segment',
+            cx: dp.x, cy: dp.y, r: dp.r + 1.2, fill: this.colorOn, class: 'segment',
             'data-bit': L.segmentBits.dp, visibility: 'hidden',
         }, litGroup);
 
