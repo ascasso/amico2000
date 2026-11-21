@@ -19,9 +19,10 @@ Priority order:
 
 ## Current Status
 
-- As of 2026-11-19, `develop` is pushed and open as a pull request into
-  `master`. GitHub Pages builds from `master`, so nothing below reaches the
-  live site until that is merged.
+- PR #40 merged `develop` into `master` on 2026-11-19 (local time), so the work
+  of that session is on the branch GitHub Pages builds from. Commits made on
+  `develop` after that merge reach the live site only when they are merged in
+  turn.
 - 2026-11-19 session (no GitHub issue work, at the owner's request): a security
   review of the public pages (CSP added, oversized files refused before
   reading, selector escaping), the keypad map rebuilt from the ROM's decode,
@@ -50,8 +51,8 @@ Priority order:
   functional suite, pinned offline in `tests/fixtures/6502-functional/` and run
   by `node --test tests/cpu6502-functional.test.js` as part of the normal
   `node --test tests/`. It stayed dependency-free: no package.json, no
-  framework, no network. See `docs/6502-conformance.md`. The issue has not been
-  closed on GitHub; that is a deliberate hand-back, not an oversight.
+  framework, no network. See `docs/6502-conformance.md`. The issue was closed on
+  GitHub on 2026-09-11.
 - `#17` is implemented: every CPU fix the issue named now has a committed
   regression check, in the areas the conformance suite cannot reach.
   `tests/cpu6502-stack-frames.test.js` pins the physical byte layout of
@@ -60,9 +61,13 @@ Priority order:
   independent reference (#4, #22), and `tests/cpu6502-cycles.test.js` checks
   the base cost of all 151 documented opcodes plus every dynamic penalty (#5).
   `node --test tests/` was 76 checks then and is 90 after 2026-11-19.
-- Open on GitHub: `#19`, `#20`, `#23`, `#35`. `#23` is in fact fixed by commit
-  `1ecbfaf`, which takes the issue's first suggested option, but that commit
-  does not name the issue and the issue is still open; see Outstanding below.
+- `#23` is fixed and closed: cassette SAVE refuses the whole `$0000-$FFFF`
+  range, the one range whose length overflows the 16-bit `.amtape` header, with
+  the routine's `$0000 = $FF` status. That is the issue's first suggested
+  option, made in commit `1ecbfaf`, which does not name the issue; the issue
+  was closed on 2026-11-21 with a pointer to it. Protected by
+  `tests/cassette-tape-length.test.js`.
+- Open on GitHub: `#19`, `#20`, `#35`.
 - The CPU core now has broad instruction-level coverage *and* per-fix
   regression coverage. The **machine layer is only partly covered**: the
   keyboard matrix and keypad workflow (`tests/keyboard-matrix.test.js`), run
@@ -71,17 +76,11 @@ Priority order:
   partial address decoding do not. That is the clearest remaining gap. Keep
   near-term verification there small and tied to a behavior fix.
 
-## Outstanding (as of 2026-11-19)
+## Outstanding (as of 2026-11-21)
 
 Known open work, in rough priority order. None of it is started.
 
-1. **Close or reference `#23`.** Commit `1ecbfaf` refuses a SAVE of the whole
-   `$0000-$FFFF` range with the routine's `$0000 = $FF` status, which is
-   option 1 in the issue, and `tests/cassette-tape-length.test.js` covers it.
-   The commit message does not mention `#23` because the owner had asked for
-   no GitHub issue work in that session. The issue needs closing with a pointer
-   to the commit; no code change is needed.
-2. **HLT is not emulated.** The manual's key list says only that HLT
+1. **HLT is not emulated.** The manual's key list says only that HLT
    "genera una interruzione a livello CPU"; it is not in the key matrix (all 21
    cells are taken, see `keyMap` in `amico2000.js`), so the on-screen key does
    nothing and `P` is unmapped. To implement it, establish from the manual's
@@ -98,15 +97,15 @@ Known open work, in rough priority order. None of it is started.
    points at it, so it can only be reached through those RAM vectors. If HLT plus a vector set to `$FE00` is the intended halt-and-resume
    path, then REG followed by RUN would resume the halted program. Confirm in
    the manual before building it.
-3. **Machine-layer checks** for what is still uncovered: display multiplexing
+2. **Machine-layer checks** for what is still uncovered: display multiplexing
    and the segment patterns at `$FFEA` (the monitor's digit table), and the
    `$FD00-$FDFF` partial decoding. The keypad tests show the pattern: run the
    real monitor in Node and assert on RAM or PIA state, with no DOM.
-4. **`#35`**: when it is worked, the stale "Load ROM" mention and the claim
+3. **`#35`**: when it is worked, the stale "Load ROM" mention and the claim
    that cassette needs the ROM, in the `CASSETTE_ROM` comment in `main.js`,
    belong to the same change; they were left alone on 2026-11-19 for that
    reason.
-5. **`#19`, `#20`**: unchanged; see Cassette Work below.
+4. **`#19`, `#20`**: unchanged; see Cassette Work below.
 
 Browser checks, learned on 2026-11-19: the pages' CSP forbids inline scripts,
 so an automated check needs a scratch copy of `index.html` without the CSP
@@ -190,9 +189,6 @@ Cassette support is nice to have, but do it after core machine and CPU behavior.
 
 Relevant open items:
 
-- `#23`: full `$0000-$FFFF` SAVE produced a 64KB data payload that cannot fit in
-  the 16-bit `.amtape` length field. Fixed in `1ecbfaf` (SAVE refuses that
-  range); only closing the issue remains.
 - `#35`: the `CASSETTE_ROM` array in `main.js` does not disassemble as coherent
   6502 code at `$FB00`: the ROM's own `JMP $FC54` at `$FBF3` lands on `$FB`, an
   invalid opcode, because `$FC52` holds `JSR $FB00`. It is not loaded by
