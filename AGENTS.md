@@ -149,7 +149,7 @@ Application initialization and UI:
 **Memory Map:**
 ```
 $0000-$07FF: 2KB RAM (expandable)
-$FB00-$FCFF: Cassette ROM (embedded as CASSETTE_ROM in main.js; opt-in via amico.loadCassetteROM)
+$FB00-$FCFF: Cassette ROM (embedded as CASSETTE_ROM in main.js; main.js fits it at startup)
 $FD00-$FD03: 8255 PIA I/O ports
 $FE00-$FFFF: Monitor ROM (512 bytes)
 ```
@@ -305,11 +305,19 @@ particular, `archived/GEMINI3.md` contains a keyboard matrix table that matches
 neither the current implementation nor the ROM's decode.
 
 ### ROM Data
-The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loading ROM files:
-- `prom.ic9` goes at $FE00 (Monitor ROM, 512 bytes) - **required**
-- `prom.ic10` fits the socket at $FB00-$FCFF (Cassette ROM, 512 bytes) -
-  optional. The file is in chip order, so its first half answers at $FC00 and
-  its second half at $FB00; see PROM Image Order above
+The MONITOR_ROM array in main.js contains the actual monitor ROM bytes, and
+`main.js` fits it at startup, so a user never has to load one. When loading ROM
+files:
+- `prom.ic9` replaces the monitor at $FE00 (Monitor ROM, 512 bytes). A board
+  cannot run without a monitor, which is why one is always fitted; a file is
+  only for trying a different image
+- `prom.ic10` fits the socket at $FB00-$FCFF (Cassette ROM, 512 bytes). It
+  was optional on the real machine, part of the cassette interface, and
+  `main.js` fits the embedded `CASSETTE_ROM` at startup because the board the
+  page draws has that interface. The file is in chip order, so its first half
+  answers at $FC00 and its second half at $FB00; see PROM Image Order above.
+  Node tests built on `tests/helpers/machine.js` start with the socket empty,
+  as before, and fit it themselves where they need it
 - Other .bin files load as programs at $0000
 
 **Note on hardware PROMs**: The original AMICO 2000 used `prom.ic6` and `prom.ic7` for address decoding logic (generating chip-select signals). These are **not needed** in the emulator as address decoding is implemented in software through the CPU's memory read/write callbacks.
@@ -456,11 +464,10 @@ stopped itself on an opcode it does not implement.
 
 **Checking a change.** Nothing automated looks at the drawing. It was checked
 by serving the page, screenshotting it in headless Chrome and putting the
-same window of the photograph beside it at the same scale. Driving Chrome
-over the DevTools protocol in real time needs neither workaround that
-`NextSession.md` describes for virtual-time checks: scripts evaluated through
-the protocol are not subject to the page's CSP, and `requestAnimationFrame`
-fires normally. `tests/display-renderer.test.js` covers the display's
+same window of the photograph beside it at the same scale, driving Chrome
+over the DevTools protocol in real time (How to Verify in `NextSession.md`):
+scripts evaluated through the protocol are not subject to the page's CSP, and
+`requestAnimationFrame` fires normally, so the page is checked as served. `tests/display-renderer.test.js` covers the display's
 geometry and nothing else on the board.
 
 ## Development Guidelines
@@ -510,7 +517,7 @@ When implementing changes based on a GitHub issue:
    trapping the IC10 ROM entry points ($FBBC and $FC54), but the analog
    300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated.
    The traps also differ from the real routines in what they leave in
-   `$0000-$0004`; `NextSession.md` lists the differences
+   `$0000-$0004`; issue `#41` lists the differences
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
 4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate;
    sufficient for the monitor ROM and simple programs. The functional suite the
