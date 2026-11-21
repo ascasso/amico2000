@@ -13,9 +13,13 @@
         /* ================================================================
            AMICO 2000 Emulator
            Visual recreation of the ASEL AMICO 2000 single-board computer
-           (Milano, 1978). Board geometry, silkscreen legends, keycap
-           colours and component placement follow the photographs of a
-           built board published on computerhistory.it.
+           (Milano, 1978). The first version followed the photographs of a
+           built board published on computerhistory.it. Parts redrawn
+           since then follow two sharper photographs of surviving boards,
+           called unit A (powered, displays lit) and unit B (unpowered,
+           seen from straight above) in the comments below. Those two
+           photographs are private and are not in the repository; only
+           measurements and colour samples taken from them are.
            ================================================================ */
 
         :root {
@@ -33,11 +37,12 @@
             --gold:             #d3a044;
             --gold-dark:        #9a6f2b;
 
-            /* Keycaps */
-            --cap-red:          #c4332b;
-            --cap-red-dark:     #7e1c16;
-            --cap-blue:         #2d5eae;
-            --cap-blue-dark:    #17356e;
+            /* Silkscreen outline around each key switch */
+            --silk-line:        rgba(230, 236, 228, 0.62);
+
+            /* Key switch pitch: about 13 mm on a board about 305 mm wide.
+               The hex block and the function block share it. */
+            --key-pitch:        4.36cqw;
 
             /* Packages */
             --dip:              #17171b;
@@ -417,91 +422,154 @@
         }
 
         /* --- Keys ------------------------------------------------------
-           On the real board the legend is silkscreened inside a printed
-           box and the keycap sits on top of it, blank. Reproduced here,
-           with the legend kept clear of the cap so it stays readable.
+           Both photographed boards (unit A and unit B) carry the legend in
+           white on the cap itself. Each switch stands in a silkscreened
+           square; the cap is a little smaller than the square, so a thin
+           frame of ink shows around it. The sixteen hex keys and the seven
+           function keys sit on one pitch, with their bottom rows in line.
            --------------------------------------------------------------- */
 
-        .keyfield { display: grid; }
-
-        .keyfield.hex  { grid-template-columns: repeat(4, 1fr); }
-        .keyfield.func { grid-template-columns: repeat(4, 1fr); }
-
-        .keycell {
-            position: relative;
-            aspect-ratio: 1 / 0.92;
-            box-shadow: inset 0 0 0 0.12cqw rgba(230, 236, 228, 0.62);
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
+        .keyfield {
+            display: grid;
+            grid-template-columns: repeat(4, var(--key-pitch));
+            grid-auto-rows: var(--key-pitch);
         }
 
-        .keycell > .legend {
+        .keycell, .switch-cell { position: relative; }
+
+        /* The printed square under each switch. On unit B the squares are
+           separate, with a gap between neighbours, and barely larger than
+           the caps: the photograph only shows them where the camera looks
+           past a cap's edge. Seen from straight above, that is a hairline
+           of ink around each cap. */
+        .keycell::before, .switch-cell::before {
+            content: "";
             position: absolute;
-            bottom: 0.25cqw;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 1.15cqw;
-            letter-spacing: 0.05em;
-            color: var(--silk);
+            inset: 2.4%;
+            border: 0.07cqw solid var(--silk-line);
+            border-radius: 0.06cqw;
             pointer-events: none;
         }
 
+        /* The cap itself is the SVG inside the button: see #keycap. The
+           button only carries the hit area, the focus ring and the shadow
+           the cap throws on the board. Light falls from the upper left,
+           as it does in the unit B photograph, so the shadow lands lower
+           right. */
         .key {
             position: absolute;
-            top: 7%;
-            left: 11%;
-            width: 78%;
-            height: 64%;
+            inset: 4%;
             padding: 0;
             border: none;
-            border-radius: 0.35cqw;
+            border-radius: 7%;
+            background: none;
             cursor: pointer;
-            font-size: 0;
-            color: transparent;
+            box-shadow: 0.1cqw 0.17cqw 0.24cqw rgba(0, 0, 0, 0.6);
             transition: filter 80ms linear, box-shadow 80ms linear;
+            -webkit-tap-highlight-color: transparent;
         }
 
+        .key .keycap {
+            display: block;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Cap colours sampled from unit B: the dished face, the four
+           bevels as the light catches them, and the skirt that shows in
+           the gaps between caps. */
         .key-hex {
-            background: linear-gradient(178deg, #e05a4f 0%, var(--cap-red) 22%, #a8291f 78%, var(--cap-red-dark) 100%);
-            box-shadow:
-                0 0.45cqw 0 var(--cap-red-dark),
-                0 0.75cqw 0.9cqw rgba(0,0,0,0.4),
-                inset 0 0.18cqw 0.25cqw rgba(255,255,255,0.28);
+            --keycap-face:   #c61827;
+            --keycap-left:   #ec4a52;
+            --keycap-top:    #c0101c;
+            --keycap-right:  #a3050f;
+            --keycap-bottom: #a90813;
+            --keycap-edge:   #5e0508;
         }
 
         .key-func {
-            background: linear-gradient(178deg, #5b86d4 0%, var(--cap-blue) 22%, #244d92 78%, var(--cap-blue-dark) 100%);
-            box-shadow:
-                0 0.45cqw 0 var(--cap-blue-dark),
-                0 0.75cqw 0.9cqw rgba(0,0,0,0.4),
-                inset 0 0.18cqw 0.25cqw rgba(255,255,255,0.28);
+            --keycap-face:   #0c80b1;
+            --keycap-left:   #34a1d0;
+            --keycap-top:    #12689b;
+            --keycap-right:  #086c9b;
+            --keycap-bottom: #04629a;
+            --keycap-edge:   #03315a;
         }
 
-        .key:hover { filter: brightness(1.12); }
+        .keycap-face   { fill: var(--keycap-face); }
+        .keycap-left   { fill: var(--keycap-left); }
+        .keycap-top    { fill: var(--keycap-top); }
+        .keycap-right  { fill: var(--keycap-right); }
+        .keycap-bottom { fill: var(--keycap-bottom); }
+        .keycap-edge   { fill: var(--keycap-edge); }
 
-        /* main.js applies an inline translateY on press, so the pressed
-           state is carried by the shadow rather than a transform. */
+        /* Bright inner edge of the lit bevel, and the pale line the light
+           draws along the cap's upper and left rim. */
+        .keycap-ridge, .keycap-rim {
+            fill: none;
+            stroke: #fff;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .keycap-ridge { stroke-width: 1.3; stroke-opacity: 0.34; }
+        .keycap-rim   { stroke-width: 1.4; stroke-opacity: 0.42; }
+
+        /* Legends, measured on unit B: the lettering is a third of the
+           cap tall, with strokes about an eighth of that. Its proportions
+           sit between the two DIN cuts, the function names and A-F near
+           the condensed one and the digits near the regular one, so each
+           takes the closer face. The page's CSP allows no downloaded
+           font, so these are stacks of system faces, and every legend's
+           textLength pins its width so that a substitute face still fills
+           the space the printed legend does. The system DIN faces exist
+           only in bold, a little heavier than the print; a thin stroke in
+           the cap's own colour pares the strokes back, and being vector
+           it holds at any zoom. Sizes are in units of the 100 x 100 cap. */
+        .key .legend {
+            fill: #f6f0e9;
+            stroke: var(--keycap-face);
+            stroke-width: 0.8px;
+            font-family: "DIN Condensed", "Bahnschrift", "Roboto Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+            font-stretch: condensed;
+            font-weight: 700;
+            font-size: 46.3px;
+            text-anchor: middle;
+            text-rendering: geometricPrecision;
+        }
+
+        .key-hex .legend { font-size: 44.5px; }
+
+        .key .legend.digit {
+            stroke-width: 0.5px;
+            font-family: "DIN Alternate", "Bahnschrift", "Roboto", "Helvetica Neue", Arial, sans-serif;
+            font-stretch: normal;
+        }
+
+        .key .legend-arrow { fill: #f6f0e9; }
+
+        .key:hover { filter: brightness(1.07); }
+
+        /* main.js marks a pressed key, whether pressed with the mouse, a
+           finger or the computer keyboard, by setting an inline
+           translateY on its button. Keying the pressed look to that
+           inline style gives all three the same feedback without
+           touching the keyboard handling. */
         .key:active,
-        .key.is-down {
-            box-shadow:
-                0 0.1cqw 0 rgba(0,0,0,0.5),
-                0 0.2cqw 0.3cqw rgba(0,0,0,0.35),
-                inset 0 0.2cqw 0.4cqw rgba(0,0,0,0.35);
-            filter: brightness(0.94);
+        .key[style*="translateY"] {
+            box-shadow: 0.03cqw 0.05cqw 0.09cqw rgba(0, 0, 0, 0.65);
+            filter: brightness(0.9);
         }
 
         .key:focus-visible {
-            outline: 0.25cqw solid #ffe9a8;
-            outline-offset: 0.2cqw;
+            outline: 0.2cqw solid #ffe9a8;
+            outline-offset: 0.06cqw;
+            z-index: 1;
         }
 
         /* --- NOR / SS slide switch ------------------------------------ */
 
         .switch-cell {
-            position: relative;
-            box-shadow: inset 0 0 0 0.12cqw rgba(230, 236, 228, 0.62);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -803,7 +871,6 @@
         <div class="part disc" style="left:44.2%; top:91%;"></div>
         <div class="part disc" style="left:11.5%; top:33%;"></div>
         <div class="part disc" style="left:65.5%; top:63%;"></div>
-        <div class="part disc" style="left:65.5%; top:70%;"></div>
 
         <!-- Indicator LEDs -->
         <div class="part led-bank" style="left:56.5%; top:6%;">
@@ -821,62 +888,74 @@
             <div class="pins bottom"></div>
         </div>
 
-        <!-- Function keys: silkscreen layout as printed on the board -->
-        <div class="part keyfield func" style="left:56.5%; top:62%; width:20.5%;">
+        <!-- Key cap artwork, drawn once and reused by every key through <use>.
+             Its colours are the --keycap-* properties of whichever key uses it.
+             The shapes follow the caps on unit B: a square with four bevels
+             and a slightly dished face, lit from the upper left. -->
+        <svg class="keycap-defs" width="0" height="0" aria-hidden="true" focusable="false">
+            <defs>
+                <clipPath id="keycap-clip"><rect width="100" height="100" rx="7"/></clipPath>
+                <!-- Dish: the face's upper-left wall is in shade, its lower-right wall lit. -->
+                <linearGradient id="keycap-dish" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#000" stop-opacity="0.2"/>
+                    <stop offset="0.2" stop-color="#000" stop-opacity="0"/>
+                    <stop offset="0.55" stop-color="#fff" stop-opacity="0"/>
+                    <stop offset="1" stop-color="#fff" stop-opacity="0.2"/>
+                </linearGradient>
+                <symbol id="keycap" viewBox="0 0 100 100">
+                    <g clip-path="url(#keycap-clip)">
+                        <rect class="keycap-edge" width="100" height="100"/>
+                        <!-- The bevels run on under the face so its rounded corners show bevel, not skirt. -->
+                        <polygon class="keycap-top" points="1.5,1.5 98.5,1.5 86,15 17,15"/>
+                        <polygon class="keycap-left" points="1.5,1.5 17,15 17,84 1.5,98.5"/>
+                        <polygon class="keycap-right" points="98.5,1.5 98.5,98.5 86,84 86,15"/>
+                        <polygon class="keycap-bottom" points="1.5,98.5 17,84 86,84 98.5,98.5"/>
+                        <rect class="keycap-face" x="12" y="10" width="79" height="79" rx="5"/>
+                        <rect x="12" y="10" width="79" height="79" rx="5" fill="url(#keycap-dish)"/>
+                        <path class="keycap-ridge" d="M11.4,86 V13"/>
+                        <path class="keycap-rim" d="M2.4,95 V5.2 Q2.4,2.4 5.2,2.4 H95"/>
+                    </g>
+                </symbol>
+            </defs>
+        </svg>
+
+        <!-- Function keys. RUN, increment and DA above; RES, HLT, REG and AD
+             below, starting one switch further left under the NOR/SS slide
+             switch. Legends are printed on the caps, as on the board. -->
+        <div class="part keyfield func" style="left:57.03%; bottom:6.95%;">
 
             <div class="switch-cell">
                 <div class="legend"><span>NOR</span><span>SS</span></div>
                 <div class="slide-switch" title="NOR / single-step switch (decorative)"></div>
             </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="go" aria-label="RUN" title="RUN — start execution (Enter)"></button>
-                <span class="legend">RUN</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="+" aria-label="Increment" title="Increment address (+)"></button>
-                <span class="legend">&uarr;</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="da" aria-label="DA" title="DA — enter data (Arrow Down)"></button>
-                <span class="legend">DA</span>
-            </div>
+            <div class="keycell"><button class="key key-func" data-key="go" aria-label="RUN" title="RUN — start execution (Enter)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="62.6" lengthAdjust="spacingAndGlyphs">RUN</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="+" aria-label="Increment" title="Increment address (+)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><path class="legend-arrow" d="M50,33.5 L56.4,51.5 L51.8,59 V71.5 H48.2 V59 L43.6,51.5 Z"/></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="da" aria-label="DA" title="DA — enter data (Arrow Down)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="45" lengthAdjust="spacingAndGlyphs">DA</text></svg></button></div>
 
-            <div class="keycell">
-                <button class="key key-func" data-key="res" aria-label="RES" title="RES — stop whatever is running and return to the monitor, keeping RAM (Escape or Backspace)"></button>
-                <span class="legend">RES</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — not emulated: on the board it raises a CPU interrupt"></button>
-                <span class="legend">HLT</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="reg" aria-label="REG" title="REG — recall the saved program counter (R)"></button>
-                <span class="legend">REG</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="ad" aria-label="AD" title="AD — enter address (Arrow Up)"></button>
-                <span class="legend">AD</span>
-            </div>
+            <div class="keycell"><button class="key key-func" data-key="res" aria-label="RES" title="RES — stop whatever is running and return to the monitor, keeping RAM (Escape or Backspace)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.8" lengthAdjust="spacingAndGlyphs">RES</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — not emulated: on the board it raises a CPU interrupt"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.4" lengthAdjust="spacingAndGlyphs">HLT</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="reg" aria-label="REG" title="REG — recall the saved program counter (R)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="61" lengthAdjust="spacingAndGlyphs">REG</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="ad" aria-label="AD" title="AD — enter address (Arrow Up)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="41.1" lengthAdjust="spacingAndGlyphs">AD</text></svg></button></div>
         </div>
 
-        <!-- Hex keypad -->
-        <div class="part keyfield hex" style="left:78.5%; top:44%; width:17%;">
-            <div class="keycell"><button class="key key-hex" data-key="0" aria-label="0"></button><span class="legend">0</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="1" aria-label="1"></button><span class="legend">1</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="2" aria-label="2"></button><span class="legend">2</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="3" aria-label="3"></button><span class="legend">3</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="4" aria-label="4"></button><span class="legend">4</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="5" aria-label="5"></button><span class="legend">5</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="6" aria-label="6"></button><span class="legend">6</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="7" aria-label="7"></button><span class="legend">7</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="8" aria-label="8"></button><span class="legend">8</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="9" aria-label="9"></button><span class="legend">9</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="a" aria-label="A"></button><span class="legend">A</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="b" aria-label="B"></button><span class="legend">B</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="c" aria-label="C"></button><span class="legend">C</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="d" aria-label="D"></button><span class="legend">D</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="e" aria-label="E"></button><span class="legend">E</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="f" aria-label="F"></button><span class="legend">F</span></div>
+        <!-- Hex keypad: 0-3, 4-7, 8-B, C-F from the top. -->
+        <div class="part keyfield hex" style="left:77.79%; bottom:6.95%;">
+            <div class="keycell"><button class="key key-hex" data-key="0" aria-label="0"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">0</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="1" aria-label="1"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">1</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="2" aria-label="2"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">2</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="3" aria-label="3"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">3</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="4" aria-label="4"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">4</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="5" aria-label="5"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">5</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="6" aria-label="6"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">6</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="7" aria-label="7"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">7</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="8" aria-label="8"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">8</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="9" aria-label="9"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">9</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="a" aria-label="A"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="19.6" lengthAdjust="spacingAndGlyphs">A</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="b" aria-label="B"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="23.2" lengthAdjust="spacingAndGlyphs">B</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="c" aria-label="C"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="19.9" lengthAdjust="spacingAndGlyphs">C</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="d" aria-label="D"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="22.1" lengthAdjust="spacingAndGlyphs">D</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="e" aria-label="E"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="20.6" lengthAdjust="spacingAndGlyphs">E</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="f" aria-label="F"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="15.8" lengthAdjust="spacingAndGlyphs">F</text></svg></button></div>
         </div>
 
         <!-- Manufacturer silkscreen, bottom right edge -->

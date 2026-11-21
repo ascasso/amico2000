@@ -132,6 +132,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The on-screen keys now look like the caps on a real board. The legends are
+  printed in white on the caps, where earlier they sat beneath blank caps; the
+  caps are square and sculpted, in the red and blue sampled from a photograph
+  of a surviving board; and the hex keys and function keys share one tight
+  switch pitch with their bottom rows in line. A pressed key darkens whether
+  it was pressed with the mouse, a finger or the computer keyboard. The keys
+  themselves, their `data-key` values and the keyboard handling are unchanged.
 - The README and two `main.js` comments now call the loader button by its
   on-screen name, **Load ROM or tape**, instead of "Load ROM/Tape" and
   "Load ROM".

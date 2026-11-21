@@ -434,11 +434,13 @@ emulated, and its on-screen key does nothing. Implementing it means settling
 NMI versus IRQ from evidence, and what the RAM vectors at `$03FC-$03FF` should
 hold when it fires.
 
-The on-screen keys are labelled with the legends silkscreened on the original
-board. Two of them were previously labelled after their emulator identity rather
-than the hardware: `RUN` was shown as `GO`, and `HLT` was shown as `PC`. The
-`data-key` values in `index.html` still read `go` and `pc`; only the labels
-changed.
+The on-screen keys carry the legends of the original board, printed in white on
+the caps themselves, as photographs of two surviving boards show. An earlier
+version of the page drew blank caps with the legend silkscreened underneath;
+that was a misreading of low-resolution photographs. Two of the legends were
+previously named after their emulator identity rather than the hardware: `RUN`
+was shown as `GO`, and `HLT` was shown as `PC`. The `data-key` values in
+`index.html` still read `go` and `pc`; only the labels changed.
 
 ## Historical Context
 
