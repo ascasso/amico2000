@@ -341,7 +341,11 @@ checked by running the real routine in `tests/cassette-rom-mapping.test.js`:
 - The four phase LEDs of the manual's Fig. 26 are Port A bits 0-3: D4 leader,
   D5 text, D6 recording, D7 reading. That assignment is inferred: it is the
   one that makes the values the routines write match the LEDs the manual says
-  light in each phase.
+  light in each phase. The home page draws D4-D7, but nothing lights them: the
+  traps stand in for the routines that would, and with the trap off the
+  machine layer has no model of the LEDs. How they are wired, and why a
+  photograph of a powered board shows D7 lit while the monitor idles, is not
+  established.
 - Tape input is sampled on Port A bit 7. LOAD switches Port A between output,
   to set the LEDs, and input, to read the tape, with 8255 control words `$89`
   and `$99`.

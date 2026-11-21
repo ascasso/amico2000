@@ -141,6 +141,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The board now carries the four LEDs the real one has, D4 to D7, drawn as
+  5 mm red LEDs with their designators beneath, in place of five invented
+  ones labelled PWR, RUN, IRQ, NMI and RW. They belong to the cassette
+  interface and stay dark, because the emulator's file-backed cassette never
+  runs the routines that light them. Whether the processor is running, which
+  the invented RUN LED used to show, is now a small lamp beside the registers
+  under Processor state; it still follows the Run/Stop button and a console
+  `amico.start()` or `amico.stop()`. The decorative power LED is gone.
 - Lit display segments are now the deep red of the real displays instead of
   an orange-red, and they bloom: a lit segment swells past its window, the
   hairlines between segments close, and a faint red halo lies on the package

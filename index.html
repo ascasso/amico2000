@@ -356,45 +356,84 @@
             background-repeat: repeat-x;
         }
 
-        /* --- Bus indicator LEDs --------------------------------------- */
+        /* --- Phase LEDs D4-D7 ------------------------------------------
+           Four 5 mm red diffused LEDs in a row, 0.3 inch apart, each with
+           its designator printed beneath. They belong to the cassette
+           interface: the manual's Fig. 26 has D4 for the leader, D5 for
+           the text, D6 for recording and D7 for reading. Nothing in the
+           emulator drives them, because the cassette is file-backed and
+           the routines that would light them are trapped, so they are
+           drawn dark. The lit style is here for whenever something does.
+           --------------------------------------------------------------- */
 
-        .led-bank {
-            display: flex;
-            gap: 1.1cqw;
-            align-items: flex-end;
+        .led-bank { display: flex; }
+
+        .led-slot {
+            width: 2.56cqw;             /* the 0.3 inch pitch */
+            text-align: center;
         }
 
-        .led-slot { text-align: center; }
-
+        /* A dome seen from above, as on unit B: deep red, darker toward
+           the rim, with the small window highlight at the upper left
+           where the light comes from. */
         .led {
-            width: 0.95cqw;
-            height: 0.95cqw;
+            width: 1.56cqw;
+            height: 1.56cqw;
             margin: 0 auto;
             border-radius: 50%;
-            background: radial-gradient(circle at 35% 30%, #7a2018 0%, #4a120c 60%, #240805 100%);
-            box-shadow: inset 0 0 0 0.1cqw rgba(0,0,0,0.5);
-            transition: background 90ms linear, box-shadow 90ms linear;
+            background:
+                radial-gradient(circle at 31% 43%, rgba(255, 232, 228, 0.92) 0 4.5%, rgba(255, 190, 190, 0.35) 9%, rgba(255, 170, 170, 0) 17%),
+                radial-gradient(circle at 46% 44%, #b3141f 0%, #a00d1c 38%, #850714 72%, #5e0810 100%);
+            box-shadow:
+                0.07cqw 0.12cqw 0.18cqw rgba(0, 0, 0, 0.55),
+                inset 0 0 0 0.06cqw rgba(50, 0, 6, 0.5);
         }
 
         /* Lit, the same deep red as the display segments (see display.js),
            with the near-white centre and the halo that the lit LED shows
            in the unit A photograph. */
         .led.on {
-            background: radial-gradient(circle at 42% 38%, #fff6d8 0%, #ff6a7c 26%, #ff1f45 58%, #c4002c 100%);
+            background: radial-gradient(circle at 47% 45%, #fffbe6 0%, #fff0c8 15%, #ff7a86 30%, #ff1f45 55%, #d0002f 100%);
             box-shadow:
-                0 0 0.5cqw 0.1cqw rgba(255, 31, 69, 0.9),
-                0 0 1.6cqw 0.3cqw rgba(255, 31, 69, 0.45),
-                inset 0 0 0 0.1cqw rgba(0, 0, 0, 0.25);
+                0 0 0.45cqw 0.12cqw rgba(255, 31, 69, 0.9),
+                0 0 1.7cqw 0.45cqw rgba(255, 31, 69, 0.42),
+                inset 0 0 0 0.06cqw rgba(120, 0, 20, 0.3);
         }
 
         .led-slot b {
             display: block;
-            margin-top: 0.35cqw;
-            font-size: 0.85cqw;
+            margin-top: 0.22cqw;
+            font-size: 0.74cqw;
             font-weight: 400;
-            letter-spacing: 0.05em;
-            color: var(--silk-dim);
+            letter-spacing: 0.04em;
+            color: var(--silk);
         }
+
+        /* --- Run lamp, on the bench panel -------------------------------
+           The emulator can pause its processor, which the board cannot.
+           That state used to be shown by a RUN LED drawn on the board,
+           where the real board has none; it now sits with the processor
+           registers. main.js only switches the class "on", so the word
+           beside the lamp is supplied here.
+           --------------------------------------------------------------- */
+
+        .run-lamp {
+            display: inline-block;
+            width: 0.62em;
+            height: 0.62em;
+            margin-right: 0.45em;
+            border-radius: 50%;
+            background: #c9bea9;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22);
+        }
+
+        .run-lamp.on {
+            background: #3d9a4f;
+            box-shadow: 0 0 0.35em rgba(61, 154, 79, 0.7), inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+        }
+
+        .run-lamp + .run-word::after { content: "stopped"; }
+        .run-lamp.on + .run-word::after { content: "running"; }
 
         /* --- Seven-segment displays -----------------------------------
            The six packages are drawn by display.js. This element only
@@ -867,13 +906,15 @@
         <div class="part disc" style="left:11.5%; top:33%;"></div>
         <div class="part disc" style="left:65.5%; top:63%;"></div>
 
-        <!-- Indicator LEDs -->
-        <div class="part led-bank" style="left:56.5%; top:6%;">
-            <div class="led-slot"><div class="led" id="led-power"></div><b>PWR</b></div>
-            <div class="led-slot"><div class="led" id="led-run"></div><b>RUN</b></div>
-            <div class="led-slot"><div class="led"></div><b>IRQ</b></div>
-            <div class="led-slot"><div class="led"></div><b>NMI</b></div>
-            <div class="led-slot"><div class="led"></div><b>RW</b></div>
+        <!-- Phase LEDs. The board has these four and no others: the PWR,
+             RUN, IRQ, NMI and RW lamps drawn here before were invented.
+             They sit where the old bank was for now and move to their
+             measured place when the parts around them are redrawn. -->
+        <div class="part led-bank" style="left:56.5%; top:4.6%;">
+            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Not driven by the emulator."></div><b>D4</b></div>
+            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Not driven by the emulator."></div><b>D5</b></div>
+            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Not driven by the emulator."></div><b>D6</b></div>
+            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Not driven by the emulator."></div><b>D7</b></div>
         </div>
 
         <!-- Seven-segment displays: six TIL312 packages, four for the address
@@ -981,6 +1022,7 @@
             </p>
             <h2>Processor state</h2>
             <div class="regs">
+                <div><span class="k">CPU</span><span class="v"><span class="run-lamp" id="led-run"></span><span class="run-word"></span></span></div>
                 <div><span class="k">PC</span><span class="v" id="reg-pc">0000</span></div>
                 <div><span class="k">A</span><span class="v" id="reg-a">00</span></div>
                 <div><span class="k">X</span><span class="v" id="reg-x">00</span></div>

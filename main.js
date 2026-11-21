@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // The machine owns its run state; the bench controls only reflect it, so
-    // a console start() or stop() updates the label and RUN LED as well.
+    // a console start() or stop() updates the label and the run lamp as well.
     amico.onRunStateChange = updateRunButton;
 
     // Load monitor ROM
@@ -180,9 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupControls();
     setupFileLoader();
 
-    // The power LED is decorative and always on; the RUN LED and the Run/Stop
-    // label were already set by onRunStateChange when start() ran.
-    document.getElementById('led-power').classList.add('on');
+    // The Run/Stop label and the run lamp beside the registers were already
+    // set by onRunStateChange when start() ran.
 
     console.log('AMICO 2000 Emulator initialized and running');
     console.log('Initial CPU state:');
