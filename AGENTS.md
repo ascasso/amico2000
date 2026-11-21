@@ -129,7 +129,7 @@ SVG-based seven-segment display renderer:
   each pattern with the one it last drew and writes to the DOM only for
   segments that changed, so a steady display costs nothing
 
-**Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second. The geometry is in the single `DISPLAY_LAYOUT` object at the top of the file, measured on a photograph of a real board. `tests/display-renderer.test.js` pins the bit-to-segment mapping and the left-to-right order of the digits; keep it passing when changing how the display is drawn.
+**Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second. The geometry is in the single `DISPLAY_LAYOUT` object at the top of the file, measured on a photograph of a real board. `tests/display-renderer.test.js` pins the bit-to-segment mapping, the left-to-right order of the digits, and where each named segment is actually drawn; keep it passing when changing how the display is drawn.
 
 ### 4. main.js (~490 lines)
 Application initialization and UI:

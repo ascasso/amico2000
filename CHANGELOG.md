@@ -11,12 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `tests/display-renderer.test.js`, the first check of the seven-segment
   renderer. `display.js` draws into the DOM, so nothing in Node could see it;
   the test stands it on a small stand-in for the handful of DOM calls it makes.
-  Twelve checks pin which pattern bit lights which segment, that each of the
+  Fifteen checks pin which pattern bit lights which segment, that each of the
   six patterns reaches its own digit, that the digits are drawn left to right
   as four address digits and then two data digits, that the monitor's own
   table at `$FFEA` draws 0 to F, and that a booted monitor's display reaches
-  the renderer as `0000 00`. It was written against the renderer as it stood,
-  ahead of redrawing the displays, so the redraw has something to hold it.
+  the renderer as `0000 00`. Two of them read the geometry rather than the
+  names: every lit segment has to be drawn over its own package, on top of
+  its unlit window, and the named segments have to sit where a seven-segment
+  digit has them, leaning the right way, with the decimal point at the foot.
+  It was first written against the renderer as it stood, ahead of redrawing
+  the displays, so the redraw had something to hold it.
 - Added a link to the published emulator, `https://ascasso.github.io/amico2000/`,
   near the top of the README, so a visitor to the repository can run it
   without downloading anything.

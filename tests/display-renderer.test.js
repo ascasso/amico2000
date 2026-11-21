@@ -92,6 +92,85 @@ function wholeDisplay(renderer) {
     return [0, 1, 2, 3, 4, 5].map((i) => litSegments(renderer, i));
 }
 
+// --- where things are actually drawn -----------------------------------------
+//
+// The helpers above know a segment by its name and whether it is lit. That is
+// not enough: a renderer can light exactly the right elements and still draw
+// them in the wrong place, and every check built on names alone passes. The
+// helpers below read the geometry the way a browser would, carrying each
+// shape's points through its own transform and those of every group above it,
+// so a check can ask where a named segment ends up.
+
+const IDENTITY = [1, 0, 0, 1, 0, 0];            // a b c d e f, as in SVG's matrix()
+
+function multiply(p, q) {
+    return [
+        p[0] * q[0] + p[2] * q[1], p[1] * q[0] + p[3] * q[1],
+        p[0] * q[2] + p[2] * q[3], p[1] * q[2] + p[3] * q[3],
+        p[0] * q[4] + p[2] * q[5] + p[4], p[1] * q[4] + p[3] * q[5] + p[5]];
+}
+
+// The two transforms display.js uses. Anything else fails here rather than
+// being read as "no transform", so a new kind cannot slip past unexamined.
+function matrixOf(transform) {
+    const text = (transform || '').trim();
+    const pattern = /(\w+)\(([^)]*)\)/g;
+    let matrix = IDENTITY;
+    for (const [whole, name, args] of text.matchAll(pattern)) {
+        const n = args.split(/[\s,]+/).filter(Boolean).map(Number);
+        if (name === 'translate') {
+            matrix = multiply(matrix, [1, 0, 0, 1, n[0], n[1] || 0]);
+        } else if (name === 'skewX') {
+            matrix = multiply(matrix, [1, 0, Math.tan(n[0] * Math.PI / 180), 1, 0, 0]);
+        } else {
+            assert.fail(`this test cannot read the transform "${whole}"`);
+        }
+    }
+    assert.equal(text.replace(pattern, '').trim(), '', `unreadable transform "${transform}"`);
+    return matrix;
+}
+
+function absoluteMatrix(element) {
+    const chain = [];
+    for (let node = element; node; node = node.parentNode) chain.unshift(node);
+    return chain.reduce((matrix, node) => multiply(matrix, matrixOf(node.getAttribute('transform'))), IDENTITY);
+}
+
+// The corner points of a shape's own outline, before any transform, or null
+// for an element that draws nothing itself.
+function outline(element) {
+    const number = (name) => Number(element.getAttribute(name));
+    switch (element.tagName) {
+        case 'polygon':
+            return element.getAttribute('points').trim().split(/\s+/).map((pair) => pair.split(',').map(Number));
+        case 'circle':
+            return [[number('cx') - number('r'), number('cy')], [number('cx') + number('r'), number('cy')],
+                    [number('cx'), number('cy') - number('r')], [number('cx'), number('cy') + number('r')]];
+        case 'rect':
+            return [[number('x'), number('y')], [number('x') + number('width'), number('y')],
+                    [number('x'), number('y') + number('height')], [number('x') + number('width'), number('y') + number('height')]];
+        default:
+            return null;
+    }
+}
+
+function shapesIn(element) {
+    return outline(element) ? [element] : element.children.flatMap(shapesIn);
+}
+
+// The box an element, or everything inside it, covers in the SVG's own units.
+function drawnBox(element) {
+    const points = shapesIn(element).flatMap((shape) => {
+        const m = absoluteMatrix(shape);
+        return outline(shape).map(([x, y]) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]]);
+    });
+    assert.ok(points.length > 0, `<${element.tagName}> draws nothing`);
+    const xs = points.map((point) => point[0]);
+    const ys = points.map((point) => point[1]);
+    const box = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+    return { ...box, cx: (box.x0 + box.x1) / 2, cy: (box.y0 + box.y1) / 2, w: box.x1 - box.x0, h: box.y1 - box.y0 };
+}
+
 // What a seven-segment display lights for each hex digit, in the lower-case
 // b and d form the monitor uses.
 const HEX_GLYPHS = {
@@ -254,6 +333,76 @@ test('a display that has not changed is not redrawn', () => {
     renderer.showHex(0x02A6, 0x3C);
     assert.equal(writes(), afterFirst + 1);
     assert.equal(litSegments(renderer, 3), HEX_GLYPHS[0x6]);
+});
+
+test('every lit segment is drawn over its own package, on top of its unlit twin', () => {
+    const { renderer } = makeRenderer();
+    const packages = renderer.digits.map(drawnBox);
+
+    // The packages stand side by side without overlapping, so "inside its own"
+    // below also means "outside every other".
+    for (let i = 1; i < 6; i++) {
+        assert.ok(packages[i].x0 >= packages[i - 1].x1, `package ${i} overlaps package ${i - 1}`);
+    }
+
+    renderer.digits.forEach((digit, i) => {
+        // Everything the package itself draws that could be an unlit window.
+        const windows = shapesIn(digit)
+            .filter((shape) => shape.tagName === 'polygon' || shape.tagName === 'circle')
+            .map(drawnBox);
+
+        for (const name of SEGMENT_NAMES) {
+            for (const shape of shapesIn(digit.segments[name])) {
+                const lit = drawnBox(shape);
+                const where = `digit ${i}, segment ${name}`;
+                assert.ok(lit.x0 >= packages[i].x0 && lit.x1 <= packages[i].x1 &&
+                          lit.y0 >= packages[i].y0 && lit.y1 <= packages[i].y1,
+                    `${where}: drawn at x ${lit.x0.toFixed(1)}-${lit.x1.toFixed(1)}, ` +
+                    `outside its package at x ${packages[i].x0.toFixed(1)}-${packages[i].x1.toFixed(1)}`);
+                // A lit shape may be drawn a little larger than its window, so
+                // compare centres rather than edges.
+                assert.ok(windows.some((w) => Math.abs(w.cx - lit.cx) < 0.5 && Math.abs(w.cy - lit.cy) < 0.5),
+                    `${where}: no unlit window beneath it at (${lit.cx.toFixed(1)}, ${lit.cy.toFixed(1)})`);
+            }
+        }
+    });
+});
+
+test('the named segments sit where a seven-segment digit has them', () => {
+    const { renderer } = makeRenderer();
+
+    renderer.digits.forEach((digit, i) => {
+        const at = Object.fromEntries(SEGMENT_NAMES.map((name) => [name, drawnBox(digit.segments[name])]));
+        const { a, b, c, d, e, f, g } = at;
+        const say = (what) => `digit ${i}: ${what}`;
+
+        //    aaa
+        //   f   b
+        //    ggg
+        //   e   c
+        //    ddd
+        assert.ok(a.cy < g.cy && g.cy < d.cy, say('a, g and d should run top, middle, bottom'));
+        for (const [name, bar] of [['a', a], ['g', g], ['d', d]]) {
+            assert.ok(bar.w > bar.h, say(`${name} should be a horizontal bar`));
+        }
+        for (const [name, upright] of [['b', b], ['c', c], ['e', e], ['f', f]]) {
+            assert.ok(upright.h > upright.w, say(`${name} should be an upright`));
+        }
+        assert.ok(a.cy < f.cy && f.cy < g.cy && a.cy < b.cy && b.cy < g.cy, say('f and b belong to the upper half'));
+        assert.ok(g.cy < e.cy && e.cy < d.cy && g.cy < c.cy && c.cy < d.cy, say('e and c belong to the lower half'));
+        assert.ok(f.cx < a.cx && a.cx < b.cx, say('f should be left of the digit and b right of it'));
+        assert.ok(e.cx < d.cx && d.cx < c.cx, say('e should be left of the digit and c right of it'));
+
+        // The real parts lean: the head of the digit is to the right of its foot.
+        assert.ok(a.cx > d.cx && b.cx > c.cx && f.cx > e.cx, say('the digit should lean to the right'));
+
+        // A decimal point belongs at the foot of the digit, beside it, never
+        // inside it.
+        for (const point of shapesIn(digit.segments.dp).map(drawnBox)) {
+            assert.ok(point.cy > c.cy && point.cy < d.y1 + point.h, say('a decimal point should sit at the foot of the digit'));
+            assert.ok(point.x1 <= e.x0 || point.x0 >= c.x1, say('a decimal point should sit beside the digit, not inside it'));
+        }
+    });
 });
 
 test('the renderer draws nothing but SVG and never reaches for a network resource', () => {
