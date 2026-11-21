@@ -229,7 +229,7 @@
             font-weight: 700;
         }
 
-        .silk rect { fill: var(--silk); }
+        .silk rect, .silk circle, .silk path { fill: var(--silk); }
 
         .silk .silk-line {
             fill: none;
@@ -304,7 +304,12 @@
         .res-light { fill: rgba(255, 255, 255, 0.3); }
         .res-shade { fill: rgba(0, 0, 0, 0.2); }
         .parts .r-cream-red   { --b1: #9a3a2c; --b2: #dbc1a8; --b3: #dbc1a8; }
+        .parts .r-cream-red3  { --b1: #9a3a2c; --b2: #9a3a2c; --b3: #9a3a2c; }
         .parts .r-cream-brown { --b1: #4a2a16; --b2: #9a3a2c; --b3: #4a2a16; }
+        .parts .r-cream-dark  { --b1: #2d1701; --b2: #2d1701; --b3: #2d1701; }
+        .parts .r-270k        { --b1: #a03a2c; --b2: #6a4a9a; --b3: #dbb662; }
+        .parts .r-tan-red     { --res-body: #b09a82; --b1: #9a3a2c; --b2: #c2553a; --b3: #9a3a2c; }
+        .parts .r-pink        { --res-body: #d08a6a; --b1: #d08a6a; --b2: #d08a6a; --b3: #d08a6a; }
         .parts .r-orange      { --res-body: #c2553a; --b1: #e2c060; --b2: #c2553a; --b3: #e2c060; }
         .parts .glass-diode { fill: #8a3426; }
         .parts .diode-black { fill: #1d1b20; }
@@ -315,6 +320,8 @@
         .bead-light { fill: #4fd1e9; }
         .parts .disc-orange { fill: #a3602f; }
         .parts .disc-brown  { fill: #34261e; }
+        .parts .disc-brown.light { fill: #4a3426; }
+        .parts .film        { fill: #59b0cb; }
         .parts .elco-sleeve { fill: #121717; }
         .parts .elco-top    { fill: url(#g-captop); }
         .parts .elco-score  { fill: none; stroke: rgba(0, 0, 0, 0.16); stroke-width: 0.3; }
@@ -325,6 +332,12 @@
         .parts .tab       { fill: url(#g-tin); }
         .parts .tab-rivet { fill: #e9e9ee; stroke: #7d848f; stroke-width: 0.3; }
         .parts .testpoint { fill: #c1bdba; }
+        .parts .wire-link { fill: none; stroke: #bbbcb8; stroke-width: 0.7; stroke-linecap: round; }
+
+        /* Pin headers: a black strip with a row of tinned posts, drawn as
+           one path of round-capped dots. */
+        .parts .header     { fill: #191c21; }
+        .parts .header-pin { fill: none; stroke: #d6d2d9; stroke-width: 0.95; stroke-linecap: round; }
         .parts .silk-on-part { fill: none; stroke: var(--silk); stroke-width: 0.4; }
 
         /* The regulator: aluminium plate, blue-black finned heatsink, and
@@ -865,6 +878,21 @@
                 <text x="16.8" y="86.6" font-size="2.8" textLength="4.8" lengthAdjust="spacingAndGlyphs">TP1</text><text x="16.5" y="89.2" font-size="2.65" textLength="3.6" lengthAdjust="spacingAndGlyphs">C1</text>
                 <text x="79.8" y="83" font-size="2.5" textLength="5.1" lengthAdjust="spacingAndGlyphs">TP2</text><text x="79.5" y="87.5" font-size="2.4" textLength="3.6" lengthAdjust="spacingAndGlyphs">C2</text>
                 <text x="73.8" y="88.3" font-size="2.6">+</text>
+
+                <!-- Centre: the two headers and their legends, footprints, pin marks. -->
+                <rect class="silk-line" x="110.61" y="5.35" width="26.4" height="6.65" stroke-width="0.36"/><path d="M111.6,9.6L113.4,10.5L111.6,11.4Z"/>
+                <rect class="silk-line" x="140.43" y="6.2" width="8.79" height="3.7" stroke-width="0.36"/><path d="M147.2,10.1H149.2L148.2,11.5Z"/>
+                <text x="139.5" y="1.75" font-size="2.3" textLength="10.8" lengthAdjust="spacingAndGlyphs">RECORD</text>
+                <text x="140.07" y="7.2" font-size="4.05" textLength="1.71" lengthAdjust="spacingAndGlyphs">IN</text><text x="142.14" y="5.9" font-size="4.05" textLength="3.3" lengthAdjust="spacingAndGlyphs">OUT</text><text x="145.92" y="7.1" font-size="4.2" textLength="3.69" lengthAdjust="spacingAndGlyphs">GND</text>
+                <rect class="silk-line" x="106.5" y="16" width="10.2" height="5.6" rx="0.6" stroke-width="0.36"/>
+                <rect class="silk-line" x="143.55" y="15" width="6.6" height="3.2" stroke-width="0.36"/>
+                <rect class="" x="157.2" y="15.2" width="0.6" height="0.6"/><rect class="" x="165.3" y="15.2" width="0.6" height="0.6"/><rect class="" x="172.8" y="15.2" width="0.6" height="0.6"/><rect class="" x="180.3" y="15.2" width="0.6" height="0.6"/>
+                <rect class="" x="108.65" y="24.9" width="1.1" height="0.8"/><rect class="" x="134" y="25" width="1.1" height="0.8"/><rect class="" x="139.85" y="24.9" width="1.1" height="0.8"/>
+                <rect class="" x="123.6" y="43.7" width="1.95" height="1.6"/>
+                <rect class="silk-line" x="141.9" y="63.9" width="3" height="10" stroke-width="0.36"/>
+                <rect class="silk-line" x="138.81" y="71.9" width="3" height="9.4" stroke-width="0.36"/>
+                <rect class="silk-line" x="135" y="71.9" width="2.4" height="1.5" stroke-width="0.36"/>
+                <text x="148.8" y="59.8" font-size="1.7" textLength="3" lengthAdjust="spacingAndGlyphs">20</text><circle class="" cx="144.9" cy="83.9" r="0.5"/>
             </g>
 
             <!-- The parts, each where unit B has it. One soft shadow for the whole
@@ -1003,14 +1031,122 @@
                     <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(93.03 87.2) rotate(90)">SN74LS30N</text>
                 </g>
 
+                <!-- Two resistors by the 10-pin header. -->
+                <use href="#res" class="r-tan-red" transform="translate(106.27 8.5)"/>
+                <use href="#res" class="r-cream-brown" transform="translate(109 8.5)"/>
+                <!-- The 10-pin header along the top edge: the expansion connector. -->
+                <rect class="header" x="111.45" y="6.4" width="24.57" height="3" rx="0.3"/>
+                <path class="header-pin" d="M112.65,7.9h0M115.17,7.9h0M117.69,7.9h0M120.21,7.9h0M122.73,7.9h0M125.25,7.9h0M127.77,7.9h0M130.29,7.9h0M132.81,7.9h0M135.33,7.9h0"/>
+                <!-- A dark ceramic disc lying flat by the header. -->
+                <ellipse class="disc-brown" cx="110.85" cy="17.05" rx="4.95" ry="2.75"/>
+                <!-- RECORD: the 3-pin header for the cassette recorder, IN, OUT and GND, with the resistors of that interface around it. -->
+                <rect class="header" x="141.3" y="7" width="7.5" height="2.4" rx="0.3"/>
+                <path class="header-pin" d="M142.5,8.2h0M145.05,8.2h0M147.6,8.2h0"/>
+                <use href="#res" class="r-cream-dark" transform="translate(144.75 12.3) rotate(90) scale(1 0.96)"/>
+                <use href="#res" class="r-tan-red" transform="translate(133.71 14.4) rotate(90) scale(1 0.75)"/>
+                <use href="#res" class="r-tan-red" transform="translate(133.4 17) rotate(90) scale(1 0.72)"/>
+                <!-- The row of resistors along the top edge, either side of the mounting hole. The seven on the right are banded red, violet, yellow. -->
+                <use href="#res" class="r-cream-dark" transform="translate(152.46 7.45) scale(1 1.15)"/>
+                <use href="#res" class="r-cream-dark" transform="translate(155.76 7.65)"/>
+                <use href="#res" class="r-cream-dark" transform="translate(171.8 7.75)"/>
+                <use href="#res" class="r-cream-dark" transform="translate(174.84 7.8) scale(1 1.14)"/>
+                <use href="#res" class="r-cream-red" transform="translate(179.3 7.8) scale(1 1.19)"/>
+                <use href="#res" class="r-cream-dark" transform="translate(182.5 7.55) scale(1 1.21)"/>
+                <use href="#res" class="r-270k" transform="translate(186.76 7.35) scale(1 1.26)"/>
+                <use href="#res" class="r-270k" transform="translate(189.16 7.35) scale(1 1.26)"/>
+                <use href="#res" class="r-270k" transform="translate(191.56 7.35) scale(1 1.26)"/>
+                <use href="#res" class="r-270k" transform="translate(194.27 7.35) scale(1 1.26)"/>
+                <use href="#res" class="r-270k" transform="translate(196.88 7.35) scale(1 1.26)"/>
+                <use href="#res" class="r-270k" transform="translate(199.27 7.35) scale(1 1.26)"/>
+                <use href="#res" class="r-270k" transform="translate(201.77 7.35) scale(1 1.26)"/>
+                <!-- IC11-14: the four 2114 static RAMs (which is which is not known). The first two are socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="103.73" y="25.55" width="10.97" height="22.2" rx="0.25"/>
+                    <path class="pin l" d="M104.63,25.94V47.36"/>
+                    <path class="pin r" d="M113.8,25.94V47.36"/>
+                    <rect class="ic-body" x="105.63" y="25.9" width="7.17" height="21.5" rx="0.3"/>
+                    <path class="ic-notch" d="M108.42,25.9a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(108.67 36.65) rotate(90)">MM2114N-3</text>
+                </g>
+                <!-- Second RAM, socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="135.74" y="25.45" width="10.13" height="22.2" rx="0.25"/>
+                    <path class="pin l" d="M136.64,25.84V47.26"/>
+                    <path class="pin r" d="M144.97,25.84V47.26"/>
+                    <rect class="ic-body" x="137.64" y="25.8" width="6.33" height="21.5" rx="0.3"/>
+                    <path class="ic-notch" d="M140,25.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(140.27 36.55) rotate(90)">MM2114N-3</text>
+                </g>
+                <!-- Third RAM, soldered in, a millimetre lower than its neighbour on unit B. -->
+                <g class="ic">
+                    <path class="pin l" d="M149.12,26.84V48.26"/>
+                    <path class="pin r" d="M157.33,26.84V48.26"/>
+                    <rect class="ic-body" x="149.97" y="26.8" width="6.51" height="21.5" rx="0.3"/>
+                    <path class="ic-notch" d="M152.42,26.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(152.69 37.55) rotate(90)">MM2114N-3</text>
+                </g>
+                <!-- Fourth RAM, soldered in, another millimetre lower. -->
+                <g class="ic">
+                    <path class="pin l" d="M161.78,27.84V49.26"/>
+                    <path class="pin r" d="M169.66,27.84V49.26"/>
+                    <rect class="ic-body" x="162.63" y="27.8" width="6.18" height="21.5" rx="0.3"/>
+                    <path class="ic-notch" d="M164.92,27.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(165.18 38.55) rotate(90)">MM2114N-3</text>
+                </g>
+                <!-- A socketed 14-pin part. Its marking is not legible; taken as IC21, the 74LS38 of the cassette interface, which is a guess. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="175.22" y="26.95" width="9.8" height="19.3" rx="0.25"/>
+                    <path class="pin l" d="M176.12,28.43V44.77"/>
+                    <path class="pin r" d="M184.12,28.43V44.77"/>
+                    <rect class="ic-body" x="177.12" y="27.3" width="6" height="18.6" rx="0.3"/>
+                    <path class="ic-notch" d="M179.32,27.3a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.45" text-anchor="middle" transform="translate(179.6 36.6) rotate(90)">74LS38</text>
+                </g>
+                <!-- IC15: the 8255, 40 pins, soldered in. Unit B carries a National INS8255N. -->
+                <g class="ic">
+                    <path class="pin l" d="M117.44,46.67V96.03"/>
+                    <path class="pin r" d="M131.83,46.67V96.03"/>
+                    <rect class="ic-body" x="118.29" y="45.1" width="12.69" height="52.5" rx="0.3"/>
+                    <path class="ic-notch" d="M123.83,45.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.9" text-anchor="middle" transform="translate(125.09 71.35) rotate(90)">INS8255N</text>
+                    <text class="ic-mark" font-size="1.9" text-anchor="middle" transform="translate(122.81 71.35) rotate(90)">P8255</text>
+                </g>
+                <!-- Cassette interface parts between the 8255 and the keys: a film capacitor, an empty footprint, a wire link. -->
+                <rect class="film" x="134.64" y="73.6" width="2.49" height="7.2" rx="0.5"/>
+                <circle class="pad" cx="140.3" cy="73.6" r="0.6"/><circle class="pad" cx="140.3" cy="76.6" r="0.6"/><circle class="pad" cx="140.3" cy="79.6" r="0.6"/>
+                <path class="wire-link" d="M143.4,65V73"/><circle class="pad" cx="143.4" cy="65" r="0.6"/><circle class="pad" cx="143.4" cy="73" r="0.6"/>
+                <!-- IC20: the 74LS132, socketed. Identified by the number printed above it. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="145.55" y="60.45" width="9.47" height="18.8" rx="0.25"/>
+                    <path class="pin l" d="M146.45,61.68V78.02"/>
+                    <path class="pin r" d="M154.12,61.68V78.02"/>
+                    <rect class="ic-body" x="147.45" y="60.8" width="5.67" height="18.1" rx="0.3"/>
+                    <path class="ic-notch" d="M149.48,60.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.45" text-anchor="middle" transform="translate(149.76 69.85) rotate(90)">74LS132</text>
+                </g>
+                <!-- A brown ceramic disc lying flat between IC20 and IC19. -->
+                <ellipse class="disc-brown light" cx="152.78" cy="81.85" rx="5.3" ry="2.05"/>
+                <!-- IC19: the LM358 that shapes the signal from the recorder, 8 pins, soldered in. -->
+                <g class="ic">
+                    <path class="pin l" d="M146.45,84.74V93.46"/>
+                    <path class="pin r" d="M153.97,84.74V93.46"/>
+                    <rect class="ic-body" x="147.3" y="84.4" width="5.82" height="9.4" rx="0.3"/>
+                    <path class="ic-notch" d="M149.41,84.4a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.4" text-anchor="middle" transform="translate(149.71 89.1) rotate(90)">LM358</text>
+                </g>
+                <!-- Three more resistors of the cassette interface. -->
+                <use href="#res" class="r-tan-red" transform="translate(135.7 89.9) scale(1 1.08)"/>
+                <use href="#res" class="r-cream-red3" transform="translate(139.75 89.7)"/>
+                <use href="#res" class="r-pink" transform="translate(142.8 89.7)"/>
+
             </g>
         </svg>
 
-        <!-- Phase LEDs. The board has these four and no others: the PWR,
-             RUN, IRQ, NMI and RW lamps drawn here before were invented.
-             They sit where the old bank was for now and move to their
-             measured place when the parts around them are redrawn. -->
-        <div class="part led-bank" style="left:56.5%; top:4.6%;">
+        <!-- Phase LEDs, D4 to D7, in a row under the resistors at the top
+             edge, as measured on unit B. The board has these four and no
+             others: the PWR, RUN, IRQ, NMI and RW lamps drawn here once
+             were invented. -->
+        <div class="part led-bank" style="left:49.94%; top:14.1%;">
             <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Not driven by the emulator."></div><b>D4</b></div>
             <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Not driven by the emulator."></div><b>D5</b></div>
             <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Not driven by the emulator."></div><b>D6</b></div>

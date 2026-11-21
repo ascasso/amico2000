@@ -145,16 +145,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
-- The left third of the board now carries the parts a real one does, each
-  where a photograph of a surviving board has it: the 6502 standing upright at
-  the left edge beside the 40-pad bus field, the four glue-logic chips along
-  the top, the crystal can, the monitor and cassette PROMs with the orange and
-  yellow stickers of that board, the two decode PROMs, and the 5 V regulator
-  on its black finned heatsink over an aluminium plate, with the power tabs
-  and the two electrolytic capacitors. They replace an invented arrangement
-  that included a transformer the board never had, a 6502 lying on its side,
-  a 2716 EPROM and gold pins. The rest of the board is bare until the next
-  two changes fill it.
+- The left two thirds of the board now carry the parts a real one does, each
+  where a photograph of a surviving board has it. On the left: the 6502
+  standing upright at the edge beside the 40-pad bus field, the four
+  glue-logic chips along the top, the crystal can, the monitor and cassette
+  PROMs with the orange and yellow stickers of that board, the two decode
+  PROMs, and the 5 V regulator on its black finned heatsink over an aluminium
+  plate, with the power tabs and the two electrolytic capacitors. In the
+  middle: the four 2114 RAMs, the 8255 standing upright, the 10-pin expansion
+  header, the 3-pin RECORD header with its IN, OUT and GND legends, the
+  cassette interface chips, and the rows of resistors along the top edge. The
+  four LEDs are now in their real place, in a row under those resistors. All
+  of it replaces an invented arrangement that included a transformer the
+  board never had, a 6502 lying on its side, a 2716 EPROM and gold pins. The
+  strip left of the displays is bare until the next change fills it.
 - The board itself is redrawn from a photograph of a real one. It is the deep,
   slightly blue green of the real solder mask instead of a bright grass green,
   and it has the real proportions, 300 x 100 mm, where it was a little too
