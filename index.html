@@ -41,21 +41,12 @@
             --silk:             #b3b02a;
             --silk-font:        "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
 
-            /* Tinned / gold plating */
-            --gold:             #d3a044;
-            --gold-dark:        #9a6f2b;
-
             /* Silkscreen outline around each key switch */
             --silk-line:        rgba(179, 176, 42, 0.92);
 
-            /* Key switch pitch: about 13 mm on a board about 305 mm wide.
-               The hex block and the function block share it. */
+            /* Key switch pitch: about 13 mm on the 300 mm board. The hex
+               block and the function block share it. */
             --key-pitch:        4.36cqw;
-
-            /* Packages */
-            --dip:              #17171b;
-            --dip-top:          #2a2a30;
-            --dip-ink:          #8d9494;
 
             /* Bench */
             --bench:            #b09070;
@@ -144,7 +135,9 @@
                 inset 0.1cqw 0.14cqw 0.2cqw rgba(190, 255, 225, 0.16);
         }
 
-        /* Every fixed part is placed in board coordinates (% of the slab) */
+        /* What a person operates or watches change is HTML laid over the
+           drawing, placed in percent of the board: the keys, the displays
+           and the LEDs. */
         .part { position: absolute; }
 
         /* --- Board artwork in millimetres -------------------------------
@@ -199,6 +192,17 @@
         /* Copper poured as a solid area lifts the mask only slightly. */
         .copper .pour { fill: rgba(60, 170, 130, 0.10); }
 
+        /* Bare, tinned pads: the 40 of the bus field, drawn like the vias
+           as one path twice, and the square pad at the processor's pin 1. */
+        .copper .pad-ring,
+        .copper .pad-hole {
+            fill: none;
+            stroke-linecap: round;
+        }
+        .copper .pad-ring { stroke: #9ab7bf; stroke-width: 2; }
+        .copper .pad-hole { stroke: #06281c; stroke-width: 0.8; }
+        .copper .pad-square { fill: #d8d2c0; }
+
         /* --- Mounting holes ---------------------------------------------
            Six, about 3 mm, unplated: a plain drilled hole with the bench
            showing dark through it and a faint lighter ring where the
@@ -234,195 +238,107 @@
             stroke-linecap: round;
         }
 
-        /* --- Edge connector, left edge -------------------------------- */
+        /* --- Parts --------------------------------------------------------
+           Drawn in the millimetre SVG with the copper and the legends,
+           each part at the place measured for it on unit B and named from
+           the manual's parts list. Light is from the upper left
+           throughout: the layer throws one short shadow down and to the
+           right, and round things carry their highlight on the upper
+           left. Colours are samples from unit B.
+           --------------------------------------------------------------- */
 
-        .edge-fingers {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.35cqw;
-            padding: 0.4cqw;
+        /* DIP packages. Black plastic, mostly matt; a few on unit B mirror
+           the sky and read as slate. */
+        .parts .ic-body { fill: url(#g-ic); }
+        .parts .ic.sheen .ic-body { fill: url(#g-ic-sheen); }
+        .parts .ic.prom .ic-body { fill: url(#g-prom); }
+        .parts .ic-notch { fill: rgba(0, 0, 0, 0.5); }
+        .parts .mould { fill: none; stroke: rgba(0, 0, 0, 0.42); stroke-width: 0.35; }
+
+        /* Pins: one dashed stroke down each side of a package, a dash per
+           pin on the 0.1 inch pitch. A soldered-in part shows its tinned
+           pin tops, the row away from the light duller. A socketed part
+           shows its contacts down in the socket's pale moulding. */
+        .parts .pin {
+            fill: none;
+            stroke: #e6dfe8;
+            stroke-width: 1.45;
+            stroke-dasharray: 1.1 1.44;
         }
+        .parts .pin.r { stroke: #aaa3ae; }
+        .parts .socket { fill: #dcd7db; }
+        .parts .socketed .pin { stroke: #8a7f7c; stroke-width: 1.1; }
 
-        .edge-fingers i {
-            display: block;
-            height: 0.75cqw;
-            border-radius: 0.1cqw;
-            background: linear-gradient(90deg, var(--gold) 0%, #f0c979 45%, var(--gold-dark) 100%);
+        /* Markings read down the package, as stamped. */
+        .parts .ic-mark {
+            fill: #89828e;
+            font-family: var(--silk-font);
+            font-weight: 700;
         }
+        .parts .ic-mark.bright { fill: #c8c4cc; }
 
-        /* --- Expansion header ----------------------------------------- */
+        /* Labels on the PROMs of unit B, typed: IC9, IC10 and IC7 on
+           coloured stickers, IC6 under worn paper. They are that board's
+           own, not the factory's. */
+        .parts .sticker.orange { fill: #fb5f4a; }
+        .parts .sticker.yellow { fill: #f4df6a; }
+        .parts .sticker.green  { fill: #82be74; }
+        .parts .sticker-text { font-family: "Courier New", Courier, monospace; font-weight: 700; }
+        .parts .sticker-text.orange { fill: #c7311b; }
+        .parts .sticker-text.yellow { fill: #9f8b18; }
+        .parts .sticker-text.green  { fill: #326f25; }
+        .parts .paper-label { fill: #857b7d; }
 
-        .header-pads {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.3cqw;
-            padding: 0.35cqw;
-            background: rgba(0,0,0,0.12);
-            border-radius: 0.2cqw;
-        }
+        /* Axial parts: a wire, a pad at each end and a body. The resistor
+           is drawn once in <defs> and reused; a rule reaches its shapes
+           only by their own class names, since <defs> is outside .parts,
+           and its body and bands take their colours from custom
+           properties set by the class on each <use>. */
+        .parts .lead, .res-lead { fill: none; stroke: #cfcbd2; stroke-width: 0.35; stroke-linecap: round; }
+        .parts .lead.thick { stroke-width: 0.9; }
+        .parts .pad, .res-pad { fill: #b9c9cc; }
+        .res-body  { fill: var(--res-body, #dbc1a8); }
+        .res-band.b1 { fill: var(--b1, #4a2a16); }
+        .res-band.b2 { fill: var(--b2, #4a2a16); }
+        .res-band.b3 { fill: var(--b3, #4a2a16); }
+        .res-light { fill: rgba(255, 255, 255, 0.3); }
+        .res-shade { fill: rgba(0, 0, 0, 0.2); }
+        .parts .r-cream-red   { --b1: #9a3a2c; --b2: #dbc1a8; --b3: #dbc1a8; }
+        .parts .r-cream-brown { --b1: #4a2a16; --b2: #9a3a2c; --b3: #4a2a16; }
+        .parts .r-orange      { --res-body: #c2553a; --b1: #e2c060; --b2: #c2553a; --b3: #e2c060; }
+        .parts .glass-diode { fill: #8a3426; }
+        .parts .diode-black { fill: #1d1b20; }
+        .parts .diode-band  { fill: #8f8f96; }
 
-        .header-pads i {
-            display: block;
-            width: 0.7cqw;
-            height: 0.7cqw;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 30%, #f4d489, var(--gold) 55%, var(--gold-dark));
-        }
+        /* Capacitors */
+        .bead       { fill: #1682a0; }
+        .bead-light { fill: #4fd1e9; }
+        .parts .disc-orange { fill: #a3602f; }
+        .parts .disc-brown  { fill: #34261e; }
+        .parts .elco-sleeve { fill: #121717; }
+        .parts .elco-top    { fill: url(#g-captop); }
+        .parts .elco-score  { fill: none; stroke: rgba(0, 0, 0, 0.16); stroke-width: 0.3; }
 
-        /* --- Transformer ---------------------------------------------- */
+        /* Metal: the crystal can, the power tabs, the test point */
+        .parts .can       { fill: url(#g-metal); stroke: #8d8992; stroke-width: 0.25; }
+        .parts .can-face  { fill: url(#g-metal-face); }
+        .parts .tab       { fill: url(#g-tin); }
+        .parts .tab-rivet { fill: #e9e9ee; stroke: #7d848f; stroke-width: 0.3; }
+        .parts .testpoint { fill: #c1bdba; }
+        .parts .silk-on-part { fill: none; stroke: var(--silk); stroke-width: 0.4; }
 
-        .transformer {
-            border-radius: 0.25cqw;
-            background:
-                linear-gradient(150deg, #4a4d52 0%, #2b2d31 45%, #17181b 100%);
-            box-shadow:
-                inset 0 0 0 0.3cqw #9ca1a6,
-                inset 0 0.15cqw 0 rgba(255,255,255,0.18),
-                0 0.6cqw 1.1cqw rgba(0,0,0,0.45);
-        }
-
-        .transformer::after {
-            content: "TRAFO";
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.9cqw;
-            letter-spacing: 0.14em;
-            color: #b6bcc2;
-        }
-
-        /* --- Electrolytic capacitors ---------------------------------- */
-
-        .cap {
-            border-radius: 50%;
-            background:
-                radial-gradient(circle at 38% 30%, #3b444e 0%, #1b222a 62%, #080c11 100%);
-            box-shadow: 0 0.4cqw 0.8cqw rgba(0,0,0,0.45);
-        }
-
-        .cap::after {
-            content: "";
-            position: absolute;
-            inset: 24%;
-            border-radius: 50%;
-            background:
-                linear-gradient(90deg, transparent 46%, rgba(255,255,255,0.22) 46% 54%, transparent 54%),
-                linear-gradient(0deg,  transparent 46%, rgba(255,255,255,0.22) 46% 54%, transparent 54%);
-        }
-
-        /* --- Regulator + heatsink ------------------------------------- */
-
-        .heatsink {
-            border-radius: 0.2cqw;
-            background:
-                repeating-linear-gradient(90deg, #6d7075 0 0.3cqw, #43464a 0.3cqw 0.6cqw);
-            box-shadow: 0 0.4cqw 0.8cqw rgba(0,0,0,0.4);
-        }
-
-        /* --- Axial resistors ------------------------------------------ */
-
-        .res {
-            height: 0.85cqw;
-            border-radius: 0.42cqw;
-            background:
-                linear-gradient(90deg, transparent 20%, #6b3f22 20% 27%, transparent 27%),
-                linear-gradient(90deg, transparent 34%, #1b1b1b 34% 41%, transparent 41%),
-                linear-gradient(90deg, transparent 48%, #a8362a 48% 55%, transparent 55%),
-                linear-gradient(180deg, #d8c08c 0%, #b99a63 55%, #7d6539 100%);
-            box-shadow: 0 0.15cqw 0.3cqw rgba(0,0,0,0.35);
-        }
-
-        .res::before, .res::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            width: 0.7cqw;
-            height: 0.16cqw;
-            transform: translateY(-50%);
-            background: #c9c9c9;
-        }
-        .res::before { left: -0.65cqw; }
-        .res::after  { right: -0.65cqw; }
-
-        /* --- Ceramic disc capacitors ---------------------------------- */
-
-        .disc {
-            width: 1.1cqw;
-            height: 1.1cqw;
-            border-radius: 45% 45% 40% 40%;
-            background: radial-gradient(circle at 38% 30%, #cfd8c0 0%, #8d9a72 55%, #5c6647 100%);
-            box-shadow: 0 0.15cqw 0.3cqw rgba(0,0,0,0.35);
-        }
-
-        /* --- Crystal can ---------------------------------------------- */
-
-        .xtal {
-            border-radius: 0.5cqw;
-            background: linear-gradient(160deg, #d5d8dc 0%, #9ba0a6 45%, #666b71 100%);
-            box-shadow: inset 0 0 0 0.12cqw #55595e, 0 0.3cqw 0.6cqw rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75cqw;
-            color: #3a3e42;
-            letter-spacing: 0.05em;
-        }
-
-        /* --- DIP packages --------------------------------------------- */
-
-        .dip {
-            border-radius: 0.15cqw;
-            background: linear-gradient(180deg, var(--dip-top) 0%, var(--dip) 22%, #0c0c0f 100%);
-            box-shadow:
-                0 0.35cqw 0.7cqw rgba(0,0,0,0.45),
-                inset 0 0.1cqw 0 rgba(255,255,255,0.08);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* notch at pin 1 */
-        .dip::before {
-            content: "";
-            position: absolute;
-            left: 0.35cqw;
-            top: 50%;
-            width: 0.5cqw;
-            height: 0.9cqw;
-            transform: translateY(-50%);
-            border-radius: 0 0.45cqw 0.45cqw 0;
-            background: #0a0a0c;
-        }
-
-        .dip span {
-            font-size: 0.85cqw;
-            letter-spacing: 0.08em;
-            color: var(--dip-ink);
-            white-space: nowrap;
-        }
-
-        .dip.wide span { font-size: 1.05cqw; }
-
-        /* gold pins down both long sides */
-        .dip .pins {
-            position: absolute;
-            left: 0.2cqw;
-            right: 0.2cqw;
-            height: 0.35cqw;
-            background: repeating-linear-gradient(90deg,
-                var(--gold) 0 0.35cqw, transparent 0.35cqw 0.95cqw);
-        }
-        .dip .pins.top    { top: -0.3cqw; }
-        .dip .pins.bottom { bottom: -0.3cqw; }
-
-        /* IC15 is a 40-pin 8255: twenty pins per side, independent of board scale.
-           See the original manual's 8255A pinout (PDF page 76). */
-        .dip.io-8255 .pins {
-            background: linear-gradient(90deg, var(--gold) 0 40%, transparent 40% 100%);
-            background-size: 5% 100%;
-            background-repeat: repeat-x;
-        }
+        /* The regulator: aluminium plate, blue-black finned heatsink, and
+           the TO-220 bolted through both. The cut-out in the plate shows
+           the board, where the three leads are soldered. */
+        .parts .plate         { fill: url(#g-plate); }
+        .parts .plate-stain   { fill: url(#g-stain); }
+        .parts .plate-cutout  { fill: #0a3526; }
+        .parts .heatsink      { fill: #2b3147; stroke: #454c66; stroke-width: 0.2; }
+        .parts .heatsink-hole { fill: #b8b5c0; }
+        .parts .reg-tab   { fill: #bfbac3; }
+        .parts .reg-nut   { fill: #b0a4a8; stroke: #6f676c; stroke-width: 0.25; }
+        .parts .reg-screw { fill: #d9d5dc; stroke: #6f676c; stroke-width: 0.25; }
+        .parts .reg-body  { fill: #25202c; }
 
         /* --- Phase LEDs D4-D7 ------------------------------------------
            Four 5 mm red diffused LEDs in a row, 0.3 inch apart, each with
@@ -860,6 +776,35 @@
         <!-- Board artwork in millimetres (see .board-art). -->
         <svg class="board-art" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
             <defs>
+                <!-- Part finishes. Each gradient runs across the part it fills. -->
+                <linearGradient id="g-ic"><stop offset="0" stop-color="#37323d"/><stop offset="0.5" stop-color="#2b2730"/><stop offset="1" stop-color="#1c1920"/></linearGradient>
+                <linearGradient id="g-ic-sheen"><stop offset="0" stop-color="#66657e"/><stop offset="0.5" stop-color="#56556b"/><stop offset="1" stop-color="#3d3c4d"/></linearGradient>
+                <linearGradient id="g-prom"><stop offset="0" stop-color="#504e60"/><stop offset="0.5" stop-color="#454353"/><stop offset="1" stop-color="#2f2d3a"/></linearGradient>
+                <linearGradient id="g-metal" x2="1" y2="1"><stop offset="0" stop-color="#f3f0f6"/><stop offset="0.5" stop-color="#d6d1d9"/><stop offset="1" stop-color="#a7a2ac"/></linearGradient>
+                <linearGradient id="g-metal-face" x2="1" y2="1"><stop offset="0" stop-color="#e9e5ec"/><stop offset="1" stop-color="#cbc6cf"/></linearGradient>
+                <linearGradient id="g-plate" x2="1" y2="1"><stop offset="0" stop-color="#cbc9d2"/><stop offset="0.5" stop-color="#b5b2bd"/><stop offset="1" stop-color="#a3a0ab"/></linearGradient>
+                <linearGradient id="g-stain"><stop offset="0" stop-color="#7e583c" stop-opacity="0.42"/><stop offset="1" stop-color="#7e583c" stop-opacity="0"/></linearGradient>
+                <linearGradient id="g-tin" x2="1" y2="1"><stop offset="0" stop-color="#bcc3cd"/><stop offset="1" stop-color="#959eab"/></linearGradient>
+                <radialGradient id="g-captop" cx="0.38" cy="0.34" r="0.75"><stop offset="0" stop-color="#fff"/><stop offset="0.6" stop-color="#e4e4ee"/><stop offset="1" stop-color="#bcbcc8"/></radialGradient>
+                <filter id="part-shadow" x="-2%" y="-6%" width="104%" height="112%">
+                    <feDropShadow dx="0.3" dy="0.45" stdDeviation="0.3" flood-color="#000" flood-opacity="0.5"/>
+                </filter>
+
+                <!-- An axial resistor, upright, drawn about its middle: body 1.95 x 7.2 mm,
+                     pads 5 mm either side. Reused with a transform and a colour class. -->
+                <g id="res">
+                    <path class="res-lead" d="M0,-5V5"/>
+                    <circle class="res-pad" cy="-5" r="0.7"/><circle class="res-pad" cy="5" r="0.7"/>
+                    <rect class="res-body" x="-0.98" y="-3.6" width="1.96" height="7.2" rx="0.95"/>
+                    <rect class="res-band b1" x="-0.98" y="-2.3" width="1.96" height="0.75"/>
+                    <rect class="res-band b2" x="-0.98" y="-1.05" width="1.96" height="0.75"/>
+                    <rect class="res-band b3" x="-0.98" y="0.2" width="1.96" height="0.75"/>
+                    <rect class="res-light" x="-0.75" y="-3.3" width="0.45" height="6.6" rx="0.22"/>
+                    <rect class="res-shade" x="0.45" y="-3.4" width="0.53" height="6.8" rx="0.26"/>
+                </g>
+                <!-- A ceramic bead capacitor seen end on. -->
+                <g id="bead"><circle class="bead" r="1.6"/><circle class="bead-light" cx="-0.5" cy="-0.55" r="0.5"/></g>
+
                 <path id="board-vias" d="M47.7,19.9h0M51.9,22.3h0M54,23.6h0M53.7,24.9h0M50.1,27h0M55.8,29.5h0M52.8,22.3h0M53.1,23.5h0M51.9,25.7h0M129.3,21.3h0M130.8,22.6h0M147.6,20.2h0M165,21.8h0M167.7,22.4h0M135.3,10.7h0M134.7,12.5h0M132.6,44.6h0M132.9,46.4h0M111.6,52.6h0M110.1,54.5h0M113.4,55.6h0M111.6,59.6h0M109.5,71h0M113.1,71h0M102.9,78.3h0M110.7,78.2h0M113.4,80.4h0M75,67.6h0M94.65,63.4h0M91.65,69.8h0M94.65,69.8h0M93.3,73.6h0M79.2,78h0M80.7,80.3h0M186.6,51h0M189.6,52.3h0M182.7,53.4h0M185.1,54.8h0M194.7,53.5h0M194.7,55.7h0M191.7,57.8h0M193.2,59.3h0M196.5,60.2h0M156.9,58.2h0M158.4,60.6h0M144,60.6h0M160.2,63.2h0M162.6,61.2h0M165,61.3h0M165,63.6h0M165,66.2h0M165,68.5h0M190.2,61.1h0M182.7,62.4h0M186.3,63.5h0M188.7,63.5h0M177.6,65.9h0M160.2,78.5h0M166.8,81.8h0M185.1,16.6h0M183.6,19.3h0M194.4,20.8h0M191.7,23.3h0M189,25.9h0M186.6,28.3h0M196.5,30.3h0M192.6,31.7h0M189.6,33h0M191.1,38.4h0M192,42.1h0M189,44.7h0M201.6,38.6h0M203.7,38.9h0M209.1,38.6h0M209.7,43h0M210,44.6h0M210,46h0M211.8,63.7h0M203.4,94.7h0"/>
             </defs>
 
@@ -871,6 +816,12 @@
                 <path class="trace rail" d="M43.5,1.6H56.7M57.9,20.9H105M115.2,26.6L118.8,24.4H184.2M157.2,24.4V27.6M169.8,24.4V27.6M183.9,24.4V27.6M73.5,97.6L154.2,97L162.3,89.8H169.8L175.8,95L203.1,94.8M77.7,79V54.5H85.5L87.9,56H100.8L103.2,57.7H115.5M108,62.5H115.8M100.2,82.8H114L115.8,81.5"/>
                 <path class="trace mid" d="M36.9,14.6H49.2M36.9,16.2H49.2M36.9,18.3H54.9M36.9,19.8H47.7M36.9,22.3H51.9M36.9,24.8H53.7M36.9,27.4H50.1M36.9,29.2H55.5M36.9,31.3H41.7M36.9,33.6H41.7M36.9,35H41.7M36.9,37.5H41.7M36.9,39.3H41.7M202.5,2L204.6,3V13.5"/>
                 <path class="trace" d="M19.2,6.6H13.5L3.21,12.2V62.2L5.46,64.4M19.2,7.5H14.55L4.35,12.9V61.5L6.6,63.7M19.2,8.4H15.6L5.79,13.6V60.8L8.04,63M47.1,3.4H55.5M47.1,5.1H55.5M47.1,6.9H55.5M58.5,26.5L64.2,23.6M80.85,25.3L83.7,24M80.85,27.85L83.7,26.55M80.85,30.4L83.7,29.1M80.85,32.95L83.7,31.65M80.85,35.5L83.7,34.2M80.85,38.05L83.7,36.75M80.85,40.6L83.7,39.3M80.85,43.15L83.7,41.85M80.85,45.7L83.7,44.4M80.85,48.25L83.7,46.95M80.85,50.8L83.7,49.5M80.85,53.35L83.7,52.05M103.5,1.9H149.1L152.1,4.3M110.1,4.6H118.2L120.3,2.8H147.6M113.7,10.9H135.6M115.5,17.5L120.9,19.7H147.9M112.8,19L118.2,21.2H150.9M111.3,20.4L116.7,22.6H168.9M114.6,26.3H135M114.6,26.6H116.7L118.5,27.5H135M114.6,28.85H135M114.6,29.2H116.7L118.5,30.1H135M114.6,31.3H135M114.6,31.7H116.7L118.5,32.6H135M114.6,33.8H135M114.6,34.2H116.7L118.5,35.1H135M114.6,36.35H135M114.6,36.7H116.7L118.5,37.6H135M114.6,38.9H135M114.6,39.3H116.7L118.5,40.2H135M114.6,41.4H135M114.6,41.85H116.7L118.5,42.75H135M145.5,27.7H148.5M145.5,30.25H148.5M145.5,32.8H148.5M145.5,35.35H148.5M145.5,37.9H148.5M145.5,40.45H148.5M145.5,43H148.5M145.5,45.55H148.5M145.5,48.1H148.5M158.1,28.5H161.4M158.1,29.72H161.4M158.1,30.94H161.4M158.1,32.16H161.4M158.1,33.38H161.4M158.1,34.59H161.4M158.1,35.81H161.4M158.1,37.03H161.4M158.1,38.25H161.4M158.1,39.47H161.4M158.1,40.69H161.4M158.1,41.91H161.4M158.1,43.12H161.4M158.1,44.34H161.4M158.1,45.56H161.4M158.1,46.78H161.4M158.1,48H161.4M135.6,46.55L139.8,50.75H169.8L171,49.75H186.6M135.6,47.9L139.8,52.1H169.8L171,51.1H189.6M135.6,48.85L139.8,53.05H169.8L171,52.05H182.7M135.6,49.7L139.8,53.9H169.8L171,52.9H194.7M135.6,50.8L139.8,55H169.8L171,54H185.1M135.6,51.65L139.8,55.85H169.8L171,54.85H194.7M135.6,52.55L139.8,56.75H169.8L171,55.75H191.7M135.6,53.9L139.8,58.1H169.8L171,57.1H193.2M135.6,55.25L139.8,59.45H169.8L171,58.45H196.5M135.6,56.2L139.8,60.4H158.4M165,61H190.2M165,63.6H188.7M165,66.2H177.6M165,68.4L168.9,68M162.6,61.3V74L165.6,77H170.7M155.7,73H158.1L164.7,78.6H170.7M134.4,60.5H144M134.7,70.6L141.3,63.4H145.2M211.86,50V13.2L220.5,4.6H288M213.24,50V12.9L220.5,5.6H276M214.59,50V12.5L220.5,6.6H261M215.85,50V12.25L220.5,7.6H249M217.29,50V11.8L220.5,8.6H237M218.76,50V11.3L220.5,9.6H225M218.76,50V52H232.8M217.29,50V54H232.8M215.85,50V59.8H232.8M214.59,50V62H224.7V65.4H232.8M213.24,50V63.7H210.9M211.86,50V60.4H201M222.3,60.4V44.8H232.8M226.5,66.5V92H232.8M226.5,72.7H232.8M226.5,85.9H232.8M220.2,19.4H295.5M220.2,21.85H295.5M220.2,24.5H295.5M220.2,27H295.5M220.2,29.5H295.5M220.2,32H295.5M220.2,34.7H295.5M198,16.6H185.1M198,19.3H183.6M198,20.8H194.4M198,23.3H191.7M198,25.9H189M198,28.3H186.6M198,30.5H196.5M198,33H189.6M207.6,38.6H209.1M207.6,43H209.7M207.6,44.6H210M207.6,46H210M192,42.1H197.1M189,44.7H197.1M178.5,47.4H197.1M178.5,49.5H197.1M75,53V67.6M90,59.6L92.4,57.9H96.9M90,60.9L92.4,59.2H96.9M90,62.2L92.4,60.5H96.9M90,63.5L92.4,61.8H96.9M90,66H96.9M90,71H96.9M90,72.2H96.9M108,64H115.8M108,66H115.8M115.8,59.6H111.6M115.8,71H109.5M115.8,71H113.1M157.2,9.7H170.7"/>
+                <!-- The 40-pad field at the left edge: ten slanting rows of four pads, each row on one run toward the processor. -->
+                <path class="trace mid" d="M7.8,17.64L19.35,11.87M7.8,22.76L19.35,16.98M7.8,27.88L19.35,22.11M7.8,33L19.35,27.23M7.8,38.12L19.35,32.35M7.8,43.24L19.35,37.47M7.8,48.36L19.35,42.59M7.8,53.48L19.35,47.71M7.8,58.6L17.2,53.9M7.8,63.72L17.2,59.02"/>
+                <path class="pad-ring" d="M15.57,13.8h0M12.99,15.08h0M10.35,16.36h0M7.8,17.64h0M15.57,18.92h0M12.99,20.2h0M10.35,21.48h0M7.8,22.76h0M15.57,24.04h0M12.99,25.32h0M10.35,26.6h0M7.8,27.88h0M15.57,29.16h0M12.99,30.44h0M10.35,31.72h0M7.8,33h0M15.57,34.28h0M12.99,35.56h0M10.35,36.84h0M7.8,38.12h0M15.57,39.4h0M12.99,40.68h0M10.35,41.96h0M7.8,43.24h0M15.57,44.52h0M12.99,45.8h0M10.35,47.08h0M7.8,48.36h0M15.57,49.64h0M12.99,50.92h0M10.35,52.2h0M7.8,53.48h0M15.57,54.76h0M12.99,56.04h0M10.35,57.32h0M7.8,58.6h0M15.57,59.88h0M12.99,61.16h0M10.35,62.44h0M7.8,63.72h0"/>
+                <path class="pad-hole" d="M15.57,13.8h0M12.99,15.08h0M10.35,16.36h0M7.8,17.64h0M15.57,18.92h0M12.99,20.2h0M10.35,21.48h0M7.8,22.76h0M15.57,24.04h0M12.99,25.32h0M10.35,26.6h0M7.8,27.88h0M15.57,29.16h0M12.99,30.44h0M10.35,31.72h0M7.8,33h0M15.57,34.28h0M12.99,35.56h0M10.35,36.84h0M7.8,38.12h0M15.57,39.4h0M12.99,40.68h0M10.35,41.96h0M7.8,43.24h0M15.57,44.52h0M12.99,45.8h0M10.35,47.08h0M7.8,48.36h0M15.57,49.64h0M12.99,50.92h0M10.35,52.2h0M7.8,53.48h0M15.57,54.76h0M12.99,56.04h0M10.35,57.32h0M7.8,58.6h0M15.57,59.88h0M12.99,61.16h0M10.35,62.44h0M7.8,63.72h0"/>
+                <!-- The square pad that marks pin 1 of the processor. -->
+                <rect class="pad-square" x="17.85" y="2.4" width="1.35" height="1.1"/>
                 <use href="#board-vias" class="via-ring"/>
                 <use href="#board-vias" class="via-hole"/>
             </g>
@@ -902,86 +853,158 @@
                 </g>
                 <!-- A plain bar of ink in the lower right corner. -->
                 <rect x="291.6" y="99" width="7.5" height="0.8"/>
+
+                <!-- Left third: the pad field with its count, the crystal, pin-1 dots, and the power corner. -->
+                <rect class="silk-line" x="5.25" y="12" width="12.9" height="54" stroke-width="0.36"/>
+                <text x="1.5" y="66.2" font-size="2.65" textLength="3.3" lengthAdjust="spacingAndGlyphs">40</text>
+                <rect class="silk-line" x="41.85" y="30.5" width="18.15" height="22" rx="0.8" stroke-width="0.36"/>
+                <circle class="" cx="62.1" cy="22.85" r="0.75"/><circle class="" cx="82.6" cy="22.65" r="0.55"/>
+                <rect class="silk-line" x="18.45" y="54.4" width="4.65" height="10.6" rx="0.6" stroke-width="0.36"/>
+                <path class="silk-line" stroke-width="0.36" d="M14.25,72.8H17.85V85.4H14.25ZM14.25,83.6H17.85"/>
+                <rect class="" x="6.9" y="90" width="3" height="1.1"/>
+                <text x="16.8" y="86.6" font-size="2.8" textLength="4.8" lengthAdjust="spacingAndGlyphs">TP1</text><text x="16.5" y="89.2" font-size="2.65" textLength="3.6" lengthAdjust="spacingAndGlyphs">C1</text>
+                <text x="79.8" y="83" font-size="2.5" textLength="5.1" lengthAdjust="spacingAndGlyphs">TP2</text><text x="79.5" y="87.5" font-size="2.4" textLength="3.6" lengthAdjust="spacingAndGlyphs">C2</text>
+                <text x="73.8" y="88.3" font-size="2.6">+</text>
+            </g>
+
+            <!-- The parts, each where unit B has it. One soft shadow for the whole
+                 layer, down and to the right, away from the light. -->
+            <g class="parts" filter="url(#part-shadow)">
+                <!-- IC1: the 6502, 40 pins, soldered in. Its marking on unit B cannot be read, so only the part number is given. -->
+                <g class="ic sheen">
+                    <path class="pin l" d="M20.3,2.97V52.33"/>
+                    <path class="pin r" d="M35.35,2.97V52.33"/>
+                    <rect class="ic-body" x="21.15" y="1.8" width="13.35" height="51.7" rx="0.3"/>
+                    <path class="ic-notch" d="M27.02,1.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="2.1" text-anchor="middle" transform="translate(27.07 27.65) rotate(90)">MCS6502</text>
+                </g>
+                <!-- Beside the processor: an orange ceramic disc on edge, a glass diode and two small axial parts. -->
+                <rect class="disc-orange" x="39" y="3.4" width="3.9" height="8.1" rx="1.7"/>
+                <path class="lead" d="M45.53,3.3V13.5"/><circle class="pad" cx="45.53" cy="3.3" r="0.7"/><circle class="pad" cx="45.53" cy="13.5" r="0.7"/>
+                <rect class="glass-diode" x="44.55" y="5.3" width="1.95" height="6.3" rx="0.9"/>
+                <use href="#res" class="r-cream-red" transform="translate(49.8 13.8) scale(1 1.06)"/>
+                <use href="#res" class="r-orange" transform="translate(52.95 13.8) scale(1 1.06)"/>
+                <!-- IC2: 74LS00, socketed. Its place in the row is taken from the manual's parts list; the marking is not legible. -->
+                <g class="ic sheen socketed">
+                    <rect class="socket" x="55.4" y="0.75" width="9.8" height="19.7" rx="0.25"/>
+                    <path class="pin l" d="M56.3,2.43V18.77"/>
+                    <path class="pin r" d="M64.3,2.43V18.77"/>
+                    <rect class="ic-body" x="57.3" y="1.1" width="6" height="19" rx="0.3"/>
+                    <path class="ic-notch" d="M59.5,1.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.45" text-anchor="middle" transform="translate(59.78 10.6) rotate(90)">74LS00</text>
+                </g>
+                <!-- IC3: SN74LS14N, socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="68.39" y="0.75" width="9.47" height="20" rx="0.25"/>
+                    <path class="pin l" d="M69.29,2.58V18.92"/>
+                    <path class="pin r" d="M76.96,2.58V18.92"/>
+                    <rect class="ic-body" x="70.29" y="1.1" width="5.67" height="19.3" rx="0.3"/>
+                    <path class="ic-notch" d="M72.33,1.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(72.6 10.75) rotate(90)">SN74LS14N</text>
+                </g>
+                <!-- IC4: SN74LS38N, socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="80.9" y="0.75" width="9.62" height="20" rx="0.25"/>
+                    <path class="pin l" d="M81.8,2.58V18.92"/>
+                    <path class="pin r" d="M89.62,2.58V18.92"/>
+                    <rect class="ic-body" x="82.8" y="1.1" width="5.82" height="19.3" rx="0.3"/>
+                    <path class="ic-notch" d="M84.91,1.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(85.19 10.75) rotate(90)">SN74LS38N</text>
+                </g>
+                <!-- IC5: 74LS00, socketed. Identified like IC2. -->
+                <g class="ic sheen socketed">
+                    <rect class="socket" x="93.89" y="0.75" width="9.8" height="19.9" rx="0.25"/>
+                    <path class="pin l" d="M94.79,2.53V18.87"/>
+                    <path class="pin r" d="M102.79,2.53V18.87"/>
+                    <rect class="ic-body" x="95.79" y="1.1" width="6" height="19.2" rx="0.3"/>
+                    <path class="ic-notch" d="M97.99,1.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.45" text-anchor="middle" transform="translate(98.27 10.7) rotate(90)">74LS00</text>
+                </g>
+                <!-- Two blue ceramic beads between the sockets. -->
+                <use href="#bead" transform="translate(66.3 9.3)"/><use href="#bead" transform="translate(79.61 9.1)"/>
+                <!-- Q1: the 1 MHz crystal, a can lying flat, with its two leads running up to their pads. -->
+                <path class="lead" d="M45,31.6V26.6M57.9,31.6V26.6"/><circle class="pad" cx="45" cy="26.6" r="0.75"/><circle class="pad" cx="57.9" cy="26.6" r="0.75"/>
+                <rect class="can" x="42" y="31.2" width="17.7" height="19.8" rx="1.6"/>
+                <rect class="can-face" x="45.6" y="33.5" width="10.5" height="16" rx="0.9"/>
+                <!-- IC9: the monitor PROM, socketed. On unit B a round orange sticker carries its number, typed. -->
+                <g class="ic prom socketed">
+                    <rect class="socket" x="63.23" y="20.45" width="16.97" height="32.5" rx="0.25"/>
+                    <path class="pin l" d="M64.13,22.18V51.22"/>
+                    <path class="pin r" d="M79.3,22.18V51.22"/>
+                    <rect class="ic-body" x="65.13" y="20.8" width="13.17" height="31.8" rx="0.3"/>
+                    <path class="ic-notch" d="M70.92,20.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <circle class="mould" cx="72" cy="27.5" r="1"/><circle class="mould" cx="72" cy="47" r="1"/>
+                    <circle class="sticker orange" cx="71.79" cy="36.9" r="6.6"/>
+                    <text class="sticker-text orange" x="71.4" y="40.3" font-size="6" text-anchor="middle" textLength="7.5" lengthAdjust="spacingAndGlyphs" transform="rotate(-6 71.4 38.4)">IC9</text>
+                </g>
+                <!-- IC10: the cassette PROM, socketed, with a round yellow sticker. -->
+                <g class="ic prom socketed">
+                    <rect class="socket" x="83.72" y="20.25" width="16.64" height="32.9" rx="0.25"/>
+                    <path class="pin l" d="M84.62,22.18V51.22"/>
+                    <path class="pin r" d="M99.46,22.18V51.22"/>
+                    <rect class="ic-body" x="85.62" y="20.6" width="12.84" height="32.2" rx="0.3"/>
+                    <path class="ic-notch" d="M91.24,20.6a0.8,0.8 0 0 0 1.6,0z"/>
+                    <circle class="sticker yellow" cx="92.64" cy="36.8" r="6.5"/>
+                    <text class="sticker-text yellow" x="92.7" y="39.3" font-size="5.5" text-anchor="middle" textLength="10.2" lengthAdjust="spacingAndGlyphs" transform="rotate(-5 92.7 37.3)">ICIO</text>
+                </g>
+                <!-- A dark ceramic disc on edge at the foot of the pad field. -->
+                <rect class="disc-brown" x="18.75" y="55" width="3.75" height="9.5" rx="1.8"/>
+                <!-- Power comes in on two tinned tabs. The upper one is marked +. -->
+                <rect class="tab" x="4.35" y="68.2" width="8.7" height="8.4" rx="0.3"/><circle class="tab-rivet" cx="8.7" cy="72.3" r="1.35"/>
+                <rect class="tab" x="4.35" y="81" width="8.7" height="8.5" rx="0.3"/><circle class="tab-rivet" cx="8.7" cy="85.3" r="1.35"/>
+                <path class="silk-on-part" d="M5.2,72.35H6.8M6,71.55V73.15"/>
+                <!-- D1, the 1N4001 that guards against a reversed supply, and two resistors beside it. -->
+                <path class="lead" d="M15.23,72.6V85"/><rect class="diode-black" x="14.1" y="75.5" width="2.25" height="6.4" rx="0.4"/><rect class="diode-band" x="14.1" y="80.5" width="2.25" height="0.8"/>
+                <use href="#res" class="r-cream-brown" transform="translate(18.98 78.2) scale(1 1.17)"/>
+                <use href="#res" class="r-cream-brown" transform="translate(22.2 78.2) scale(1 1.17)"/>
+                <!-- C1 and C2, the 47 uF electrolytics, standing upright: a pale can top inside its black sleeve. -->
+                <circle class="elco-sleeve" cx="14.91" cy="94.3" r="4.93"/><circle class="elco-top" cx="14.91" cy="94.3" r="3.68"/><path class="elco-score" d="M13.41,94.3h3M14.91,92.8v3"/>
+                <circle class="elco-sleeve" cx="78.6" cy="93.3" r="5"/><circle class="elco-top" cx="78.6" cy="93.3" r="3.75"/><path class="elco-score" d="M77.1,93.3h3M78.6,91.8v3"/>
+                <!-- TR1, the 5 V regulator, on a black finned heatsink bolted over a plate of aluminium. The plate is discoloured to the right of the heatsink on unit B. -->
+                <rect class="plate" x="26.55" y="54.4" width="46.35" height="44.1" rx="1.5"/>
+                <rect class="plate-stain" x="58.8" y="55.5" width="12.9" height="30.5" rx="2.5"/>
+                <rect class="plate-cutout" x="44.4" y="88.2" width="9.6" height="4.6" rx="0.4"/>
+                <path class="heatsink" d="M41.7,54.5H57.15V84.5H41.7ZM34.5,55.4H42V60H34.5ZM57,55.4H66.4V60H57ZM37.5,61.8H42V65.7H37.5ZM57,61.8H66.4V65.7H57ZM34.5,67.6H42V71.7H34.5ZM57,67.6H66.4V71.7H57ZM37.5,73.9H42V77.6H37.5ZM57,73.9H66.4V77.6H57ZM34.5,79.3H42V83.7H34.5ZM57,79.3H66.4V83.7H57Z"/>
+                <circle class="heatsink-hole" cx="49.35" cy="62" r="1.65"/>
+                <path class="lead thick" d="M46.35,84V90.8M49.2,84V90.8M52.05,84V90.8"/><circle class="pad" cx="46.35" cy="90.8" r="0.95"/><circle class="pad" cx="49.2" cy="90.8" r="0.95"/><circle class="pad" cx="52.05" cy="90.8" r="0.95"/>
+                <rect class="reg-tab" x="43.2" y="68.5" width="11.1" height="6.8" rx="0.3"/>
+                <path class="reg-nut" d="M48.6,69.23L51,70.62V73.38L48.6,74.77L46.2,73.38V70.62Z"/><circle class="reg-screw" cx="48.6" cy="72" r="1.15"/>
+                <rect class="reg-body" x="43.5" y="75.3" width="10.8" height="8.9" rx="0.3"/>
+                <text class="ic-mark bright" x="48.9" y="80.2" font-size="1.5" text-anchor="middle">LM340T5</text><text class="ic-mark bright" x="48.9" y="82.6" font-size="1.7" text-anchor="middle">7805</text>
+                <!-- IC6: a decode PROM (74S287), socketed, under a worn paper label. -->
+                <g class="ic prom socketed">
+                    <rect class="socket" x="79.07" y="56.05" width="11.3" height="20.6" rx="0.25"/>
+                    <path class="pin l" d="M79.97,56.91V75.79"/>
+                    <path class="pin r" d="M89.47,56.91V75.79"/>
+                    <rect class="ic-body" x="80.97" y="56.4" width="7.5" height="19.9" rx="0.3"/>
+                    <path class="ic-notch" d="M83.92,56.4a0.8,0.8 0 0 0 1.6,0z"/>
+                    <rect class="paper-label" x="81.6" y="58.5" width="6.3" height="16.5" rx="0.3"/>
+                </g>
+                <!-- IC7: the other decode PROM, socketed, with a green sticker. -->
+                <g class="ic prom socketed">
+                    <rect class="socket" x="97.07" y="56.55" width="11.3" height="19.7" rx="0.25"/>
+                    <path class="pin l" d="M97.97,56.96V75.84"/>
+                    <path class="pin r" d="M107.47,56.96V75.84"/>
+                    <rect class="ic-body" x="98.97" y="56.9" width="7.5" height="19" rx="0.3"/>
+                    <path class="ic-notch" d="M101.92,56.9a0.8,0.8 0 0 0 1.6,0z"/>
+                    <rect class="sticker green" x="98.97" y="60.9" width="6.84" height="12.9" rx="1.2"/>
+                    <text class="sticker-text green" x="102.45" y="69.6" font-size="6.3" text-anchor="middle" textLength="6.4" lengthAdjust="spacingAndGlyphs">IC7</text>
+                </g>
+                <!-- TP2, a tinned test point, and a small glass diode by C2. -->
+                <circle class="testpoint" cx="77.25" cy="81.8" r="1.1"/>
+                <path class="lead" d="M87.08,86.6V96"/><rect class="glass-diode" x="86.55" y="89.5" width="1.05" height="3.5" rx="0.5"/>
+                <!-- A 14-pin TI part, socketed. Its marking reads LS30 or LS38; taken as IC8, the 74LS30, which the address decoding beside it needs. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="88.58" y="77.45" width="9.95" height="19.5" rx="0.25"/>
+                    <path class="pin l" d="M89.48,79.03V95.37"/>
+                    <path class="pin r" d="M97.63,79.03V95.37"/>
+                    <rect class="ic-body" x="90.48" y="77.8" width="6.15" height="18.8" rx="0.3"/>
+                    <path class="ic-notch" d="M92.76,77.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(93.03 87.2) rotate(90)">SN74LS30N</text>
+                </g>
+
             </g>
         </svg>
-
-        <!-- Left edge: bus connector -->
-        <div class="part edge-fingers" style="left:2.6%; top:14%; width:3.4%;">
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-        </div>
-
-        <!-- Expansion header -->
-        <div class="part header-pads" style="left:7.6%; top:15%;">
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-        </div>
-
-        <!-- Power section -->
-        <div class="part transformer" style="left:13.5%; top:38%; width:9.5%; height:44%;"></div>
-        <div class="part cap"  style="left:13.6%; top:16%; width:4.2%; height:12.5%;"></div>
-        <div class="part cap"  style="left:19.2%; top:16%; width:4.2%; height:12.5%;"></div>
-        <div class="part heatsink" style="left:25%; top:40%; width:3.2%; height:22%;"></div>
-
-        <!-- Logic -->
-        <div class="part dip wide" style="left:31%; top:34%; width:12.5%; height:34%;">
-            <div class="pins top"></div><span>MCS 6502</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip io-8255" style="left:45.5%; top:36%; width:8.5%; height:26%;" title="IC15 — 8255 PIA ($FD00–$FD03), 40-pin DIP">
-            <div class="pins top"></div><span>8255</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:31%; top:12%; width:8%; height:16%;">
-            <div class="pins top"></div><span>2716</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:41%; top:12%; width:6.5%; height:16%;">
-            <div class="pins top"></div><span>2114</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:48.6%; top:12%; width:6.5%; height:16%;">
-            <div class="pins top"></div><span>2114</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:31%; top:74%; width:6.5%; height:15%;">
-            <div class="pins top"></div><span>74LS138</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:39%; top:74%; width:6.5%; height:15%;">
-            <div class="pins top"></div><span>74LS373</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:47%; top:74%; width:6.5%; height:15%;">
-            <div class="pins top"></div><span>74LS04</span><div class="pins bottom"></div>
-        </div>
-
-
-        <!-- Discrete parts: the real board is packed, not tidy -->
-        <div class="part xtal" style="left:55.3%; top:20%; width:4.6%; height:9%;">1MHz</div>
-        <div class="part dip" style="left:56.8%; top:40%; width:8%; height:16%;">
-            <div class="pins top"></div><span>74LS47</span><div class="pins bottom"></div>
-        </div>
-
-        <div class="part res" style="left:67.5%; top:39%; width:7.5%;"></div>
-        <div class="part res" style="left:67.5%; top:43%; width:7.5%;"></div>
-        <div class="part res" style="left:67.5%; top:47%; width:7.5%;"></div>
-        <div class="part res" style="left:67.5%; top:51%; width:7.5%;"></div>
-        <div class="part res" style="left:67.5%; top:55%; width:7.5%;"></div>
-
-        <div class="part res" style="left:26.6%; top:13%; width:3.4%;"></div>
-        <div class="part res" style="left:26.6%; top:19%; width:3.4%;"></div>
-        <div class="part res" style="left:26.6%; top:25%; width:3.4%;"></div>
-
-        <div class="part res" style="left:31.5%; top:70%; width:3.4%;"></div>
-        <div class="part res" style="left:39.5%; top:70%; width:3.4%;"></div>
-        <div class="part res" style="left:47.5%; top:70%; width:3.4%;"></div>
-
-        <div class="part res" style="left:13.8%; top:88%; width:3.4%;"></div>
-        <div class="part res" style="left:19.5%; top:88%; width:3.4%;"></div>
-
-        <div class="part disc" style="left:29.6%; top:31%;"></div>
-        <div class="part disc" style="left:44.2%; top:31%;"></div>
-        <div class="part disc" style="left:54.6%; top:33%;"></div>
-        <div class="part disc" style="left:29.6%; top:91%;"></div>
-        <div class="part disc" style="left:44.2%; top:91%;"></div>
-        <div class="part disc" style="left:11.5%; top:33%;"></div>
-        <div class="part disc" style="left:65.5%; top:63%;"></div>
 
         <!-- Phase LEDs. The board has these four and no others: the PWR,
              RUN, IRQ, NMI and RW lamps drawn here before were invented.
@@ -1142,8 +1165,8 @@
                 This page runs the original monitor ROM, so entering and executing 6502
                 machine code works the way it did on the real hardware. The layout,
                 silkscreen legends and keycap colours follow photographs of a finished
-                board; the transformer, capacitors and slide switch are there for the
-                look of the thing and do nothing.
+                board; the regulator on its heatsink, the capacitors and the slide
+                switch are there for the look of the thing and do nothing.
             </p>
         </section>
 
