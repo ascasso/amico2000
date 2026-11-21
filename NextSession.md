@@ -88,9 +88,11 @@ Priority order:
   regression coverage. The **machine layer is only partly covered**: the
   keyboard matrix and keypad workflow (`tests/keyboard-matrix.test.js`), run
   state (`tests/run-state.test.js`), resets, ROM protection and the cassette
-  traps have checks, but display multiplexing, segment patterns and the PIA's
-  partial address decoding do not. That is the clearest remaining gap. Keep
-  near-term verification there small and tied to a behavior fix.
+  traps have checks, and `tests/display-renderer.test.js` checks the renderer's
+  segment mapping against the monitor's digit table, but the machine layer's
+  display multiplexing and the PIA's partial address decoding have none. That
+  is the clearest remaining gap. Keep near-term verification there small and
+  tied to a behavior fix.
 
 ## Outstanding (as of 2026-11-21)
 
@@ -113,10 +115,13 @@ Known open work, in rough priority order. None of it is started.
    points at it, so it can only be reached through those RAM vectors. If HLT plus a vector set to `$FE00` is the intended halt-and-resume
    path, then REG followed by RUN would resume the halted program. Confirm in
    the manual before building it.
-2. **Machine-layer checks** for what is still uncovered: display multiplexing
-   and the segment patterns at `$FFEA` (the monitor's digit table), and the
-   `$FD00-$FDFF` partial decoding. The keypad tests show the pattern: run the
-   real monitor in Node and assert on RAM or PIA state, with no DOM.
+2. **Machine-layer checks** for what is still uncovered: display multiplexing,
+   meaning how Port A and Port B writes become the six-pattern display buffer,
+   and the `$FD00-$FDFF` partial decoding. The renderer's side is done: the
+   segment mapping and the digit table at `$FFEA` are checked by
+   `tests/display-renderer.test.js`. The keypad tests show the pattern for the
+   rest: run the real monitor in Node and assert on RAM or PIA state, with no
+   DOM.
 3. **`#41`: the cassette traps differ from the real routines.** With IC10
    readable (`#35`), the trapped LOAD and SAVE can be compared with the code
    they stand in for, and they differ in what they leave behind:
@@ -176,7 +181,8 @@ behavior:
   longer has a keyboard shortcut.
 - Keyboard matrix behavior, including row/column assumptions and active-low
   reads: done on 2026-11-19 with the keypad fix above.
-- Display multiplexing and seven-segment patterns.
+- Display multiplexing in the machine layer. The renderer's seven-segment
+  mapping: done on 2026-11-21 (`tests/display-renderer.test.js`).
 - RAM/ROM/PIA memory map, especially `$FD00-$FDFF` partial decoding.
 - Manual program listings under `docs/manual-extraction/listings/` as practical
   smoke checks.

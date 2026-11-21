@@ -469,8 +469,13 @@ None are open at the moment.
   covered — broadly by the functional suite (#18) and per-fix by the targeted
   checks (#17) — and the machine layer is the remaining gap. The keyboard
   matrix and keypad workflow (`tests/keyboard-matrix.test.js`) and run-state
-  reporting (`tests/run-state.test.js`) are now covered; display multiplexing,
-  the segment patterns and the PIA's `$FD00-$FDFF` partial decoding are not.
+  reporting (`tests/run-state.test.js`) are now covered. So is the display
+  renderer's bit-to-segment mapping, checked against the monitor's digit table
+  at `$FFEA` by `tests/display-renderer.test.js`, which stands `display.js` on
+  a small stand-in for the DOM. The machine layer's display multiplexing, how
+  Port A and Port B writes become the six-pattern buffer, is not covered
+  beyond one check that a booted monitor reads `0000 00`, and the PIA's
+  `$FD00-$FDFF` partial decoding is not covered at all.
   `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
   Node and assert on RAM or PIA state.
 - HLT is not emulated (see Keyboard Mappings). `NextSession.md` records what
