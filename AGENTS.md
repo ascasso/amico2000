@@ -464,11 +464,10 @@ stopped itself on an opcode it does not implement.
 
 **Checking a change.** Nothing automated looks at the drawing. It was checked
 by serving the page, screenshotting it in headless Chrome and putting the
-same window of the photograph beside it at the same scale. Driving Chrome
-over the DevTools protocol in real time needs neither workaround that
-`NextSession.md` describes for virtual-time checks: scripts evaluated through
-the protocol are not subject to the page's CSP, and `requestAnimationFrame`
-fires normally. `tests/display-renderer.test.js` covers the display's
+same window of the photograph beside it at the same scale, driving Chrome
+over the DevTools protocol in real time (How to Verify in `NextSession.md`):
+scripts evaluated through the protocol are not subject to the page's CSP, and
+`requestAnimationFrame` fires normally, so the page is checked as served. `tests/display-renderer.test.js` covers the display's
 geometry and nothing else on the board.
 
 ## Development Guidelines
@@ -518,7 +517,7 @@ When implementing changes based on a GitHub issue:
    trapping the IC10 ROM entry points ($FBBC and $FC54), but the analog
    300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated.
    The traps also differ from the real routines in what they leave in
-   `$0000-$0004`; `NextSession.md` lists the differences
+   `$0000-$0004`; issue `#41` lists the differences
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
 4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate;
    sufficient for the monitor ROM and simple programs. The functional suite the
