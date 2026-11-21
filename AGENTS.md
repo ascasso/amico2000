@@ -81,7 +81,9 @@ python3 -m http.server 8000
 
 ## Code Architecture
 
-The project consists of four modular JavaScript files:
+The project consists of four modular JavaScript files, and `index.html`, which
+besides loading them draws the board; see Board Artwork under Important
+Implementation Notes.
 
 ### 1. cpu6502.js (~1100 lines)
 Complete 6502 CPU interpreter implementing:
@@ -114,15 +116,30 @@ Machine emulation layer that connects CPU to hardware:
 - Display updates are decoupled from PIA writes for performance - buffered and updated once per frame
 - Keyboard scanning matches the ROM's timing expectations (port B values: 1, 3, 5 for rows 0, 1, 2)
 
-### 3. display.js (~240 lines)
+### 3. display.js (~440 lines)
 SVG-based seven-segment display renderer:
-- 6 displays arranged as: [A3][A2][A1][A0] : [D1][D0]
-- Authentic red LED appearance with glow effects
-- Runs at 60fps via `requestAnimationFrame`, independent of CPU speed
+- Six separate TIL312 packages, as on the board: four for the address, a gap
+  where the board shows through, then two for the data:
+  `[A3][A2][A1][A0]  [D1][D0]`. The board has no colon and no captions
+- Slanted segments; an unlit segment stays visible in dusty red, so an idle
+  digit reads as a faint 8
+- Each digit has two decimal points, one each side of its foot, as a TIL312
+  does. Nothing lights them: the board does not appear to wire them, and the
+  machine layer drops bit 7 before a pattern reaches the renderer
+- Two looks, chosen with `setLook()`: `authentic`, the bloom and halo of a
+  powered board as photographed, and `readable`, solid bars with a narrow
+  fringe and a dimmer ghost 8 for reading on a screen. A look changes only
+  how segments are painted, never which are lit or where. The page starts
+  in `readable`; the bench panel's **Displays** buttons switch, and `main.js`
+  remembers the choice in `localStorage` under `amico2000.displayLook`
+- The machine layer calls `update()` once per frame (60 fps, from its
+  `requestAnimationFrame` loop, independent of CPU speed); the renderer compares
+  each pattern with the one it last drew and writes to the DOM only for
+  segments that changed, so a steady display costs nothing
 
-**Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second.
+**Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second. The geometry is in the single `DISPLAY_LAYOUT` object at the top of the file, measured on a photograph of a real board. `tests/display-renderer.test.js` pins the bit-to-segment mapping, the left-to-right order of the digits, and where each named segment is actually drawn; keep it passing when changing how the display is drawn.
 
-### 4. main.js (~490 lines)
+### 4. main.js (~590 lines)
 Application initialization and UI:
 - Contains the Monitor ROM data (MONITOR_ROM constant at top of file)
 - Keyboard event handling (both physical keyboard and on-screen buttons)
@@ -330,9 +347,30 @@ checked by running the real routine in `tests/cassette-rom-mapping.test.js`:
   1 and then offset 0. LOAD stores the bytes the same way round.
 - The checksum is the 8-bit sum of the start byte, the header and the data.
 - The four phase LEDs of the manual's Fig. 26 are Port A bits 0-3: D4 leader,
-  D5 text, D6 recording, D7 reading. That assignment is inferred: it is the
-  one that makes the values the routines write match the LEDs the manual says
-  light in each phase.
+  D5 text, D6 recording, D7 reading. The supplement's schematic of the
+  display, keyboard and cassette interface (page 28) shows the wiring. Each
+  LED runs from +5 V through a resistor, R34 to R37, to an open-collector NAND
+  gate of IC21, a 74LS38. Each gate has one Port A line, PA0 to PA3 for D4 to
+  D7, on one input and Port B bit 7 on the other, which all four share. An LED
+  is lit while both are high.
+- The PROM agrees with that schematic. Every LED pattern it puts on Port A
+  goes out with Port B bit 7 set: `$87` in LOAD, `$86` and the `$E1`/`$A1`
+  waveform values in SAVE. The patterns are `$89` and `$8A` in LOAD, leader or
+  text together with reading, and `$05` and `$06` in SAVE, leader or text
+  together with recording. LOAD only pulses the LEDs, for about 0.7 ms at
+  each refresh, between spells of reading the tape with Port A as an input.
+- The monitor never sets Port B bit 7, so by that schematic all four LEDs are
+  dark while it idles, which is how the home page draws them. Nothing lights
+  them there: the traps stand in for the routines that would, and the machine
+  layer has no model of the LEDs. One photograph of a powered board shows D7
+  lit with the monitor idle. The schematic does not account for that, and it
+  is not modelled.
+- The same schematic has the 74LS145's inputs on PB1-PB4, its outputs 0-2 on
+  the three key rows and its outputs 4-9 on the six digit transistors, as the
+  display and keyboard code assume. Output 3 goes nowhere, which is why the
+  monitor can park Port B at `$07` after each keyboard scan. The key matrix
+  is drawn with its columns on PA0-PA6, pulled up by R8-R14, and its keys
+  where `keyMap` has them; the schematic calls REG's key `PC`.
 - Tape input is sampled on Port A bit 7. LOAD switches Port A between output,
   to set the LEDs, and input, to read the tape, with 8255 control words `$89`
   and `$99`.
@@ -349,6 +387,81 @@ matches the original ROM and cannot leak stack space. Do not add a `pull16()`
 there: the ROM also re-enters LOAD with `JMP $FC54` (no frame pushed), so an
 unconditional pull would corrupt the stack on that path. Protected by
 `tests/cassette-trap-stack.test.js`.
+
+### Board Artwork
+
+The home page draws the board as it is, not as a diagram: every part in
+`index.html` stands where a photograph of a surviving board has it.
+
+**The photographs are private.** Two were used: *unit A*, powered and taken
+at an angle, for how lit things look; and *unit B*, unpowered and taken from
+straight above, for layout, colours and legends. They belong to private
+individuals and are kept outside the repository. Never add them, or crops of
+them, to the repository, and never write an owner's name anywhere: not in a
+file, a commit message, the changelog, a log or a comment. Refer to them only
+as unit A and unit B. Measurements and colour samples taken from them are
+fine, and are what the comments cite.
+
+**Geometry.** The board is 300 x 100 mm, which the pin pitch of the two
+40-pin packages on unit B confirms. `.pcb` is therefore 3 to 1, and inside it
+one SVG, `.board-art`, has a `viewBox` of `0 0 300 100`, so its coordinates
+are millimetres: 1% of the board's width is 3 mm and 1% of its height is
+1 mm. Its groups stack in this order:
+
+- `.copper`: the traces, vias, pads and one pour that show through the mask.
+  The runs are in the right places and of the right number; the routing
+  inside them is simplified and what lies under a part is guessed.
+- `.holes`: the six unplated mounting holes.
+- `.silk`: the printed legends and outlines, in the board's yellow ink.
+- `.parts`: every component, one commented group per part.
+
+What a person operates or watches change is HTML laid over that drawing and
+placed in percent of the board: the keys (`.keyfield`), the displays
+(`#display`, drawn by `display.js`), the LEDs (`.led-bank`) and the slide
+switch. The two key blocks are placed from the bottom edge.
+
+The path data in `.copper` and `.parts` was generated once, from a table of
+measurements kept with the photographs, and pasted in. There is no build
+step: the SVG in `index.html` is the source, and it is edited by hand.
+
+**What is measured, what is read and what is guessed.** Positions and sizes
+are measured on unit B. Part identities are from the manual's parts list, and
+markings are given only where they can be read on unit B. The comments beside
+the parts say where neither was possible: IC2 and IC5 are taken as the two
+74LS00 from their place in the list; the 14-pin parts drawn as IC8 and IC21
+are guesses; which RAM is IC11 and which IC14 is not known; and the 6502's
+marking is not copied, because unit B's cannot be read. The coloured stickers
+on IC9, IC10 and IC7 and the paper label on IC6 are unit B's own labelling,
+not the factory's. The silkscreen is yellow on unit B and looks white on
+unit A; the page follows unit B.
+
+**What the scripts depend on.** `main.js` looks up `btn-run`, `btn-step`,
+`btn-reset`, `btn-load`, `led-run`, `reg-pc`, `reg-a`, `reg-x`, `reg-y`,
+`reg-sp`, `reg-flags`, `rom-file` and `display`, and every `.key` by its
+`data-key`. Keep those when redrawing. A pressed key is styled through the
+inline `translateY` that `main.js` sets on its button, for mouse, touch and
+keyboard alike, so the keyboard handling does not need to know about the
+artwork.
+
+**Lettering.** The page's CSP allows no downloaded font and no `data:` URI,
+so every legend uses a stack of system faces. Each legend's `textLength` pins
+its width, so a substitute face fills the same space; letter shapes still
+vary between systems.
+
+**What is drawn but does nothing.** The four LEDs D4-D7 are never lit (see
+Cassette Interface Reference), and the NOR/SS switch is not wired to
+single-step. The lamp beside the registers is the emulator's own and has
+three states: running, stopped, and halted, the last when the CPU core has
+stopped itself on an opcode it does not implement.
+
+**Checking a change.** Nothing automated looks at the drawing. It was checked
+by serving the page, screenshotting it in headless Chrome and putting the
+same window of the photograph beside it at the same scale. Driving Chrome
+over the DevTools protocol in real time needs neither workaround that
+`NextSession.md` describes for virtual-time checks: scripts evaluated through
+the protocol are not subject to the page's CSP, and `requestAnimationFrame`
+fires normally. `tests/display-renderer.test.js` covers the display's
+geometry and nothing else on the board.
 
 ## Development Guidelines
 
@@ -414,6 +527,11 @@ When implementing changes based on a GitHub issue:
    `docs/6502-conformance.md`
 6. **HLT**: the HLT key is not emulated. On the board it raises a CPU
    interrupt, but the manual does not say which line; see Keyboard Mappings
+7. **Board drawing**: the LEDs D4-D7 are drawn but never lit, and the NOR/SS
+   slide switch is drawn but does nothing. At window widths under about
+   800 pixels the board keeps its size and pans sideways, so on a phone the
+   keys and displays, at its right-hand end, are off screen until it is
+   panned. The drawing has been looked at in Chrome only. See Board Artwork
 
 ## Keyboard Mappings
 
@@ -434,11 +552,13 @@ emulated, and its on-screen key does nothing. Implementing it means settling
 NMI versus IRQ from evidence, and what the RAM vectors at `$03FC-$03FF` should
 hold when it fires.
 
-The on-screen keys are labelled with the legends silkscreened on the original
-board. Two of them were previously labelled after their emulator identity rather
-than the hardware: `RUN` was shown as `GO`, and `HLT` was shown as `PC`. The
-`data-key` values in `index.html` still read `go` and `pc`; only the labels
-changed.
+The on-screen keys carry the legends of the original board, printed in white on
+the caps themselves, as photographs of two surviving boards show. An earlier
+version of the page drew blank caps with the legend silkscreened underneath;
+that was a misreading of low-resolution photographs. Two of the legends were
+previously named after their emulator identity rather than the hardware: `RUN`
+was shown as `GO`, and `HLT` was shown as `PC`. The `data-key` values in
+`index.html` still read `go` and `pc`; only the labels changed.
 
 ## Historical Context
 
@@ -467,8 +587,13 @@ None are open at the moment.
   covered — broadly by the functional suite (#18) and per-fix by the targeted
   checks (#17) — and the machine layer is the remaining gap. The keyboard
   matrix and keypad workflow (`tests/keyboard-matrix.test.js`) and run-state
-  reporting (`tests/run-state.test.js`) are now covered; display multiplexing,
-  the segment patterns and the PIA's `$FD00-$FDFF` partial decoding are not.
+  reporting (`tests/run-state.test.js`) are now covered. So is the display
+  renderer's bit-to-segment mapping, checked against the monitor's digit table
+  at `$FFEA` by `tests/display-renderer.test.js`, which stands `display.js` on
+  a small stand-in for the DOM. The machine layer's display multiplexing, how
+  Port A and Port B writes become the six-pattern buffer, is not covered
+  beyond one check that a booted monitor reads `0000 00`, and the PIA's
+  `$FD00-$FDFF` partial decoding is not covered at all.
   `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
   Node and assert on RAM or PIA state.
 - HLT is not emulated (see Keyboard Mappings). `NextSession.md` records what

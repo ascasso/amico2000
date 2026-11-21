@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a choice of how the six displays are drawn, under Bench controls:
+  **Readable**, now the default, keeps each segment solid with only a narrow
+  glow and dims the unlit segments, so digits read easily at the size a page
+  draws them; **Authentic** is the blooming look of a real powered board that
+  the displays had before. Only the drawing changes, never which segments are
+  lit. The page remembers the choice in the browser.
+- Added `tests/display-renderer.test.js`, the first check of the seven-segment
+  renderer. `display.js` draws into the DOM, so nothing in Node could see it;
+  the test stands it on a small stand-in for the handful of DOM calls it makes.
+  Fifteen checks pin which pattern bit lights which segment, that each of the
+  six patterns reaches its own digit, that the digits are drawn left to right
+  as four address digits and then two data digits, that the monitor's own
+  table at `$FFEA` draws 0 to F, and that a booted monitor's display reaches
+  the renderer as `0000 00`. Two of them read the geometry rather than the
+  names: every lit segment has to be drawn over its own package, on top of
+  its unlit window, and the named segments have to sit where a seven-segment
+  digit has them, leaning the right way, with two decimal points at the foot,
+  one each side.
+  It was first written against the renderer as it stood, ahead of redrawing
+  the displays, so the redraw had something to hold it.
 - Added a link to the published emulator, `https://ascasso.github.io/amico2000/`,
   near the top of the README, so a visitor to the repository can run it
   without downloading anything.
@@ -132,6 +152,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `AGENTS.md` now records how the four LEDs D4-D7 are wired, read from the
+  schematic on page 28 of the supplement and checked against the cassette
+  PROM: each is lit while Port B bit 7 and its own Port A bit are both high.
+  The assignment of the LEDs to Port A bits 0-3 had been an inference. The
+  monitor never sets that bit, so the LEDs are dark on an idle board, as the
+  home page draws them. No behaviour changed.
+- `AGENTS.md` has a Board Artwork section: how the board drawing in
+  `index.html` is organised, what in it is measured, read or guessed, what
+  the scripts depend on, and the rule that the photographs it was drawn from
+  are private and their owners are never named. `NextSession.md` records the
+  redraw and what is left unverified, and notes a way to check the page in a
+  browser without the workarounds it described before.
+- The two part drawings the board reuses, the resistor and the ceramic bead,
+  have the ids `part-resistor` and `part-bead` instead of `res` and `bead`.
+  An element's id becomes a property of the page's `window`, and `res` is too
+  close to the documented console command `amico.res()`. No visible change.
+- The whole board now carries the parts a real one does, each where a
+  photograph of a surviving board has it. On the left: the 6502
+  standing upright at the edge beside the 40-pad bus field, the four
+  glue-logic chips along the top, the crystal can, the monitor and cassette
+  PROMs with the orange and yellow stickers of that board, the two decode
+  PROMs, and the 5 V regulator on its black finned heatsink over an aluminium
+  plate, with the power tabs and the two electrolytic capacitors. In the
+  middle: the four 2114 RAMs, the 8255 standing upright, the 10-pin expansion
+  header, the 3-pin RECORD header with its IN, OUT and GND legends, the
+  cassette interface chips, and the rows of resistors along the top edge. On
+  the right: the display driver and decoder, the ladder of seven segment
+  resistors, and above the displays the six digit transistors, each with its
+  two resistors and its printed `TR`. The four LEDs are in their real place,
+  in a row under the resistors at the top edge. The NOR/SS slide switch is
+  the white and pale blue part the board has. All of it replaces an invented
+  arrangement that included a transformer the board never had, a 6502 lying
+  on its side, a 2716 EPROM and gold pins.
+- The board itself is redrawn from a photograph of a real one. It is the deep,
+  slightly blue green of the real solder mask instead of a bright grass green,
+  and it has the real proportions, 300 x 100 mm, where it was a little too
+  tall. The copper under the mask follows the runs visible on the real board:
+  the bus off the processor, the comb between the memory chips, the fan from
+  the 8255, the six lines up to the display transistors and the lines into the
+  keys, with their vias. The six mounting holes are where the board has them,
+  the four corners and the middle of each long edge, in place of five plated
+  ones.
+- The board's printed legends are now the mustard yellow of a real board's
+  silkscreen instead of white, and the maker's mark is the real one: the boxed
+  monogram, `A.S.EL` and `AMICO 2000` running up the right-hand edge and
+  reading from the bottom, with `1 79` further along and a bar of ink in the
+  corner. It had read `A.S.E.L.` from the top down. `NOR` and `SS` and the
+  printed box around the slide switch sit where the board has them. Four
+  legends that the board never carried are gone: BUS, J1 EXP, MONITOR ROM and
+  7805.
+- The board now carries the four LEDs the real one has, D4 to D7, drawn as
+  5 mm red LEDs with their designators beneath, in place of five invented
+  ones labelled PWR, RUN, IRQ, NMI and RW. They belong to the cassette
+  interface and stay dark, because the emulator's file-backed cassette never
+  runs the routines that light them. Whether the processor is running, which
+  the invented RUN LED used to show, is now a small lamp beside the registers
+  under Processor state; it still follows the Run/Stop button and a console
+  `amico.start()` or `amico.stop()`. It also turns amber and reads "halted"
+  when the processor meets an opcode the emulator does not implement, where
+  the RUN LED went on showing a running machine; RES or a cold reset clears
+  it. The decorative power LED is gone.
+- Lit display segments are now the deep red of the real displays instead of
+  an orange-red, and they bloom: a lit segment swells past its window, the
+  hairlines between segments close, and a faint red halo lies on the package
+  around the digit, as in a photograph of a powered board. The indicator LEDs
+  take the same red.
+- The display is now drawn as the board has it: six separate display packages,
+  four for the address and two for the data with a gap between the groups,
+  hard against the top right corner. The digits lean by the 10 degrees of
+  the part's data sheet, and an unlit segment stays faintly visible in dusty
+  red, so a blank digit shows a ghost 8 as the real parts do. Each package
+  shows its two decimal points, which the board never lights. The colon and
+  the ADDRESS and DATA captions are gone; the board has neither. A steady display no longer touches the page at all: the
+  renderer redraws only the segments that change.
+- The on-screen keys now look like the caps on a real board. The legends are
+  printed in white on the caps, where earlier they sat beneath blank caps; the
+  caps are square and sculpted, in the red and blue sampled from a photograph
+  of a surviving board; and the hex keys and function keys share one tight
+  switch pitch with their bottom rows in line. A pressed key darkens whether
+  it was pressed with the mouse, a finger or the computer keyboard. The keys
+  themselves, their `data-key` values and the keyboard handling are unchanged.
 - The README and two `main.js` comments now call the loader button by its
   on-screen name, **Load ROM or tape**, instead of "Load ROM/Tape" and
   "Load ROM".

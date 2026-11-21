@@ -13,36 +13,40 @@
         /* ================================================================
            AMICO 2000 Emulator
            Visual recreation of the ASEL AMICO 2000 single-board computer
-           (Milano, 1978). Board geometry, silkscreen legends, keycap
-           colours and component placement follow the photographs of a
-           built board published on computerhistory.it.
+           (Milano, 1978). The first version followed the photographs of a
+           built board published on computerhistory.it. Parts redrawn
+           since then follow two sharper photographs of surviving boards,
+           called unit A (powered, displays lit) and unit B (unpowered,
+           seen from straight above) in the comments below. Those two
+           photographs are private and are not in the repository; only
+           measurements and colour samples taken from them are.
            ================================================================ */
 
         :root {
-            /* Solder mask */
-            --pcb-green:        #1a7a3f;
-            --pcb-green-dark:   #0d4d26;
-            --pcb-green-light:  #2a9a55;
-            --pcb-edge:         #0a3a1d;
+            /* Solder mask, sampled on unit B. Over bare laminate it is a deep
+               green leaning to blue, #09563e in the middle of the range.
+               Over a copper trace it reads lighter and bluer still, because
+               the trace stands proud and its edges catch the light. */
+            --pcb-green:        #09563e;
+            --pcb-edge:         #04301f;
+            --trace:            #22947a;
+            --trace-rail:       #137558;
+            --via:              #5b988d;
 
-            /* Silkscreen ink */
-            --silk:             #e6ece4;
-            --silk-dim:         #a8bda9;
+            /* Silkscreen ink. On unit B it is a mustard yellow: the core of
+               the thick strokes samples at about #a0a020, set a little
+               brighter here because thin lines lose some of it to the green
+               around them. (Unit A's ink looks white; it is a different
+               batch of boards.) */
+            --silk:             #b3b02a;
+            --silk-font:        "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
 
-            /* Tinned / gold plating */
-            --gold:             #d3a044;
-            --gold-dark:        #9a6f2b;
+            /* Silkscreen outline around each key switch */
+            --silk-line:        rgba(179, 176, 42, 0.92);
 
-            /* Keycaps */
-            --cap-red:          #c4332b;
-            --cap-red-dark:     #7e1c16;
-            --cap-blue:         #2d5eae;
-            --cap-blue-dark:    #17356e;
-
-            /* Packages */
-            --dip:              #17171b;
-            --dip-top:          #2a2a30;
-            --dip-ink:          #8d9494;
+            /* Key switch pitch: about 13 mm on the 300 mm board. The hex
+               block and the function block share it. */
+            --key-pitch:        4.36cqw;
 
             /* Bench */
             --bench:            #b09070;
@@ -115,449 +119,576 @@
             min-width: 760px;
             max-width: 1120px;
             margin: 0 auto;
-            aspect-ratio: 1120 / 386;
-            border-radius: 0.4cqw;
+            /* The board is 300 x 100 mm: the pin pitch of its two 40-pin
+               packages on unit B gives 299 x 99.6. */
+            aspect-ratio: 3 / 1;
+            border-radius: 0.25cqw;
             background:
-                /* fibreglass weave, barely there */
-                repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 4px),
-                repeating-linear-gradient(0deg,  rgba(0,0,0,0.05) 0 1px, transparent 1px 4px),
-                radial-gradient(140% 110% at 25% 0%, var(--pcb-green-light) 0%, var(--pcb-green) 38%, var(--pcb-green-dark) 100%);
+                /* daylight from the upper left, as unit B is lit: a broad
+                   sheen there and the far corner a little in shade */
+                radial-gradient(120% 170% at 10% -30%, rgba(140, 235, 190, 0.17) 0%, rgba(140, 235, 190, 0.05) 42%, rgba(0, 0, 0, 0) 64%),
+                linear-gradient(168deg, rgba(0, 0, 0, 0) 52%, rgba(0, 18, 10, 0.30) 100%),
+                var(--pcb-green);
             box-shadow:
                 0 1.6cqw 3cqw rgba(40, 26, 12, 0.55),
-                inset 0 0 0 0.18cqw var(--pcb-edge),
-                inset 0 0.25cqw 0.5cqw rgba(255,255,255,0.10);
+                inset 0 0 0 0.12cqw var(--pcb-edge),
+                inset 0.1cqw 0.14cqw 0.2cqw rgba(190, 255, 225, 0.16);
         }
 
-        /* Copper routing, drawn as one quiet layer under the parts */
-        .traces {
+        /* What a person operates or watches change is HTML laid over the
+           drawing, placed in percent of the board: the keys, the displays
+           and the LEDs. */
+        .part { position: absolute; }
+
+        /* --- Board artwork in millimetres -------------------------------
+           The board is 300 x 100 mm, so an SVG with a 300 x 100 viewBox
+           takes the positions measured on unit B directly: 1% of the
+           board's width is 3 mm and 1% of its height is 1 mm. The copper,
+           the holes, the printed legends and the parts are drawn here,
+           in that order from the bottom; the things a person operates
+           stay HTML on top of it.
+           --------------------------------------------------------------- */
+
+        .board-art {
             position: absolute;
             inset: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            opacity: 0.62;
         }
 
-        /* Every fixed part is placed in board coordinates (% of the slab) */
-        .part { position: absolute; }
+        /* --- Copper -----------------------------------------------------
+           Under the mask a trace shows as a lighter line. The runs drawn
+           are the bundles that can be made out on unit B: the bus off
+           the processor, the comb between the memory chips, the fan from
+           the 8255, the lines up to the display transistors and into the
+           keys. They are in the right places and of the right number,
+           but the routing is simplified, and what lies under a part is
+           guessed. Power rails are wider and, being broad, catch less
+           light. A via is a small tinned ring with its hole.
+           --------------------------------------------------------------- */
 
-        /* --- Silkscreen text ------------------------------------------ */
-
-        .silk {
-            color: var(--silk);
-            font-size: 1.35cqw;
-            letter-spacing: 0.06em;
-            line-height: 1;
-            text-shadow: 0 0.1cqw 0 rgba(0,0,0,0.35);
+        .copper .trace {
+            fill: none;
+            stroke: var(--trace);
+            stroke-width: 0.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
-        /* --- Mounting holes ------------------------------------------- */
+        .copper .trace.mid  { stroke-width: 0.8; }
+        .copper .trace.rail { stroke: var(--trace-rail); stroke-width: 1.3; }
 
-        .hole {
-            width: 1.5cqw;
-            height: 1.5cqw;
-            border-radius: 50%;
-            background: radial-gradient(circle at 40% 35%, #e7dcc4 0%, #b9ac90 55%, #6b6250 100%);
-            box-shadow: inset 0 0 0 0.14cqw rgba(0,0,0,0.35);
+        /* Each via is a zero-length stroke with a round cap, so the whole
+           set is one path drawn twice: wide for the ring, narrow for the
+           hole. */
+        .copper .via-ring,
+        .copper .via-hole {
+            fill: none;
+            stroke-linecap: round;
+        }
+        .copper .via-ring { stroke: var(--via); stroke-width: 1.7; }
+        .copper .via-hole { stroke: #06281c; stroke-width: 0.7; }
+
+        /* Copper poured as a solid area lifts the mask only slightly. */
+        .copper .pour { fill: rgba(60, 170, 130, 0.10); }
+
+        /* Bare, tinned pads: the 40 of the bus field, drawn like the vias
+           as one path twice, and the square pad at the processor's pin 1. */
+        .copper .pad-ring,
+        .copper .pad-hole {
+            fill: none;
+            stroke-linecap: round;
+        }
+        .copper .pad-ring { stroke: #9ab7bf; stroke-width: 2; }
+        .copper .pad-hole { stroke: #06281c; stroke-width: 0.8; }
+        .copper .pad-square { fill: #d8d2c0; }
+
+        /* --- Mounting holes ---------------------------------------------
+           Six, about 3 mm, unplated: a plain drilled hole with the bench
+           showing dark through it and a faint lighter ring where the
+           mask stops short of the edge.
+           --------------------------------------------------------------- */
+
+        .holes .hole-ring {
+            fill: none;
+            stroke: rgba(150, 225, 190, 0.2);
+            stroke-width: 0.45;
         }
 
-        /* --- Edge connector, left edge -------------------------------- */
-
-        .edge-fingers {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.35cqw;
-            padding: 0.4cqw;
+        .holes .hole {
+            fill: #231a12;
+            stroke: #04261a;
+            stroke-width: 0.3;
         }
 
-        .edge-fingers i {
-            display: block;
-            height: 0.75cqw;
-            border-radius: 0.1cqw;
-            background: linear-gradient(90deg, var(--gold) 0%, #f0c979 45%, var(--gold-dark) 100%);
+        /* --- Silkscreen ------------------------------------------------- */
+
+        .silk text {
+            fill: var(--silk);
+            font-family: var(--silk-font);
+            font-weight: 700;
         }
 
-        /* --- Expansion header ----------------------------------------- */
+        .silk rect, .silk circle, .silk path { fill: var(--silk); }
 
-        .header-pads {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.3cqw;
-            padding: 0.35cqw;
-            background: rgba(0,0,0,0.12);
-            border-radius: 0.2cqw;
+        .silk .silk-line {
+            fill: none;
+            stroke: var(--silk);
+            stroke-linejoin: round;
+            stroke-linecap: round;
         }
 
-        .header-pads i {
-            display: block;
-            width: 0.7cqw;
-            height: 0.7cqw;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 30%, #f4d489, var(--gold) 55%, var(--gold-dark));
+        /* --- Parts --------------------------------------------------------
+           Drawn in the millimetre SVG with the copper and the legends,
+           each part at the place measured for it on unit B and named from
+           the manual's parts list. Light is from the upper left
+           throughout: the layer throws one short shadow down and to the
+           right, and round things carry their highlight on the upper
+           left. Colours are samples from unit B.
+           --------------------------------------------------------------- */
+
+        /* DIP packages. Black plastic, mostly matt; a few on unit B mirror
+           the sky and read as slate. */
+        .parts .ic-body { fill: url(#g-ic); }
+        .parts .ic.sheen .ic-body { fill: url(#g-ic-sheen); }
+        .parts .ic.prom .ic-body { fill: url(#g-prom); }
+        .parts .ic-notch { fill: rgba(0, 0, 0, 0.5); }
+        .parts .mould { fill: none; stroke: rgba(0, 0, 0, 0.42); stroke-width: 0.35; }
+
+        /* Pins: one dashed stroke down each side of a package, a dash per
+           pin on the 0.1 inch pitch. A soldered-in part shows its tinned
+           pin tops, the row away from the light duller. A socketed part
+           shows its contacts down in the socket's pale moulding. */
+        .parts .pin {
+            fill: none;
+            stroke: #e6dfe8;
+            stroke-width: 1.45;
+            stroke-dasharray: 1.1 1.44;
+        }
+        .parts .pin.r { stroke: #aaa3ae; }
+        .parts .socket { fill: #dcd7db; }
+        .parts .socketed .pin { stroke: #8a7f7c; stroke-width: 1.1; }
+
+        /* Markings read down the package, as stamped. */
+        .parts .ic-mark {
+            fill: #89828e;
+            font-family: var(--silk-font);
+            font-weight: 700;
+        }
+        .parts .ic-mark.bright { fill: #c8c4cc; }
+
+        /* Labels on the PROMs of unit B, typed: IC9, IC10 and IC7 on
+           coloured stickers, IC6 under worn paper. They are that board's
+           own, not the factory's. */
+        .parts .sticker.orange { fill: #fb5f4a; }
+        .parts .sticker.yellow { fill: #f4df6a; }
+        .parts .sticker.green  { fill: #82be74; }
+        .parts .sticker-text { font-family: "Courier New", Courier, monospace; font-weight: 700; }
+        .parts .sticker-text.orange { fill: #c7311b; }
+        .parts .sticker-text.yellow { fill: #9f8b18; }
+        .parts .sticker-text.green  { fill: #326f25; }
+        .parts .paper-label { fill: #857b7d; }
+
+        /* Axial parts: a wire, a pad at each end and a body. The resistor
+           is drawn once in <defs> and reused; a rule reaches its shapes
+           only by their own class names, since <defs> is outside .parts,
+           and its body and bands take their colours from custom
+           properties set by the class on each <use>. */
+        .parts .lead, .res-lead { fill: none; stroke: #cfcbd2; stroke-width: 0.35; stroke-linecap: round; }
+        .parts .lead.thick { stroke-width: 0.9; }
+        .parts .pad, .res-pad { fill: #b9c9cc; }
+        .res-body  { fill: var(--res-body, #dbc1a8); }
+        .res-band.b1 { fill: var(--b1, #4a2a16); }
+        .res-band.b2 { fill: var(--b2, #4a2a16); }
+        .res-band.b3 { fill: var(--b3, #4a2a16); }
+        .res-light { fill: rgba(255, 255, 255, 0.3); }
+        .res-shade { fill: rgba(0, 0, 0, 0.2); }
+        .parts .r-cream-red   { --b1: #9a3a2c; --b2: #dbc1a8; --b3: #dbc1a8; }
+        .parts .r-cream-red3  { --b1: #9a3a2c; --b2: #9a3a2c; --b3: #9a3a2c; }
+        .parts .r-cream-brown { --b1: #4a2a16; --b2: #9a3a2c; --b3: #4a2a16; }
+        .parts .r-cream-dark  { --b1: #2d1701; --b2: #2d1701; --b3: #2d1701; }
+        .parts .r-270k        { --b1: #a03a2c; --b2: #6a4a9a; --b3: #dbb662; }
+        .parts .r-tan-red     { --res-body: #b09a82; --b1: #9a3a2c; --b2: #c2553a; --b3: #9a3a2c; }
+        .parts .r-pink        { --res-body: #d08a6a; --b1: #d08a6a; --b2: #d08a6a; --b3: #d08a6a; }
+        .parts .r-orange      { --res-body: #c2553a; --b1: #e2c060; --b2: #c2553a; --b3: #e2c060; }
+        .parts .r-ladder      { --res-body: #cbb19c; --b1: #4a2a16; --b2: #6f7a3a; --b3: #4a2a16; }
+        .parts .r-tan-white   { --res-body: #9e8b78; --b1: #9a3a2c; --b2: #e9e2d6; --b3: #9a3a2c; }
+        .parts .r-white-orange { --res-body: #e6dccb; --b1: #c85a32; --b2: #c85a32; --b3: #e6dccb; }
+        .parts .glass-diode { fill: #8a3426; }
+        .parts .diode-black { fill: #1d1b20; }
+        .parts .diode-band  { fill: #8f8f96; }
+
+        /* Capacitors */
+        .bead       { fill: #1682a0; }
+        .bead-light { fill: #4fd1e9; }
+        .parts .disc-orange { fill: #a3602f; }
+        .parts .disc-brown  { fill: #34261e; }
+        .parts .disc-brown.light { fill: #4a3426; }
+        .parts .film        { fill: #59b0cb; }
+        .parts .elco-sleeve { fill: #121717; }
+        .parts .elco-top    { fill: url(#g-captop); }
+        .parts .elco-score  { fill: none; stroke: rgba(0, 0, 0, 0.16); stroke-width: 0.3; }
+
+        /* Metal: the crystal can, the power tabs, the test point */
+        .parts .can       { fill: url(#g-metal); stroke: #8d8992; stroke-width: 0.25; }
+        .parts .can-face  { fill: url(#g-metal-face); }
+        .parts .tab       { fill: url(#g-tin); }
+        .parts .tab-rivet { fill: #e9e9ee; stroke: #7d848f; stroke-width: 0.3; }
+        .parts .testpoint { fill: #c1bdba; }
+        .parts .wire-link { fill: none; stroke: #bbbcb8; stroke-width: 0.7; stroke-linecap: round; }
+
+        /* TO-92 transistors seen from above, flat face toward the top edge. */
+        .parts .to92      { fill: #41424b; }
+        .parts .to92-face { fill: none; stroke: rgba(255, 255, 255, 0.16); stroke-width: 0.35; stroke-linecap: round; }
+
+        /* Pin headers: a black strip with a row of tinned posts, drawn as
+           one path of round-capped dots. */
+        .parts .header     { fill: #191c21; }
+        .parts .header-pin { fill: none; stroke: #d6d2d9; stroke-width: 0.95; stroke-linecap: round; }
+        .parts .silk-on-part { fill: none; stroke: var(--silk); stroke-width: 0.4; }
+
+        /* The regulator: aluminium plate, blue-black finned heatsink, and
+           the TO-220 bolted through both. The cut-out in the plate shows
+           the board, where the three leads are soldered. */
+        .parts .plate         { fill: url(#g-plate); }
+        .parts .plate-stain   { fill: url(#g-stain); }
+        .parts .plate-cutout  { fill: #0a3526; }
+        .parts .heatsink      { fill: #2b3147; stroke: #454c66; stroke-width: 0.2; }
+        .parts .heatsink-hole { fill: #b8b5c0; }
+        .parts .reg-tab   { fill: #bfbac3; }
+        .parts .reg-nut   { fill: #b0a4a8; stroke: #6f676c; stroke-width: 0.25; }
+        .parts .reg-screw { fill: #d9d5dc; stroke: #6f676c; stroke-width: 0.25; }
+        .parts .reg-body  { fill: #25202c; }
+
+        /* --- Phase LEDs D4-D7 ------------------------------------------
+           Four 5 mm red diffused LEDs in a row, 0.3 inch apart, each with
+           its designator printed beneath. They belong to the cassette
+           interface: the manual's Fig. 26 has D4 for the leader, D5 for
+           the text, D6 for recording and D7 for reading. On the manual's
+           schematic (page 28) an LED lights only while Port B bit 7 and
+           its own Port A bit are both high, and the monitor never sets
+           that bit, so dark is how they stand on a board that is merely
+           idling. Nothing in the emulator drives them either: the
+           cassette is file-backed and the routines that would light them
+           are trapped. The lit style is here for whenever something
+           does.
+           --------------------------------------------------------------- */
+
+        .led-bank { display: flex; }
+
+        .led-slot {
+            width: 2.56cqw;             /* the 0.3 inch pitch */
+            text-align: center;
         }
 
-        /* --- Transformer ---------------------------------------------- */
-
-        .transformer {
-            border-radius: 0.25cqw;
-            background:
-                linear-gradient(150deg, #4a4d52 0%, #2b2d31 45%, #17181b 100%);
-            box-shadow:
-                inset 0 0 0 0.3cqw #9ca1a6,
-                inset 0 0.15cqw 0 rgba(255,255,255,0.18),
-                0 0.6cqw 1.1cqw rgba(0,0,0,0.45);
-        }
-
-        .transformer::after {
-            content: "TRAFO";
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.9cqw;
-            letter-spacing: 0.14em;
-            color: #b6bcc2;
-        }
-
-        /* --- Electrolytic capacitors ---------------------------------- */
-
-        .cap {
-            border-radius: 50%;
-            background:
-                radial-gradient(circle at 38% 30%, #3b444e 0%, #1b222a 62%, #080c11 100%);
-            box-shadow: 0 0.4cqw 0.8cqw rgba(0,0,0,0.45);
-        }
-
-        .cap::after {
-            content: "";
-            position: absolute;
-            inset: 24%;
-            border-radius: 50%;
-            background:
-                linear-gradient(90deg, transparent 46%, rgba(255,255,255,0.22) 46% 54%, transparent 54%),
-                linear-gradient(0deg,  transparent 46%, rgba(255,255,255,0.22) 46% 54%, transparent 54%);
-        }
-
-        /* --- Regulator + heatsink ------------------------------------- */
-
-        .heatsink {
-            border-radius: 0.2cqw;
-            background:
-                repeating-linear-gradient(90deg, #6d7075 0 0.3cqw, #43464a 0.3cqw 0.6cqw);
-            box-shadow: 0 0.4cqw 0.8cqw rgba(0,0,0,0.4);
-        }
-
-        /* --- Axial resistors ------------------------------------------ */
-
-        .res {
-            height: 0.85cqw;
-            border-radius: 0.42cqw;
-            background:
-                linear-gradient(90deg, transparent 20%, #6b3f22 20% 27%, transparent 27%),
-                linear-gradient(90deg, transparent 34%, #1b1b1b 34% 41%, transparent 41%),
-                linear-gradient(90deg, transparent 48%, #a8362a 48% 55%, transparent 55%),
-                linear-gradient(180deg, #d8c08c 0%, #b99a63 55%, #7d6539 100%);
-            box-shadow: 0 0.15cqw 0.3cqw rgba(0,0,0,0.35);
-        }
-
-        .res::before, .res::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            width: 0.7cqw;
-            height: 0.16cqw;
-            transform: translateY(-50%);
-            background: #c9c9c9;
-        }
-        .res::before { left: -0.65cqw; }
-        .res::after  { right: -0.65cqw; }
-
-        /* --- Ceramic disc capacitors ---------------------------------- */
-
-        .disc {
-            width: 1.1cqw;
-            height: 1.1cqw;
-            border-radius: 45% 45% 40% 40%;
-            background: radial-gradient(circle at 38% 30%, #cfd8c0 0%, #8d9a72 55%, #5c6647 100%);
-            box-shadow: 0 0.15cqw 0.3cqw rgba(0,0,0,0.35);
-        }
-
-        /* --- Crystal can ---------------------------------------------- */
-
-        .xtal {
-            border-radius: 0.5cqw;
-            background: linear-gradient(160deg, #d5d8dc 0%, #9ba0a6 45%, #666b71 100%);
-            box-shadow: inset 0 0 0 0.12cqw #55595e, 0 0.3cqw 0.6cqw rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75cqw;
-            color: #3a3e42;
-            letter-spacing: 0.05em;
-        }
-
-        /* --- DIP packages --------------------------------------------- */
-
-        .dip {
-            border-radius: 0.15cqw;
-            background: linear-gradient(180deg, var(--dip-top) 0%, var(--dip) 22%, #0c0c0f 100%);
-            box-shadow:
-                0 0.35cqw 0.7cqw rgba(0,0,0,0.45),
-                inset 0 0.1cqw 0 rgba(255,255,255,0.08);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* notch at pin 1 */
-        .dip::before {
-            content: "";
-            position: absolute;
-            left: 0.35cqw;
-            top: 50%;
-            width: 0.5cqw;
-            height: 0.9cqw;
-            transform: translateY(-50%);
-            border-radius: 0 0.45cqw 0.45cqw 0;
-            background: #0a0a0c;
-        }
-
-        .dip span {
-            font-size: 0.85cqw;
-            letter-spacing: 0.08em;
-            color: var(--dip-ink);
-            white-space: nowrap;
-        }
-
-        .dip.wide span { font-size: 1.05cqw; }
-
-        /* gold pins down both long sides */
-        .dip .pins {
-            position: absolute;
-            left: 0.2cqw;
-            right: 0.2cqw;
-            height: 0.35cqw;
-            background: repeating-linear-gradient(90deg,
-                var(--gold) 0 0.35cqw, transparent 0.35cqw 0.95cqw);
-        }
-        .dip .pins.top    { top: -0.3cqw; }
-        .dip .pins.bottom { bottom: -0.3cqw; }
-
-        /* IC15 is a 40-pin 8255: twenty pins per side, independent of board scale.
-           See the original manual's 8255A pinout (PDF page 76). */
-        .dip.io-8255 .pins {
-            background: linear-gradient(90deg, var(--gold) 0 40%, transparent 40% 100%);
-            background-size: 5% 100%;
-            background-repeat: repeat-x;
-        }
-
-        /* --- Bus indicator LEDs --------------------------------------- */
-
-        .led-bank {
-            display: flex;
-            gap: 1.1cqw;
-            align-items: flex-end;
-        }
-
-        .led-slot { text-align: center; }
-
+        /* A dome seen from above, as on unit B: deep red, darker toward
+           the rim, with the small window highlight at the upper left
+           where the light comes from. */
         .led {
-            width: 0.95cqw;
-            height: 0.95cqw;
+            width: 1.56cqw;
+            height: 1.56cqw;
             margin: 0 auto;
             border-radius: 50%;
-            background: radial-gradient(circle at 35% 30%, #7a2018 0%, #4a120c 60%, #240805 100%);
-            box-shadow: inset 0 0 0 0.1cqw rgba(0,0,0,0.5);
-            transition: background 90ms linear, box-shadow 90ms linear;
+            background:
+                radial-gradient(circle at 31% 43%, rgba(255, 232, 228, 0.92) 0 4.5%, rgba(255, 190, 190, 0.35) 9%, rgba(255, 170, 170, 0) 17%),
+                radial-gradient(circle at 46% 44%, #b3141f 0%, #a00d1c 38%, #850714 72%, #5e0810 100%);
+            box-shadow:
+                0.07cqw 0.12cqw 0.18cqw rgba(0, 0, 0, 0.55),
+                inset 0 0 0 0.06cqw rgba(50, 0, 6, 0.5);
         }
 
+        /* Lit, the same deep red as the display segments (see display.js),
+           with the near-white centre and the halo that the lit LED shows
+           in the unit A photograph. */
         .led.on {
-            background: radial-gradient(circle at 35% 30%, #ffd8c0 0%, #ff3a12 45%, #c01000 100%);
-            box-shadow: 0 0 1.4cqw rgba(255, 60, 20, 0.85), inset 0 0 0 0.1cqw rgba(0,0,0,0.3);
+            background: radial-gradient(circle at 47% 45%, #fffbe6 0%, #fff0c8 15%, #ff7a86 30%, #ff1f45 55%, #d0002f 100%);
+            box-shadow:
+                0 0 0.45cqw 0.12cqw rgba(255, 31, 69, 0.9),
+                0 0 1.7cqw 0.45cqw rgba(255, 31, 69, 0.42),
+                inset 0 0 0 0.06cqw rgba(120, 0, 20, 0.3);
         }
 
         .led-slot b {
             display: block;
-            margin-top: 0.35cqw;
-            font-size: 0.85cqw;
-            font-weight: 400;
-            letter-spacing: 0.05em;
-            color: var(--silk-dim);
+            margin-top: 0.22cqw;
+            font-family: var(--silk-font);
+            font-size: 0.74cqw;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--silk);
         }
 
-        /* --- Seven-segment display block ------------------------------ */
+        /* --- Run lamp, on the bench panel -------------------------------
+           The emulator can pause its processor, which the board cannot.
+           That state used to be shown by a RUN LED drawn on the board,
+           where the real board has none; it now sits with the processor
+           registers. main.js only switches classes on the lamp, "on" and
+           "halted", so the word beside it is supplied here.
+           --------------------------------------------------------------- */
 
-        .display-block {
-            padding: 0.55cqw 0.7cqw;
-            border-radius: 0.2cqw;
-            background: linear-gradient(180deg, #232329 0%, #121216 30%, #050506 100%);
-            box-shadow:
-                0 0.5cqw 1cqw rgba(0,0,0,0.5),
-                inset 0 0.12cqw 0 rgba(255,255,255,0.09);
+        .run-lamp {
+            display: inline-block;
+            width: 0.62em;
+            height: 0.62em;
+            margin-right: 0.45em;
+            border-radius: 50%;
+            background: #c9bea9;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22);
         }
 
-        .display-block .pins {
-            position: absolute;
-            left: 0.6cqw;
-            right: 0.6cqw;
-            height: 0.35cqw;
-            background: repeating-linear-gradient(90deg,
-                var(--gold) 0 0.4cqw, transparent 0.4cqw 1.15cqw);
+        .run-lamp.on {
+            background: #3d9a4f;
+            box-shadow: 0 0 0.35em rgba(61, 154, 79, 0.7), inset 0 0 0 1px rgba(0, 0, 0, 0.18);
         }
-        .display-block .pins.top    { top: -0.28cqw; }
-        .display-block .pins.bottom { bottom: -0.28cqw; }
 
-        /* display.js injects its SVG here */
-        #display { line-height: 0; }
+        .run-lamp + .run-word::after { content: "stopped"; }
+        .run-lamp.on + .run-word::after { content: "running"; }
 
+        /* The emulator's processor stops itself on an opcode it does not
+           implement, while the emulator goes on running so that RES still
+           works. That is neither "running" nor "stopped", and it wins over
+           both: nothing executes again until RES or a cold reset. */
+        .run-lamp.halted {
+            background: #cf8a1c;
+            box-shadow: 0 0 0.35em rgba(207, 138, 28, 0.7), inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+        }
+        .run-lamp.halted + .run-word::after { content: "halted"; }
+
+        /* --- Seven-segment displays -----------------------------------
+           The six packages are drawn by display.js. This element only
+           places them: it is as wide as the four address packages, the
+           gap and the two data packages, all measured on unit B.
+           --------------------------------------------------------------- */
+
+        .display-block { line-height: 0; }
+
+        /* display.js injects its SVG here. overflow stays visible so the
+           shadow each package throws on the board is not cut off at the
+           edge of the drawing. */
         .amico-display {
+            display: block;
             width: 100%;
             height: auto;
-            display: block;
+            overflow: visible;
         }
 
         /* --- Keys ------------------------------------------------------
-           On the real board the legend is silkscreened inside a printed
-           box and the keycap sits on top of it, blank. Reproduced here,
-           with the legend kept clear of the cap so it stays readable.
+           Both photographed boards (unit A and unit B) carry the legend in
+           white on the cap itself. Each switch stands in a silkscreened
+           square; the cap is a little smaller than the square, so a thin
+           frame of ink shows around it. The sixteen hex keys and the seven
+           function keys sit on one pitch, with their bottom rows in line.
            --------------------------------------------------------------- */
 
-        .keyfield { display: grid; }
-
-        .keyfield.hex  { grid-template-columns: repeat(4, 1fr); }
-        .keyfield.func { grid-template-columns: repeat(4, 1fr); }
-
-        .keycell {
-            position: relative;
-            aspect-ratio: 1 / 0.92;
-            box-shadow: inset 0 0 0 0.12cqw rgba(230, 236, 228, 0.62);
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
+        .keyfield {
+            display: grid;
+            grid-template-columns: repeat(4, var(--key-pitch));
+            grid-auto-rows: var(--key-pitch);
         }
 
-        .keycell > .legend {
+        .keycell, .switch-cell { position: relative; }
+
+        /* The printed square under each switch. On unit B the squares are
+           separate, with a gap between neighbours, and barely larger than
+           the caps: the photograph only shows them where the camera looks
+           past a cap's edge. Seen from straight above, that is a hairline
+           of ink around each cap. */
+        .keycell::before {
+            content: "";
             position: absolute;
-            bottom: 0.25cqw;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 1.15cqw;
-            letter-spacing: 0.05em;
-            color: var(--silk);
+            inset: 2.4%;
+            border: 0.07cqw solid var(--silk-line);
+            border-radius: 0.06cqw;
             pointer-events: none;
         }
 
+        /* The cap itself is the SVG inside the button: see #keycap. The
+           button only carries the hit area, the focus ring and the shadow
+           the cap throws on the board. Light falls from the upper left,
+           as it does in the unit B photograph, so the shadow lands lower
+           right. */
         .key {
             position: absolute;
-            top: 7%;
-            left: 11%;
-            width: 78%;
-            height: 64%;
+            inset: 4%;
             padding: 0;
             border: none;
-            border-radius: 0.35cqw;
+            border-radius: 7%;
+            background: none;
             cursor: pointer;
-            font-size: 0;
-            color: transparent;
+            box-shadow: 0.1cqw 0.17cqw 0.24cqw rgba(0, 0, 0, 0.6);
             transition: filter 80ms linear, box-shadow 80ms linear;
+            -webkit-tap-highlight-color: transparent;
         }
 
+        .key .keycap {
+            display: block;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Cap colours sampled from unit B: the dished face, the four
+           bevels as the light catches them, and the skirt that shows in
+           the gaps between caps. */
         .key-hex {
-            background: linear-gradient(178deg, #e05a4f 0%, var(--cap-red) 22%, #a8291f 78%, var(--cap-red-dark) 100%);
-            box-shadow:
-                0 0.45cqw 0 var(--cap-red-dark),
-                0 0.75cqw 0.9cqw rgba(0,0,0,0.4),
-                inset 0 0.18cqw 0.25cqw rgba(255,255,255,0.28);
+            --keycap-face:   #c61827;
+            --keycap-left:   #ec4a52;
+            --keycap-top:    #c0101c;
+            --keycap-right:  #a3050f;
+            --keycap-bottom: #a90813;
+            --keycap-edge:   #5e0508;
         }
 
         .key-func {
-            background: linear-gradient(178deg, #5b86d4 0%, var(--cap-blue) 22%, #244d92 78%, var(--cap-blue-dark) 100%);
-            box-shadow:
-                0 0.45cqw 0 var(--cap-blue-dark),
-                0 0.75cqw 0.9cqw rgba(0,0,0,0.4),
-                inset 0 0.18cqw 0.25cqw rgba(255,255,255,0.28);
+            --keycap-face:   #0c80b1;
+            --keycap-left:   #34a1d0;
+            --keycap-top:    #12689b;
+            --keycap-right:  #086c9b;
+            --keycap-bottom: #04629a;
+            --keycap-edge:   #03315a;
         }
 
-        .key:hover { filter: brightness(1.12); }
+        .keycap-face   { fill: var(--keycap-face); }
+        .keycap-left   { fill: var(--keycap-left); }
+        .keycap-top    { fill: var(--keycap-top); }
+        .keycap-right  { fill: var(--keycap-right); }
+        .keycap-bottom { fill: var(--keycap-bottom); }
+        .keycap-edge   { fill: var(--keycap-edge); }
 
-        /* main.js applies an inline translateY on press, so the pressed
-           state is carried by the shadow rather than a transform. */
+        /* Bright inner edge of the lit bevel, and the pale line the light
+           draws along the cap's upper and left rim. */
+        .keycap-ridge, .keycap-rim {
+            fill: none;
+            stroke: #fff;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .keycap-ridge { stroke-width: 1.3; stroke-opacity: 0.34; }
+        .keycap-rim   { stroke-width: 1.4; stroke-opacity: 0.42; }
+
+        /* Legends, measured on unit B: the lettering is a third of the
+           cap tall, with strokes about an eighth of that. Its proportions
+           sit between the two DIN cuts, the function names and A-F near
+           the condensed one and the digits near the regular one, so each
+           takes the closer face. The page's CSP allows no downloaded
+           font, so these are stacks of system faces, and every legend's
+           textLength pins its width so that a substitute face still fills
+           the space the printed legend does. The system DIN faces exist
+           only in bold, a little heavier than the print; a thin stroke in
+           the cap's own colour pares the strokes back, and being vector
+           it holds at any zoom. Sizes are in units of the 100 x 100 cap. */
+        .key .legend {
+            fill: #f6f0e9;
+            stroke: var(--keycap-face);
+            stroke-width: 0.8px;
+            font-family: "DIN Condensed", "Bahnschrift", "Roboto Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+            font-stretch: condensed;
+            font-weight: 700;
+            font-size: 46.3px;
+            text-anchor: middle;
+            text-rendering: geometricPrecision;
+        }
+
+        .key-hex .legend { font-size: 44.5px; }
+
+        .key .legend.digit {
+            stroke-width: 0.5px;
+            font-family: "DIN Alternate", "Bahnschrift", "Roboto", "Helvetica Neue", Arial, sans-serif;
+            font-stretch: normal;
+        }
+
+        .key .legend-arrow { fill: #f6f0e9; }
+
+        .key:hover { filter: brightness(1.07); }
+
+        /* main.js marks a pressed key, whether pressed with the mouse, a
+           finger or the computer keyboard, by setting an inline
+           translateY on its button. Keying the pressed look to that
+           inline style gives all three the same feedback without
+           touching the keyboard handling. */
         .key:active,
-        .key.is-down {
-            box-shadow:
-                0 0.1cqw 0 rgba(0,0,0,0.5),
-                0 0.2cqw 0.3cqw rgba(0,0,0,0.35),
-                inset 0 0.2cqw 0.4cqw rgba(0,0,0,0.35);
-            filter: brightness(0.94);
+        .key[style*="translateY"] {
+            box-shadow: 0.03cqw 0.05cqw 0.09cqw rgba(0, 0, 0, 0.65);
+            filter: brightness(0.9);
         }
 
         .key:focus-visible {
-            outline: 0.25cqw solid #ffe9a8;
-            outline-offset: 0.2cqw;
+            outline: 0.2cqw solid #ffe9a8;
+            outline-offset: 0.06cqw;
+            z-index: 1;
         }
 
-        /* --- NOR / SS slide switch ------------------------------------ */
+        /* --- NOR / SS slide switch --------------------------------------
+           The switch takes the place of a key above RES. What is printed
+           around it, measured on unit B in units of its cell: NOR and SS
+           along the top, NOR starting a little to the left of the cell,
+           and a box the switch sits in, as wide as the cell and three
+           fifths of its height. The switch body covers the left of the
+           box; the rest of the box is the dark slot the slider travels
+           into for SS.
+           --------------------------------------------------------------- */
 
-        .switch-cell {
-            position: relative;
-            box-shadow: inset 0 0 0 0.12cqw rgba(230, 236, 228, 0.62);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .switch-cell .legend {
+        .switch-silk {
             position: absolute;
-            top: 0.25cqw;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 0.4cqw;
-            font-size: 1cqw;
-            color: var(--silk);
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            pointer-events: none;
         }
 
+        .switch-silk text {
+            fill: var(--silk);
+            font-family: var(--silk-font);
+            font-weight: 700;
+            font-size: 24.6px;          /* cell units: a cap height of 2.3 mm */
+        }
+
+        .switch-silk rect {
+            fill: none;
+            stroke: var(--silk);
+            stroke-width: 2.6;
+        }
+
+        .switch-silk .slot { fill: #0b1f17; stroke: none; }
+
+        /* The switch itself: a white moulding with a pale blue slider,
+           ribbed for the fingernail, pushed to the left, which is NOR, and
+           a small red mark at the slider's free end. It is not wired to
+           anything in the emulator. */
         .slide-switch {
-            width: 60%;
-            height: 34%;
-            margin-top: 1cqw;
-            border-radius: 0.2cqw;
-            background: linear-gradient(180deg, #d9d5cc 0%, #a6a29a 60%, #6d6a63 100%);
-            box-shadow: inset 0 0 0 0.12cqw #4c4a45, 0 0.25cqw 0.4cqw rgba(0,0,0,0.35);
-            position: relative;
+            position: absolute;
+            left: 1%;
+            top: 34.7%;
+            width: 58%;
+            height: 43.5%;
+            border-radius: 0.08cqw;
+            background: linear-gradient(180deg, #f6f3ef 0%, #e2ded9 100%);
+            box-shadow: 0.07cqw 0.11cqw 0.17cqw rgba(0, 0, 0, 0.55);
+        }
+
+        .slide-switch::before {
+            content: "";
+            position: absolute;
+            left: 6%;
+            top: 15%;
+            width: 72%;
+            height: 70%;
+            border-radius: 0.07cqw;
+            background:
+                repeating-linear-gradient(90deg, transparent 0 17%, rgba(0, 70, 95, 0.4) 17% 22%, transparent 22% 33%),
+                linear-gradient(180deg, #5cc6da 0%, #37acc4 55%, #2a93ab 100%);
         }
 
         .slide-switch::after {
             content: "";
             position: absolute;
-            left: 8%;
-            top: 14%;
-            width: 34%;
-            height: 72%;
-            border-radius: 0.15cqw;
-            background: linear-gradient(180deg, #4a4741 0%, #23211e 100%);
-        }
-
-        /* --- Manufacturer silkscreen ---------------------------------- */
-
-        .maker {
-            display: flex;
-            align-items: center;
-            gap: 0.5cqw;
-            writing-mode: vertical-rl;
-            font-size: 1.15cqw;
-            letter-spacing: 0.16em;
-            color: var(--silk);
-        }
-
-        .maker .mark {
-            writing-mode: horizontal-tb;
-            padding: 0.15cqw 0.3cqw;
-            font-size: 1.1cqw;
-            font-weight: 700;
-            border: 0.12cqw solid var(--silk);
+            right: 7%;
+            top: 43%;
+            width: 9%;
+            height: 13%;
+            background: #c8323c;
         }
 
         /* ---------------------------------------------------------------
@@ -619,6 +750,25 @@
             color: #f1efe6;
         }
         .control-btn-primary:hover { background: #3a8047; }
+
+        /* How the six displays are drawn: two looks, see display.js. A pair
+           of buttons rather than one that flips, so the current choice is
+           always visible and announced by aria-pressed. */
+        .look-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin: -0.35rem 0 1.1rem;
+            font-size: 0.8rem;
+        }
+        .look-toggle .k { color: var(--ink-soft); margin-right: 0.2rem; }
+        .look-toggle .control-btn { flex: 0 1 auto; padding: 0.35rem 0.8rem; }
+        .look-toggle .control-btn[aria-pressed="true"] {
+            background: var(--ink-soft);
+            border-color: var(--ink);
+            color: var(--paper);
+            cursor: default;
+        }
 
         /* Keep format help next to the picker instead of hiding it in a tooltip. */
         .load-help { margin: 0 0 1.1rem; font-size: 0.8rem; line-height: 1.6; }
@@ -686,203 +836,505 @@
     <div class="board-scroll">
       <div class="pcb">
 
-        <!-- Copper routing -->
-        <svg class="traces" viewBox="0 0 1120 386" preserveAspectRatio="none" aria-hidden="true">
-            <g fill="none" stroke="#3cc472" stroke-width="1.6" stroke-opacity="0.42">
-                <path d="M52 40 H300 V96 H520 V150 H700"/>
-                <path d="M52 58 H286 V118 H520 V168 H700"/>
-                <path d="M52 76 H272 V140 H520 V186 H700"/>
-                <path d="M52 94 H258 V162 H500 V204 H700"/>
-                <path d="M330 30 H620 V70 H880"/>
-                <path d="M330 46 H606 V88 H880"/>
-                <path d="M300 300 H520 V262 H760"/>
-                <path d="M300 318 H506 V280 H760"/>
-                <path d="M120 300 H262 V336 H600"/>
-                <path d="M900 40 V120 H1040 V300"/>
-                <path d="M920 40 V132 H1020 V300"/>
-                <path d="M760 210 H1060"/>
-                <path d="M760 228 H1060"/>
-                <path d="M760 246 H1060"/>
+        <!-- Board artwork in millimetres (see .board-art). -->
+        <svg class="board-art" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <defs>
+                <!-- Part finishes. Each gradient runs across the part it fills. -->
+                <linearGradient id="g-ic"><stop offset="0" stop-color="#37323d"/><stop offset="0.5" stop-color="#2b2730"/><stop offset="1" stop-color="#1c1920"/></linearGradient>
+                <linearGradient id="g-ic-sheen"><stop offset="0" stop-color="#66657e"/><stop offset="0.5" stop-color="#56556b"/><stop offset="1" stop-color="#3d3c4d"/></linearGradient>
+                <linearGradient id="g-prom"><stop offset="0" stop-color="#504e60"/><stop offset="0.5" stop-color="#454353"/><stop offset="1" stop-color="#2f2d3a"/></linearGradient>
+                <linearGradient id="g-metal" x2="1" y2="1"><stop offset="0" stop-color="#f3f0f6"/><stop offset="0.5" stop-color="#d6d1d9"/><stop offset="1" stop-color="#a7a2ac"/></linearGradient>
+                <linearGradient id="g-metal-face" x2="1" y2="1"><stop offset="0" stop-color="#e9e5ec"/><stop offset="1" stop-color="#cbc6cf"/></linearGradient>
+                <linearGradient id="g-plate" x2="1" y2="1"><stop offset="0" stop-color="#cbc9d2"/><stop offset="0.5" stop-color="#b5b2bd"/><stop offset="1" stop-color="#a3a0ab"/></linearGradient>
+                <linearGradient id="g-stain"><stop offset="0" stop-color="#7e583c" stop-opacity="0.42"/><stop offset="1" stop-color="#7e583c" stop-opacity="0"/></linearGradient>
+                <linearGradient id="g-tin" x2="1" y2="1"><stop offset="0" stop-color="#bcc3cd"/><stop offset="1" stop-color="#959eab"/></linearGradient>
+                <radialGradient id="g-captop" cx="0.38" cy="0.34" r="0.75"><stop offset="0" stop-color="#fff"/><stop offset="0.6" stop-color="#e4e4ee"/><stop offset="1" stop-color="#bcbcc8"/></radialGradient>
+                <filter id="part-shadow" x="-2%" y="-6%" width="104%" height="112%">
+                    <feDropShadow dx="0.3" dy="0.45" stdDeviation="0.3" flood-color="#000" flood-opacity="0.5"/>
+                </filter>
+
+                <!-- An axial resistor, upright, drawn about its middle: body 1.95 x 7.2 mm,
+                     pads 5 mm either side. Reused with a transform and a colour class. -->
+                <g id="part-resistor">
+                    <path class="res-lead" d="M0,-5V5"/>
+                    <circle class="res-pad" cy="-5" r="0.7"/><circle class="res-pad" cy="5" r="0.7"/>
+                    <rect class="res-body" x="-0.98" y="-3.6" width="1.96" height="7.2" rx="0.95"/>
+                    <rect class="res-band b1" x="-0.98" y="-2.3" width="1.96" height="0.75"/>
+                    <rect class="res-band b2" x="-0.98" y="-1.05" width="1.96" height="0.75"/>
+                    <rect class="res-band b3" x="-0.98" y="0.2" width="1.96" height="0.75"/>
+                    <rect class="res-light" x="-0.75" y="-3.3" width="0.45" height="6.6" rx="0.22"/>
+                    <rect class="res-shade" x="0.45" y="-3.4" width="0.53" height="6.8" rx="0.26"/>
+                </g>
+                <!-- A ceramic bead capacitor seen end on. -->
+                <g id="part-bead"><circle class="bead" r="1.6"/><circle class="bead-light" cx="-0.5" cy="-0.55" r="0.5"/></g>
+
+                <path id="board-vias" d="M47.7,19.9h0M51.9,22.3h0M54,23.6h0M53.7,24.9h0M50.1,27h0M55.8,29.5h0M52.8,22.3h0M53.1,23.5h0M51.9,25.7h0M129.3,21.3h0M130.8,22.6h0M147.6,20.2h0M165,21.8h0M167.7,22.4h0M135.3,10.7h0M134.7,12.5h0M132.6,44.6h0M132.9,46.4h0M111.6,52.6h0M110.1,54.5h0M113.4,55.6h0M111.6,59.6h0M109.5,71h0M113.1,71h0M102.9,78.3h0M110.7,78.2h0M113.4,80.4h0M75,67.6h0M94.65,63.4h0M91.65,69.8h0M94.65,69.8h0M93.3,73.6h0M79.2,78h0M80.7,80.3h0M186.6,51h0M189.6,52.3h0M182.7,53.4h0M185.1,54.8h0M194.7,53.5h0M194.7,55.7h0M191.7,57.8h0M193.2,59.3h0M196.5,60.2h0M156.9,58.2h0M158.4,60.6h0M144,60.6h0M160.2,63.2h0M162.6,61.2h0M165,61.3h0M165,63.6h0M165,66.2h0M165,68.5h0M190.2,61.1h0M182.7,62.4h0M186.3,63.5h0M188.7,63.5h0M177.6,65.9h0M160.2,78.5h0M166.8,81.8h0M185.1,16.6h0M183.6,19.3h0M194.4,20.8h0M191.7,23.3h0M189,25.9h0M186.6,28.3h0M196.5,30.3h0M192.6,31.7h0M189.6,33h0M191.1,38.4h0M192,42.1h0M189,44.7h0M201.6,38.6h0M203.7,38.9h0M209.1,38.6h0M209.7,43h0M210,44.6h0M210,46h0M211.8,63.7h0M203.4,94.7h0"/>
+            </defs>
+
+            <!-- Copper, under the solder mask. Generated from the trace bundles
+                 and via positions measured on unit B; see the note on .copper. -->
+            <g class="copper">
+                <rect class="pour" x="100.2" y="84" width="15.6" height="12.5"/>
+                <path class="trace rail" d="M43.5,1.6H56.7M57.9,20.9H105M115.2,26.6L118.8,24.4H184.2M157.2,24.4V27.6M169.8,24.4V27.6M183.9,24.4V27.6M73.5,97.6L154.2,97L162.3,89.8H169.8L175.8,95L203.1,94.8M77.7,79V54.5H85.5L87.9,56H100.8L103.2,57.7H115.5M108,62.5H115.8M100.2,82.8H114L115.8,81.5"/>
+                <path class="trace mid" d="M36.9,14.6H49.2M36.9,16.2H49.2M36.9,18.3H54.9M36.9,19.8H47.7M36.9,22.3H51.9M36.9,24.8H53.7M36.9,27.4H50.1M36.9,29.2H55.5M36.9,31.3H41.7M36.9,33.6H41.7M36.9,35H41.7M36.9,37.5H41.7M36.9,39.3H41.7M202.5,2L204.6,3V13.5"/>
+                <path class="trace" d="M19.2,6.6H13.5L3.21,12.2V62.2L5.46,64.4M19.2,7.5H14.55L4.35,12.9V61.5L6.6,63.7M19.2,8.4H15.6L5.79,13.6V60.8L8.04,63M47.1,3.4H55.5M47.1,5.1H55.5M47.1,6.9H55.5M58.5,26.5L64.2,23.6M80.85,25.3L83.7,24M80.85,27.85L83.7,26.55M80.85,30.4L83.7,29.1M80.85,32.95L83.7,31.65M80.85,35.5L83.7,34.2M80.85,38.05L83.7,36.75M80.85,40.6L83.7,39.3M80.85,43.15L83.7,41.85M80.85,45.7L83.7,44.4M80.85,48.25L83.7,46.95M80.85,50.8L83.7,49.5M80.85,53.35L83.7,52.05M103.5,1.9H149.1L152.1,4.3M110.1,4.6H118.2L120.3,2.8H147.6M113.7,10.9H135.6M115.5,17.5L120.9,19.7H147.9M112.8,19L118.2,21.2H150.9M111.3,20.4L116.7,22.6H168.9M114.6,26.3H135M114.6,26.6H116.7L118.5,27.5H135M114.6,28.85H135M114.6,29.2H116.7L118.5,30.1H135M114.6,31.3H135M114.6,31.7H116.7L118.5,32.6H135M114.6,33.8H135M114.6,34.2H116.7L118.5,35.1H135M114.6,36.35H135M114.6,36.7H116.7L118.5,37.6H135M114.6,38.9H135M114.6,39.3H116.7L118.5,40.2H135M114.6,41.4H135M114.6,41.85H116.7L118.5,42.75H135M145.5,27.7H148.5M145.5,30.25H148.5M145.5,32.8H148.5M145.5,35.35H148.5M145.5,37.9H148.5M145.5,40.45H148.5M145.5,43H148.5M145.5,45.55H148.5M145.5,48.1H148.5M158.1,28.5H161.4M158.1,29.72H161.4M158.1,30.94H161.4M158.1,32.16H161.4M158.1,33.38H161.4M158.1,34.59H161.4M158.1,35.81H161.4M158.1,37.03H161.4M158.1,38.25H161.4M158.1,39.47H161.4M158.1,40.69H161.4M158.1,41.91H161.4M158.1,43.12H161.4M158.1,44.34H161.4M158.1,45.56H161.4M158.1,46.78H161.4M158.1,48H161.4M135.6,46.55L139.8,50.75H169.8L171,49.75H186.6M135.6,47.9L139.8,52.1H169.8L171,51.1H189.6M135.6,48.85L139.8,53.05H169.8L171,52.05H182.7M135.6,49.7L139.8,53.9H169.8L171,52.9H194.7M135.6,50.8L139.8,55H169.8L171,54H185.1M135.6,51.65L139.8,55.85H169.8L171,54.85H194.7M135.6,52.55L139.8,56.75H169.8L171,55.75H191.7M135.6,53.9L139.8,58.1H169.8L171,57.1H193.2M135.6,55.25L139.8,59.45H169.8L171,58.45H196.5M135.6,56.2L139.8,60.4H158.4M165,61H190.2M165,63.6H188.7M165,66.2H177.6M165,68.4L168.9,68M162.6,61.3V74L165.6,77H170.7M155.7,73H158.1L164.7,78.6H170.7M134.4,60.5H144M134.7,70.6L141.3,63.4H145.2M211.86,50V13.2L220.5,4.6H288M213.24,50V12.9L220.5,5.6H276M214.59,50V12.5L220.5,6.6H261M215.85,50V12.25L220.5,7.6H249M217.29,50V11.8L220.5,8.6H237M218.76,50V11.3L220.5,9.6H225M218.76,50V52H232.8M217.29,50V54H232.8M215.85,50V59.8H232.8M214.59,50V62H224.7V65.4H232.8M213.24,50V63.7H210.9M211.86,50V60.4H201M222.3,60.4V44.8H232.8M226.5,66.5V92H232.8M226.5,72.7H232.8M226.5,85.9H232.8M220.2,19.4H295.5M220.2,21.85H295.5M220.2,24.5H295.5M220.2,27H295.5M220.2,29.5H295.5M220.2,32H295.5M220.2,34.7H295.5M198,16.6H185.1M198,19.3H183.6M198,20.8H194.4M198,23.3H191.7M198,25.9H189M198,28.3H186.6M198,30.5H196.5M198,33H189.6M207.6,38.6H209.1M207.6,43H209.7M207.6,44.6H210M207.6,46H210M192,42.1H197.1M189,44.7H197.1M178.5,47.4H197.1M178.5,49.5H197.1M75,53V67.6M90,59.6L92.4,57.9H96.9M90,60.9L92.4,59.2H96.9M90,62.2L92.4,60.5H96.9M90,63.5L92.4,61.8H96.9M90,66H96.9M90,71H96.9M90,72.2H96.9M108,64H115.8M108,66H115.8M115.8,59.6H111.6M115.8,71H109.5M115.8,71H113.1M157.2,9.7H170.7"/>
+                <!-- The 40-pad field at the left edge: ten slanting rows of four pads, each row on one run toward the processor. -->
+                <path class="trace mid" d="M7.8,17.64L19.35,11.87M7.8,22.76L19.35,16.98M7.8,27.88L19.35,22.11M7.8,33L19.35,27.23M7.8,38.12L19.35,32.35M7.8,43.24L19.35,37.47M7.8,48.36L19.35,42.59M7.8,53.48L19.35,47.71M7.8,58.6L17.2,53.9M7.8,63.72L17.2,59.02"/>
+                <path class="pad-ring" d="M15.57,13.8h0M12.99,15.08h0M10.35,16.36h0M7.8,17.64h0M15.57,18.92h0M12.99,20.2h0M10.35,21.48h0M7.8,22.76h0M15.57,24.04h0M12.99,25.32h0M10.35,26.6h0M7.8,27.88h0M15.57,29.16h0M12.99,30.44h0M10.35,31.72h0M7.8,33h0M15.57,34.28h0M12.99,35.56h0M10.35,36.84h0M7.8,38.12h0M15.57,39.4h0M12.99,40.68h0M10.35,41.96h0M7.8,43.24h0M15.57,44.52h0M12.99,45.8h0M10.35,47.08h0M7.8,48.36h0M15.57,49.64h0M12.99,50.92h0M10.35,52.2h0M7.8,53.48h0M15.57,54.76h0M12.99,56.04h0M10.35,57.32h0M7.8,58.6h0M15.57,59.88h0M12.99,61.16h0M10.35,62.44h0M7.8,63.72h0"/>
+                <path class="pad-hole" d="M15.57,13.8h0M12.99,15.08h0M10.35,16.36h0M7.8,17.64h0M15.57,18.92h0M12.99,20.2h0M10.35,21.48h0M7.8,22.76h0M15.57,24.04h0M12.99,25.32h0M10.35,26.6h0M7.8,27.88h0M15.57,29.16h0M12.99,30.44h0M10.35,31.72h0M7.8,33h0M15.57,34.28h0M12.99,35.56h0M10.35,36.84h0M7.8,38.12h0M15.57,39.4h0M12.99,40.68h0M10.35,41.96h0M7.8,43.24h0M15.57,44.52h0M12.99,45.8h0M10.35,47.08h0M7.8,48.36h0M15.57,49.64h0M12.99,50.92h0M10.35,52.2h0M7.8,53.48h0M15.57,54.76h0M12.99,56.04h0M10.35,57.32h0M7.8,58.6h0M15.57,59.88h0M12.99,61.16h0M10.35,62.44h0M7.8,63.72h0"/>
+                <!-- The square pad that marks pin 1 of the processor. -->
+                <rect class="pad-square" x="17.85" y="2.4" width="1.35" height="1.1"/>
+                <use href="#board-vias" class="via-ring"/>
+                <use href="#board-vias" class="via-hole"/>
             </g>
-            <g fill="#d3a044" fill-opacity="0.75">
-                <circle cx="300" cy="96" r="3.2"/><circle cx="520" cy="150" r="3.2"/>
-                <circle cx="286" cy="118" r="3.2"/><circle cx="520" cy="168" r="3.2"/>
-                <circle cx="272" cy="140" r="3.2"/><circle cx="520" cy="186" r="3.2"/>
-                <circle cx="620" cy="70" r="3.2"/><circle cx="606" cy="88" r="3.2"/>
-                <circle cx="520" cy="262" r="3.2"/><circle cx="506" cy="280" r="3.2"/>
-                <circle cx="1040" cy="120" r="3.2"/><circle cx="1020" cy="132" r="3.2"/>
-                <circle cx="262" cy="336" r="3.2"/>
+
+            <!-- Mounting holes: the four corners and the middle of each long edge. -->
+            <g class="holes">
+                <circle class="hole-ring" cx="4.8" cy="4.2" r="2.1"/><circle class="hole" cx="4.8" cy="4.2" r="1.4"/>
+                <circle class="hole-ring" cx="5.1" cy="96.6" r="2.1"/><circle class="hole" cx="5.1" cy="96.6" r="1.4"/>
+                <circle class="hole-ring" cx="165" cy="4.2" r="2.1"/><circle class="hole" cx="165" cy="4.2" r="1.55"/>
+                <circle class="hole-ring" cx="165" cy="94.9" r="2.1"/><circle class="hole" cx="165" cy="94.9" r="1.45"/>
+                <circle class="hole-ring" cx="294.81" cy="3.85" r="2.1"/><circle class="hole" cx="294.81" cy="3.85" r="1.55"/>
+                <circle class="hole-ring" cx="294.75" cy="95.0" r="2.1"/><circle class="hole" cx="294.75" cy="95.0" r="1.6"/>
+            </g>
+
+            <g class="silk">
+                <!-- The maker's mark runs up the right-hand edge and reads from
+                     the bottom. It is drawn upright here, from the lower left
+                     corner of the boxed monogram, and turned: the monogram, an
+                     S under the roof of an L; A.S.EL beside it; AMICO 2000
+                     beneath; and 1 and 79 further along the same line. -->
+                <g transform="translate(288.84 86.98) rotate(-90)">
+                    <rect class="silk-line" x="0.375" y="0.375" width="6.07" height="5.28" stroke-width="0.75"/>
+                    <path class="silk-line" d="M1.15,1.03 H4.55 V4.7 H5.6" stroke-width="0.6"/>
+                    <text x="2.5" y="5.12" font-size="4.5" text-anchor="middle" textLength="2.2" lengthAdjust="spacingAndGlyphs">S</text>
+                    <text x="7.63" y="5.43" font-size="5.3" textLength="14.05" lengthAdjust="spacingAndGlyphs">A.S.EL</text>
+                    <text x="1.7" y="9.36" font-size="3.3" textLength="19.28" lengthAdjust="spacingAndGlyphs">AMICO 2000</text>
+                    <text x="38.38" y="9.36" font-size="3.07">1</text>
+                    <text x="43.13" y="9.36" font-size="3.07" textLength="4.05" lengthAdjust="spacingAndGlyphs">79</text>
+                </g>
+                <!-- A plain bar of ink in the lower right corner. -->
+                <rect x="291.6" y="99" width="7.5" height="0.8"/>
+
+                <!-- Left third: the pad field with its count, the crystal, pin-1 dots, and the power corner. -->
+                <rect class="silk-line" x="5.25" y="12" width="12.9" height="54" stroke-width="0.36"/>
+                <text x="1.5" y="66.2" font-size="2.65" textLength="3.3" lengthAdjust="spacingAndGlyphs">40</text>
+                <rect class="silk-line" x="41.85" y="30.5" width="18.15" height="22" rx="0.8" stroke-width="0.36"/>
+                <circle class="" cx="62.1" cy="22.85" r="0.75"/><circle class="" cx="82.6" cy="22.65" r="0.55"/>
+                <rect class="silk-line" x="18.45" y="54.4" width="4.65" height="10.6" rx="0.6" stroke-width="0.36"/>
+                <path class="silk-line" stroke-width="0.36" d="M14.25,72.8H17.85V85.4H14.25ZM14.25,83.6H17.85"/>
+                <rect class="" x="6.9" y="90" width="3" height="1.1"/>
+                <text x="16.8" y="86.6" font-size="2.8" textLength="4.8" lengthAdjust="spacingAndGlyphs">TP1</text><text x="16.5" y="89.2" font-size="2.65" textLength="3.6" lengthAdjust="spacingAndGlyphs">C1</text>
+                <text x="79.8" y="83" font-size="2.5" textLength="5.1" lengthAdjust="spacingAndGlyphs">TP2</text><text x="79.5" y="87.5" font-size="2.4" textLength="3.6" lengthAdjust="spacingAndGlyphs">C2</text>
+                <text x="73.8" y="88.3" font-size="2.6">+</text>
+
+                <!-- Centre: the two headers and their legends, footprints, pin marks. -->
+                <rect class="silk-line" x="110.61" y="5.35" width="26.4" height="6.65" stroke-width="0.36"/><path d="M111.6,9.6L113.4,10.5L111.6,11.4Z"/>
+                <rect class="silk-line" x="140.43" y="6.2" width="8.79" height="3.7" stroke-width="0.36"/><path d="M147.2,10.1H149.2L148.2,11.5Z"/>
+                <text x="139.5" y="1.75" font-size="2.3" textLength="10.8" lengthAdjust="spacingAndGlyphs">RECORD</text>
+                <text x="140.07" y="7.2" font-size="4.05" textLength="1.71" lengthAdjust="spacingAndGlyphs">IN</text><text x="142.14" y="5.9" font-size="4.05" textLength="3.3" lengthAdjust="spacingAndGlyphs">OUT</text><text x="145.92" y="7.1" font-size="4.2" textLength="3.69" lengthAdjust="spacingAndGlyphs">GND</text>
+                <rect class="silk-line" x="106.5" y="16" width="10.2" height="5.6" rx="0.6" stroke-width="0.36"/>
+                <rect class="silk-line" x="143.55" y="15" width="6.6" height="3.2" stroke-width="0.36"/>
+                <rect class="" x="157.2" y="15.2" width="0.6" height="0.6"/><rect class="" x="165.3" y="15.2" width="0.6" height="0.6"/><rect class="" x="172.8" y="15.2" width="0.6" height="0.6"/><rect class="" x="180.3" y="15.2" width="0.6" height="0.6"/>
+                <rect class="" x="108.65" y="24.9" width="1.1" height="0.8"/><rect class="" x="134" y="25" width="1.1" height="0.8"/><rect class="" x="139.85" y="24.9" width="1.1" height="0.8"/>
+                <rect class="" x="123.6" y="43.7" width="1.95" height="1.6"/>
+                <rect class="silk-line" x="141.9" y="63.9" width="3" height="10" stroke-width="0.36"/>
+                <rect class="silk-line" x="138.81" y="71.9" width="3" height="9.4" stroke-width="0.36"/>
+                <rect class="silk-line" x="135" y="71.9" width="2.4" height="1.5" stroke-width="0.36"/>
+                <text x="148.8" y="59.8" font-size="1.7" textLength="3" lengthAdjust="spacingAndGlyphs">20</text><circle class="" cx="144.9" cy="83.9" r="0.5"/>
+
+                <!-- Right: the outline of each digit transistor with TR above it, and the marks by the display decoder. -->
+                <path class="silk-line" stroke-width="0.36" d="M224.81,9.8V11.6A4.2,2.6 0 0 0 233.2,11.6V9.8M236.55,9.8V11.6A4.2,2.6 0 0 0 244.95,11.6V9.8M248.25,9.8V11.6A4.2,2.6 0 0 0 256.65,11.6V9.8M260.19,9.8V11.6A4.2,2.6 0 0 0 268.59,11.6V9.8M275.55,9.8V11.6A4.2,2.6 0 0 0 283.95,11.6V9.8M287.6,9.8V11.6A4.2,2.6 0 0 0 296,11.6V9.8"/>
+                <text x="226.8" y="9.4" font-size="1.7" textLength="3.2" lengthAdjust="spacingAndGlyphs">TR</text><text x="238.95" y="9.4" font-size="1.7" textLength="3.2" lengthAdjust="spacingAndGlyphs">TR</text><text x="250.95" y="9.4" font-size="1.7" textLength="3.2" lengthAdjust="spacingAndGlyphs">TR</text><text x="262.65" y="9.4" font-size="1.7" textLength="3.2" lengthAdjust="spacingAndGlyphs">TR</text><text x="278.1" y="9.4" font-size="1.7" textLength="3.2" lengthAdjust="spacingAndGlyphs">TR</text><text x="290.25" y="9.4" font-size="1.7" textLength="3.2" lengthAdjust="spacingAndGlyphs">TR</text>
+                <rect class="silk-line" x="197.7" y="13.8" width="9.6" height="3.1" rx="0.5" stroke-width="0.36"/>
+                <text x="201.9" y="61.3" font-size="1.55" textLength="2.4" lengthAdjust="spacingAndGlyphs">16</text>
+            </g>
+
+            <!-- The parts, each where unit B has it. One soft shadow for the whole
+                 layer, down and to the right, away from the light. -->
+            <g class="parts" filter="url(#part-shadow)">
+                <!-- IC1: the 6502, 40 pins, soldered in. Its marking on unit B cannot be read, so only the part number is given. -->
+                <g class="ic sheen">
+                    <path class="pin l" d="M20.3,2.97V52.33"/>
+                    <path class="pin r" d="M35.35,2.97V52.33"/>
+                    <rect class="ic-body" x="21.15" y="1.8" width="13.35" height="51.7" rx="0.3"/>
+                    <path class="ic-notch" d="M27.02,1.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="2.1" text-anchor="middle" transform="translate(27.07 27.65) rotate(90)">MCS6502</text>
+                </g>
+                <!-- Beside the processor: an orange ceramic disc on edge, a glass diode and two small axial parts. -->
+                <rect class="disc-orange" x="39" y="3.4" width="3.9" height="8.1" rx="1.7"/>
+                <path class="lead" d="M45.53,3.3V13.5"/><circle class="pad" cx="45.53" cy="3.3" r="0.7"/><circle class="pad" cx="45.53" cy="13.5" r="0.7"/>
+                <rect class="glass-diode" x="44.55" y="5.3" width="1.95" height="6.3" rx="0.9"/>
+                <use href="#part-resistor" class="r-cream-red" transform="translate(49.8 13.8) scale(1 1.06)"/>
+                <use href="#part-resistor" class="r-orange" transform="translate(52.95 13.8) scale(1 1.06)"/>
+                <!-- IC2: 74LS00, socketed. Its place in the row is taken from the manual's parts list; the marking is not legible. -->
+                <g class="ic sheen socketed">
+                    <rect class="socket" x="55.4" y="0.75" width="9.8" height="19.7" rx="0.25"/>
+                    <path class="pin l" d="M56.3,2.43V18.77"/>
+                    <path class="pin r" d="M64.3,2.43V18.77"/>
+                    <rect class="ic-body" x="57.3" y="1.1" width="6" height="19" rx="0.3"/>
+                    <path class="ic-notch" d="M59.5,1.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.45" text-anchor="middle" transform="translate(59.78 10.6) rotate(90)">74LS00</text>
+                </g>
+                <!-- IC3: SN74LS14N, socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="68.39" y="0.75" width="9.47" height="20" rx="0.25"/>
+                    <path class="pin l" d="M69.29,2.58V18.92"/>
+                    <path class="pin r" d="M76.96,2.58V18.92"/>
+                    <rect class="ic-body" x="70.29" y="1.1" width="5.67" height="19.3" rx="0.3"/>
+                    <path class="ic-notch" d="M72.33,1.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(72.6 10.75) rotate(90)">SN74LS14N</text>
+                </g>
+                <!-- IC4: SN74LS38N, socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="80.9" y="0.75" width="9.62" height="20" rx="0.25"/>
+                    <path class="pin l" d="M81.8,2.58V18.92"/>
+                    <path class="pin r" d="M89.62,2.58V18.92"/>
+                    <rect class="ic-body" x="82.8" y="1.1" width="5.82" height="19.3" rx="0.3"/>
+                    <path class="ic-notch" d="M84.91,1.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(85.19 10.75) rotate(90)">SN74LS38N</text>
+                </g>
+                <!-- IC5: 74LS00, socketed. Identified like IC2. -->
+                <g class="ic sheen socketed">
+                    <rect class="socket" x="93.89" y="0.75" width="9.8" height="19.9" rx="0.25"/>
+                    <path class="pin l" d="M94.79,2.53V18.87"/>
+                    <path class="pin r" d="M102.79,2.53V18.87"/>
+                    <rect class="ic-body" x="95.79" y="1.1" width="6" height="19.2" rx="0.3"/>
+                    <path class="ic-notch" d="M97.99,1.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.45" text-anchor="middle" transform="translate(98.27 10.7) rotate(90)">74LS00</text>
+                </g>
+                <!-- Two blue ceramic beads between the sockets. -->
+                <use href="#part-bead" transform="translate(66.3 9.3)"/><use href="#part-bead" transform="translate(79.61 9.1)"/>
+                <!-- Q1: the 1 MHz crystal, a can lying flat, with its two leads running up to their pads. -->
+                <path class="lead" d="M45,31.6V26.6M57.9,31.6V26.6"/><circle class="pad" cx="45" cy="26.6" r="0.75"/><circle class="pad" cx="57.9" cy="26.6" r="0.75"/>
+                <rect class="can" x="42" y="31.2" width="17.7" height="19.8" rx="1.6"/>
+                <rect class="can-face" x="45.6" y="33.5" width="10.5" height="16" rx="0.9"/>
+                <!-- IC9: the monitor PROM, socketed. On unit B a round orange sticker carries its number, typed. -->
+                <g class="ic prom socketed">
+                    <rect class="socket" x="63.23" y="20.45" width="16.97" height="32.5" rx="0.25"/>
+                    <path class="pin l" d="M64.13,22.18V51.22"/>
+                    <path class="pin r" d="M79.3,22.18V51.22"/>
+                    <rect class="ic-body" x="65.13" y="20.8" width="13.17" height="31.8" rx="0.3"/>
+                    <path class="ic-notch" d="M70.92,20.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <circle class="mould" cx="72" cy="27.5" r="1"/><circle class="mould" cx="72" cy="47" r="1"/>
+                    <circle class="sticker orange" cx="71.79" cy="36.9" r="6.6"/>
+                    <text class="sticker-text orange" x="71.4" y="40.3" font-size="6" text-anchor="middle" textLength="7.5" lengthAdjust="spacingAndGlyphs" transform="rotate(-6 71.4 38.4)">IC9</text>
+                </g>
+                <!-- IC10: the cassette PROM, socketed, with a round yellow sticker. -->
+                <g class="ic prom socketed">
+                    <rect class="socket" x="83.72" y="20.25" width="16.64" height="32.9" rx="0.25"/>
+                    <path class="pin l" d="M84.62,22.18V51.22"/>
+                    <path class="pin r" d="M99.46,22.18V51.22"/>
+                    <rect class="ic-body" x="85.62" y="20.6" width="12.84" height="32.2" rx="0.3"/>
+                    <path class="ic-notch" d="M91.24,20.6a0.8,0.8 0 0 0 1.6,0z"/>
+                    <circle class="sticker yellow" cx="92.64" cy="36.8" r="6.5"/>
+                    <text class="sticker-text yellow" x="92.7" y="39.3" font-size="5.5" text-anchor="middle" textLength="10.2" lengthAdjust="spacingAndGlyphs" transform="rotate(-5 92.7 37.3)">ICIO</text>
+                </g>
+                <!-- A dark ceramic disc on edge at the foot of the pad field. -->
+                <rect class="disc-brown" x="18.75" y="55" width="3.75" height="9.5" rx="1.8"/>
+                <!-- Power comes in on two tinned tabs. The upper one is marked +. -->
+                <rect class="tab" x="4.35" y="68.2" width="8.7" height="8.4" rx="0.3"/><circle class="tab-rivet" cx="8.7" cy="72.3" r="1.35"/>
+                <rect class="tab" x="4.35" y="81" width="8.7" height="8.5" rx="0.3"/><circle class="tab-rivet" cx="8.7" cy="85.3" r="1.35"/>
+                <path class="silk-on-part" d="M5.2,72.35H6.8M6,71.55V73.15"/>
+                <!-- D1, the 1N4001 that guards against a reversed supply, and two resistors beside it. -->
+                <path class="lead" d="M15.23,72.6V85"/><rect class="diode-black" x="14.1" y="75.5" width="2.25" height="6.4" rx="0.4"/><rect class="diode-band" x="14.1" y="80.5" width="2.25" height="0.8"/>
+                <use href="#part-resistor" class="r-cream-brown" transform="translate(18.98 78.2) scale(1 1.17)"/>
+                <use href="#part-resistor" class="r-cream-brown" transform="translate(22.2 78.2) scale(1 1.17)"/>
+                <!-- C1 and C2, the 47 uF electrolytics, standing upright: a pale can top inside its black sleeve. -->
+                <circle class="elco-sleeve" cx="14.91" cy="94.3" r="4.93"/><circle class="elco-top" cx="14.91" cy="94.3" r="3.68"/><path class="elco-score" d="M13.41,94.3h3M14.91,92.8v3"/>
+                <circle class="elco-sleeve" cx="78.6" cy="93.3" r="5"/><circle class="elco-top" cx="78.6" cy="93.3" r="3.75"/><path class="elco-score" d="M77.1,93.3h3M78.6,91.8v3"/>
+                <!-- TR1, the 5 V regulator, on a black finned heatsink bolted over a plate of aluminium. The plate is discoloured to the right of the heatsink on unit B. -->
+                <rect class="plate" x="26.55" y="54.4" width="46.35" height="44.1" rx="1.5"/>
+                <rect class="plate-stain" x="58.8" y="55.5" width="12.9" height="30.5" rx="2.5"/>
+                <rect class="plate-cutout" x="44.4" y="88.2" width="9.6" height="4.6" rx="0.4"/>
+                <path class="heatsink" d="M41.7,54.5H57.15V84.5H41.7ZM34.5,55.4H42V60H34.5ZM57,55.4H66.4V60H57ZM37.5,61.8H42V65.7H37.5ZM57,61.8H66.4V65.7H57ZM34.5,67.6H42V71.7H34.5ZM57,67.6H66.4V71.7H57ZM37.5,73.9H42V77.6H37.5ZM57,73.9H66.4V77.6H57ZM34.5,79.3H42V83.7H34.5ZM57,79.3H66.4V83.7H57Z"/>
+                <circle class="heatsink-hole" cx="49.35" cy="62" r="1.65"/>
+                <path class="lead thick" d="M46.35,84V90.8M49.2,84V90.8M52.05,84V90.8"/><circle class="pad" cx="46.35" cy="90.8" r="0.95"/><circle class="pad" cx="49.2" cy="90.8" r="0.95"/><circle class="pad" cx="52.05" cy="90.8" r="0.95"/>
+                <rect class="reg-tab" x="43.2" y="68.5" width="11.1" height="6.8" rx="0.3"/>
+                <path class="reg-nut" d="M48.6,69.23L51,70.62V73.38L48.6,74.77L46.2,73.38V70.62Z"/><circle class="reg-screw" cx="48.6" cy="72" r="1.15"/>
+                <rect class="reg-body" x="43.5" y="75.3" width="10.8" height="8.9" rx="0.3"/>
+                <text class="ic-mark bright" x="48.9" y="80.2" font-size="1.5" text-anchor="middle">LM340T5</text><text class="ic-mark bright" x="48.9" y="82.6" font-size="1.7" text-anchor="middle">7805</text>
+                <!-- IC6: a decode PROM (74S287), socketed, under a worn paper label. -->
+                <g class="ic prom socketed">
+                    <rect class="socket" x="79.07" y="56.05" width="11.3" height="20.6" rx="0.25"/>
+                    <path class="pin l" d="M79.97,56.91V75.79"/>
+                    <path class="pin r" d="M89.47,56.91V75.79"/>
+                    <rect class="ic-body" x="80.97" y="56.4" width="7.5" height="19.9" rx="0.3"/>
+                    <path class="ic-notch" d="M83.92,56.4a0.8,0.8 0 0 0 1.6,0z"/>
+                    <rect class="paper-label" x="81.6" y="58.5" width="6.3" height="16.5" rx="0.3"/>
+                </g>
+                <!-- IC7: the other decode PROM, socketed, with a green sticker. -->
+                <g class="ic prom socketed">
+                    <rect class="socket" x="97.07" y="56.55" width="11.3" height="19.7" rx="0.25"/>
+                    <path class="pin l" d="M97.97,56.96V75.84"/>
+                    <path class="pin r" d="M107.47,56.96V75.84"/>
+                    <rect class="ic-body" x="98.97" y="56.9" width="7.5" height="19" rx="0.3"/>
+                    <path class="ic-notch" d="M101.92,56.9a0.8,0.8 0 0 0 1.6,0z"/>
+                    <rect class="sticker green" x="98.97" y="60.9" width="6.84" height="12.9" rx="1.2"/>
+                    <text class="sticker-text green" x="102.45" y="69.6" font-size="6.3" text-anchor="middle" textLength="6.4" lengthAdjust="spacingAndGlyphs">IC7</text>
+                </g>
+                <!-- TP2, a tinned test point, and a small glass diode by C2. -->
+                <circle class="testpoint" cx="77.25" cy="81.8" r="1.1"/>
+                <path class="lead" d="M87.08,86.6V96"/><rect class="glass-diode" x="86.55" y="89.5" width="1.05" height="3.5" rx="0.5"/>
+                <!-- A 14-pin TI part, socketed. Its marking reads LS30 or LS38; taken as IC8, the 74LS30, which the address decoding beside it needs. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="88.58" y="77.45" width="9.95" height="19.5" rx="0.25"/>
+                    <path class="pin l" d="M89.48,79.03V95.37"/>
+                    <path class="pin r" d="M97.63,79.03V95.37"/>
+                    <rect class="ic-body" x="90.48" y="77.8" width="6.15" height="18.8" rx="0.3"/>
+                    <path class="ic-notch" d="M92.76,77.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(93.03 87.2) rotate(90)">SN74LS30N</text>
+                </g>
+
+                <!-- Two resistors by the 10-pin header. -->
+                <use href="#part-resistor" class="r-tan-red" transform="translate(106.27 8.5)"/>
+                <use href="#part-resistor" class="r-cream-brown" transform="translate(109 8.5)"/>
+                <!-- The 10-pin header along the top edge: the expansion connector. -->
+                <rect class="header" x="111.45" y="6.4" width="24.57" height="3" rx="0.3"/>
+                <path class="header-pin" d="M112.65,7.9h0M115.17,7.9h0M117.69,7.9h0M120.21,7.9h0M122.73,7.9h0M125.25,7.9h0M127.77,7.9h0M130.29,7.9h0M132.81,7.9h0M135.33,7.9h0"/>
+                <!-- A dark ceramic disc lying flat by the header. -->
+                <ellipse class="disc-brown" cx="110.85" cy="17.05" rx="4.95" ry="2.75"/>
+                <!-- RECORD: the 3-pin header for the cassette recorder, IN, OUT and GND, with the resistors of that interface around it. -->
+                <rect class="header" x="141.3" y="7" width="7.5" height="2.4" rx="0.3"/>
+                <path class="header-pin" d="M142.5,8.2h0M145.05,8.2h0M147.6,8.2h0"/>
+                <use href="#part-resistor" class="r-cream-dark" transform="translate(144.75 12.3) rotate(90) scale(1 0.96)"/>
+                <use href="#part-resistor" class="r-tan-red" transform="translate(133.71 14.4) rotate(90) scale(1 0.75)"/>
+                <use href="#part-resistor" class="r-tan-red" transform="translate(133.4 17) rotate(90) scale(1 0.72)"/>
+                <!-- The row of resistors along the top edge, either side of the mounting hole. The seven on the right are banded red, violet, yellow. -->
+                <use href="#part-resistor" class="r-cream-dark" transform="translate(152.46 7.45) scale(1 1.15)"/>
+                <use href="#part-resistor" class="r-cream-dark" transform="translate(155.76 7.65)"/>
+                <use href="#part-resistor" class="r-cream-dark" transform="translate(171.8 7.75)"/>
+                <use href="#part-resistor" class="r-cream-dark" transform="translate(174.84 7.8) scale(1 1.14)"/>
+                <use href="#part-resistor" class="r-cream-red" transform="translate(179.3 7.8) scale(1 1.19)"/>
+                <use href="#part-resistor" class="r-cream-dark" transform="translate(182.5 7.55) scale(1 1.21)"/>
+                <use href="#part-resistor" class="r-270k" transform="translate(186.76 7.35) scale(1 1.26)"/>
+                <use href="#part-resistor" class="r-270k" transform="translate(189.16 7.35) scale(1 1.26)"/>
+                <use href="#part-resistor" class="r-270k" transform="translate(191.56 7.35) scale(1 1.26)"/>
+                <use href="#part-resistor" class="r-270k" transform="translate(194.27 7.35) scale(1 1.26)"/>
+                <use href="#part-resistor" class="r-270k" transform="translate(196.88 7.35) scale(1 1.26)"/>
+                <use href="#part-resistor" class="r-270k" transform="translate(199.27 7.35) scale(1 1.26)"/>
+                <use href="#part-resistor" class="r-270k" transform="translate(201.77 7.35) scale(1 1.26)"/>
+                <!-- IC11-14: the four 2114 static RAMs (which is which is not known). The first two are socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="103.73" y="25.55" width="10.97" height="22.2" rx="0.25"/>
+                    <path class="pin l" d="M104.63,25.94V47.36"/>
+                    <path class="pin r" d="M113.8,25.94V47.36"/>
+                    <rect class="ic-body" x="105.63" y="25.9" width="7.17" height="21.5" rx="0.3"/>
+                    <path class="ic-notch" d="M108.42,25.9a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(108.67 36.65) rotate(90)">MM2114N-3</text>
+                </g>
+                <!-- Second RAM, socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="135.74" y="25.45" width="10.13" height="22.2" rx="0.25"/>
+                    <path class="pin l" d="M136.64,25.84V47.26"/>
+                    <path class="pin r" d="M144.97,25.84V47.26"/>
+                    <rect class="ic-body" x="137.64" y="25.8" width="6.33" height="21.5" rx="0.3"/>
+                    <path class="ic-notch" d="M140,25.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(140.27 36.55) rotate(90)">MM2114N-3</text>
+                </g>
+                <!-- Third RAM, soldered in, a millimetre lower than its neighbour on unit B. -->
+                <g class="ic">
+                    <path class="pin l" d="M149.12,26.84V48.26"/>
+                    <path class="pin r" d="M157.33,26.84V48.26"/>
+                    <rect class="ic-body" x="149.97" y="26.8" width="6.51" height="21.5" rx="0.3"/>
+                    <path class="ic-notch" d="M152.42,26.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(152.69 37.55) rotate(90)">MM2114N-3</text>
+                </g>
+                <!-- Fourth RAM, soldered in, another millimetre lower. -->
+                <g class="ic">
+                    <path class="pin l" d="M161.78,27.84V49.26"/>
+                    <path class="pin r" d="M169.66,27.84V49.26"/>
+                    <rect class="ic-body" x="162.63" y="27.8" width="6.18" height="21.5" rx="0.3"/>
+                    <path class="ic-notch" d="M164.92,27.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.5" text-anchor="middle" transform="translate(165.18 38.55) rotate(90)">MM2114N-3</text>
+                </g>
+                <!-- A socketed 14-pin part whose marking is not legible. Taken as IC21, the 74LS38: on the manual's schematic its four gates drive the LEDs, which stand just above it. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="175.22" y="26.95" width="9.8" height="19.3" rx="0.25"/>
+                    <path class="pin l" d="M176.12,28.43V44.77"/>
+                    <path class="pin r" d="M184.12,28.43V44.77"/>
+                    <rect class="ic-body" x="177.12" y="27.3" width="6" height="18.6" rx="0.3"/>
+                    <path class="ic-notch" d="M179.32,27.3a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.45" text-anchor="middle" transform="translate(179.6 36.6) rotate(90)">74LS38</text>
+                </g>
+                <!-- IC15: the 8255, 40 pins, soldered in. Unit B carries a National INS8255N. -->
+                <g class="ic">
+                    <path class="pin l" d="M117.44,46.67V96.03"/>
+                    <path class="pin r" d="M131.83,46.67V96.03"/>
+                    <rect class="ic-body" x="118.29" y="45.1" width="12.69" height="52.5" rx="0.3"/>
+                    <path class="ic-notch" d="M123.83,45.1a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.9" text-anchor="middle" transform="translate(125.09 71.35) rotate(90)">INS8255N</text>
+                    <text class="ic-mark" font-size="1.9" text-anchor="middle" transform="translate(122.81 71.35) rotate(90)">P8255</text>
+                </g>
+                <!-- Cassette interface parts between the 8255 and the keys: a film capacitor, an empty footprint, a wire link. -->
+                <rect class="film" x="134.64" y="73.6" width="2.49" height="7.2" rx="0.5"/>
+                <circle class="pad" cx="140.3" cy="73.6" r="0.6"/><circle class="pad" cx="140.3" cy="76.6" r="0.6"/><circle class="pad" cx="140.3" cy="79.6" r="0.6"/>
+                <path class="wire-link" d="M143.4,65V73"/><circle class="pad" cx="143.4" cy="65" r="0.6"/><circle class="pad" cx="143.4" cy="73" r="0.6"/>
+                <!-- IC20: the 74LS132, socketed. Identified by the number printed above it. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="145.55" y="60.45" width="9.47" height="18.8" rx="0.25"/>
+                    <path class="pin l" d="M146.45,61.68V78.02"/>
+                    <path class="pin r" d="M154.12,61.68V78.02"/>
+                    <rect class="ic-body" x="147.45" y="60.8" width="5.67" height="18.1" rx="0.3"/>
+                    <path class="ic-notch" d="M149.48,60.8a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.45" text-anchor="middle" transform="translate(149.76 69.85) rotate(90)">74LS132</text>
+                </g>
+                <!-- A brown ceramic disc lying flat between IC20 and IC19. -->
+                <ellipse class="disc-brown light" cx="152.78" cy="81.85" rx="5.3" ry="2.05"/>
+                <!-- IC19: the LM358 that shapes the signal from the recorder, 8 pins, soldered in. -->
+                <g class="ic">
+                    <path class="pin l" d="M146.45,84.74V93.46"/>
+                    <path class="pin r" d="M153.97,84.74V93.46"/>
+                    <rect class="ic-body" x="147.3" y="84.4" width="5.82" height="9.4" rx="0.3"/>
+                    <path class="ic-notch" d="M149.41,84.4a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark" font-size="1.4" text-anchor="middle" transform="translate(149.71 89.1) rotate(90)">LM358</text>
+                </g>
+                <!-- Three more resistors of the cassette interface. -->
+                <use href="#part-resistor" class="r-tan-red" transform="translate(135.7 89.9) scale(1 1.08)"/>
+                <use href="#part-resistor" class="r-cream-red3" transform="translate(139.75 89.7)"/>
+                <use href="#part-resistor" class="r-pink" transform="translate(142.8 89.7)"/>
+
+                <!-- A dark ceramic disc lying across the top of the display driver. -->
+                <ellipse class="disc-brown" cx="202.38" cy="14.9" rx="4.74" ry="1.3"/>
+                <!-- IC17: the ULN2003 that sinks the seven segment lines, 16 pins, soldered in. -->
+                <g class="ic">
+                    <path class="pin l" d="M198.44,17.66V36.54"/>
+                    <path class="pin r" d="M206.65,17.66V36.54"/>
+                    <rect class="ic-body" x="199.29" y="17.4" width="6.51" height="19.4" rx="0.3"/>
+                    <path class="ic-notch" d="M201.75,17.4a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(202.02 27.1) rotate(90)">ULN2003AN</text>
+                </g>
+                <!-- IC16: the 74LS145 that picks the digit, the keyboard row or the LEDs, socketed. -->
+                <g class="ic socketed">
+                    <rect class="socket" x="197.39" y="40.15" width="10.31" height="19.7" rx="0.25"/>
+                    <path class="pin l" d="M198.29,40.56V59.44"/>
+                    <path class="pin r" d="M206.8,40.56V59.44"/>
+                    <rect class="ic-body" x="199.29" y="40.5" width="6.51" height="19" rx="0.3"/>
+                    <path class="ic-notch" d="M201.75,40.5a0.8,0.8 0 0 0 1.6,0z"/>
+                    <text class="ic-mark bright" font-size="1.45" text-anchor="middle" transform="translate(202.02 50) rotate(90)">SN74LS145N</text>
+                </g>
+                <!-- The seven segment resistors, a ladder lying across the lines to the first display. -->
+                <use href="#part-resistor" class="r-ladder" transform="translate(215.7 18.05) rotate(90)"/>
+                <use href="#part-resistor" class="r-ladder" transform="translate(215.7 20.6) rotate(90)"/>
+                <use href="#part-resistor" class="r-ladder" transform="translate(215.7 23.1) rotate(90)"/>
+                <use href="#part-resistor" class="r-ladder" transform="translate(215.7 25.45) rotate(90)"/>
+                <use href="#part-resistor" class="r-ladder" transform="translate(215.7 27.95) rotate(90)"/>
+                <use href="#part-resistor" class="r-ladder" transform="translate(215.7 30.65) rotate(90)"/>
+                <use href="#part-resistor" class="r-ladder" transform="translate(215.7 33.1) rotate(90)"/>
+                <!-- TR2-TR7: a BC327 for each digit, flat face up, with its two resistors to the left, the right-hand one set lower. -->
+                <use href="#part-resistor" class="r-tan-white" transform="translate(221.18 7)"/>
+                <use href="#part-resistor" class="r-white-orange" transform="translate(223.73 8.5)"/>
+                <path class="to92" d="M226.8,10H231.21V11.3A2.2,1.95 0 0 1 226.8,11.3Z"/><path class="to92-face" d="M227.3,10.35H230.71"/>
+                <use href="#part-resistor" class="r-tan-white" transform="translate(232.58 7)"/>
+                <use href="#part-resistor" class="r-white-orange" transform="translate(235.27 8.5)"/>
+                <path class="to92" d="M238.5,10H243V11.3A2.25,1.95 0 0 1 238.5,11.3Z"/><path class="to92-face" d="M239,10.35H242.5"/>
+                <use href="#part-resistor" class="r-tan-white" transform="translate(244.88 7)"/>
+                <use href="#part-resistor" class="r-white-orange" transform="translate(247.12 8.5)"/>
+                <path class="to92" d="M250.11,10H254.79V11.3A2.34,1.95 0 0 1 250.11,11.3Z"/><path class="to92-face" d="M250.61,10.35H254.29"/>
+                <use href="#part-resistor" class="r-tan-white" transform="translate(256.27 7)"/>
+                <use href="#part-resistor" class="r-white-orange" transform="translate(259.12 8.5)"/>
+                <path class="to92" d="M261.99,10H266.79V11.3A2.4,1.95 0 0 1 261.99,11.3Z"/><path class="to92-face" d="M262.49,10.35H266.29"/>
+                <use href="#part-resistor" class="r-tan-white" transform="translate(271.58 7)"/>
+                <use href="#part-resistor" class="r-white-orange" transform="translate(274.43 8.5)"/>
+                <path class="to92" d="M277.5,10H282V11.3A2.25,1.95 0 0 1 277.5,11.3Z"/><path class="to92-face" d="M278,10.35H281.5"/>
+                <use href="#part-resistor" class="r-tan-white" transform="translate(283.73 7)"/>
+                <use href="#part-resistor" class="r-white-orange" transform="translate(286.27 8.5)"/>
+                <path class="to92" d="M289.59,10H294V11.3A2.2,1.95 0 0 1 289.59,11.3Z"/><path class="to92-face" d="M290.09,10.35H293.5"/>
+
             </g>
         </svg>
 
-        <!-- Mounting holes -->
-        <div class="part hole" style="left:1.1%;  top:4%;"></div>
-        <div class="part hole" style="left:1.1%;  top:88%;"></div>
-        <div class="part hole" style="left:49%;   top:4%;"></div>
-        <div class="part hole" style="left:97.2%; top:4%;"></div>
-        <div class="part hole" style="left:97.2%; top:88%;"></div>
-
-        <!-- Left edge: bus connector -->
-        <div class="part edge-fingers" style="left:2.6%; top:14%; width:3.4%;">
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-        </div>
-        <div class="part silk" style="left:2.4%; top:70%;">BUS</div>
-
-        <!-- Expansion header -->
-        <div class="part header-pads" style="left:7.6%; top:15%;">
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-        </div>
-        <div class="part silk" style="left:7.4%; top:69%;">J1 EXP</div>
-
-        <!-- Power section -->
-        <div class="part transformer" style="left:13.5%; top:38%; width:9.5%; height:44%;"></div>
-        <div class="part cap"  style="left:13.6%; top:16%; width:4.2%; height:12.5%;"></div>
-        <div class="part cap"  style="left:19.2%; top:16%; width:4.2%; height:12.5%;"></div>
-        <div class="part heatsink" style="left:25%; top:40%; width:3.2%; height:22%;"></div>
-        <div class="part silk" style="left:25%; top:65%;">7805</div>
-
-        <!-- Logic -->
-        <div class="part dip wide" style="left:31%; top:34%; width:12.5%; height:34%;">
-            <div class="pins top"></div><span>MCS 6502</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip io-8255" style="left:45.5%; top:36%; width:8.5%; height:26%;" title="IC15 — 8255 PIA ($FD00–$FD03), 40-pin DIP">
-            <div class="pins top"></div><span>8255</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:31%; top:12%; width:8%; height:16%;">
-            <div class="pins top"></div><span>2716</span><div class="pins bottom"></div>
-        </div>
-        <div class="part silk" style="left:31%; top:5.5%;">MONITOR ROM</div>
-        <div class="part dip" style="left:41%; top:12%; width:6.5%; height:16%;">
-            <div class="pins top"></div><span>2114</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:48.6%; top:12%; width:6.5%; height:16%;">
-            <div class="pins top"></div><span>2114</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:31%; top:74%; width:6.5%; height:15%;">
-            <div class="pins top"></div><span>74LS138</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:39%; top:74%; width:6.5%; height:15%;">
-            <div class="pins top"></div><span>74LS373</span><div class="pins bottom"></div>
-        </div>
-        <div class="part dip" style="left:47%; top:74%; width:6.5%; height:15%;">
-            <div class="pins top"></div><span>74LS04</span><div class="pins bottom"></div>
+        <!-- Phase LEDs, D4 to D7, in a row under the resistors at the top
+             edge, as measured on unit B. The board has these four and no
+             others: the PWR, RUN, IRQ, NMI and RW lamps drawn here once
+             were invented. -->
+        <div class="part led-bank" style="left:49.94%; top:14.1%;">
+            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Not driven by the emulator."></div><b>D4</b></div>
+            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Not driven by the emulator."></div><b>D5</b></div>
+            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Not driven by the emulator."></div><b>D6</b></div>
+            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Not driven by the emulator."></div><b>D7</b></div>
         </div>
 
-
-        <!-- Discrete parts: the real board is packed, not tidy -->
-        <div class="part xtal" style="left:55.3%; top:20%; width:4.6%; height:9%;">1MHz</div>
-        <div class="part dip" style="left:56.8%; top:40%; width:8%; height:16%;">
-            <div class="pins top"></div><span>74LS47</span><div class="pins bottom"></div>
-        </div>
-
-        <div class="part res" style="left:67.5%; top:39%; width:7.5%;"></div>
-        <div class="part res" style="left:67.5%; top:43%; width:7.5%;"></div>
-        <div class="part res" style="left:67.5%; top:47%; width:7.5%;"></div>
-        <div class="part res" style="left:67.5%; top:51%; width:7.5%;"></div>
-        <div class="part res" style="left:67.5%; top:55%; width:7.5%;"></div>
-
-        <div class="part res" style="left:26.6%; top:13%; width:3.4%;"></div>
-        <div class="part res" style="left:26.6%; top:19%; width:3.4%;"></div>
-        <div class="part res" style="left:26.6%; top:25%; width:3.4%;"></div>
-
-        <div class="part res" style="left:31.5%; top:70%; width:3.4%;"></div>
-        <div class="part res" style="left:39.5%; top:70%; width:3.4%;"></div>
-        <div class="part res" style="left:47.5%; top:70%; width:3.4%;"></div>
-
-        <div class="part res" style="left:13.8%; top:88%; width:3.4%;"></div>
-        <div class="part res" style="left:19.5%; top:88%; width:3.4%;"></div>
-
-        <div class="part disc" style="left:29.6%; top:31%;"></div>
-        <div class="part disc" style="left:44.2%; top:31%;"></div>
-        <div class="part disc" style="left:54.6%; top:33%;"></div>
-        <div class="part disc" style="left:29.6%; top:91%;"></div>
-        <div class="part disc" style="left:44.2%; top:91%;"></div>
-        <div class="part disc" style="left:11.5%; top:33%;"></div>
-        <div class="part disc" style="left:65.5%; top:63%;"></div>
-        <div class="part disc" style="left:65.5%; top:70%;"></div>
-
-        <!-- Indicator LEDs -->
-        <div class="part led-bank" style="left:56.5%; top:6%;">
-            <div class="led-slot"><div class="led" id="led-power"></div><b>PWR</b></div>
-            <div class="led-slot"><div class="led" id="led-run"></div><b>RUN</b></div>
-            <div class="led-slot"><div class="led"></div><b>IRQ</b></div>
-            <div class="led-slot"><div class="led"></div><b>NMI</b></div>
-            <div class="led-slot"><div class="led"></div><b>RW</b></div>
-        </div>
-
-        <!-- Seven-segment display block -->
-        <div class="part display-block" style="left:69%; top:19%; width:26.5%;">
-            <div class="pins top"></div>
+        <!-- Seven-segment displays: six TIL312 packages, four for the address
+             and two for the data, hard against the top right corner as on
+             the board. -->
+        <div class="part display-block" style="left:74.86%; top:16.8%; width:23.92%;">
             <div id="display"></div>
-            <div class="pins bottom"></div>
         </div>
 
-        <!-- Function keys: silkscreen layout as printed on the board -->
-        <div class="part keyfield func" style="left:56.5%; top:62%; width:20.5%;">
+        <!-- Key cap artwork, drawn once and reused by every key through <use>.
+             Its colours are the --keycap-* properties of whichever key uses it.
+             The shapes follow the caps on unit B: a square with four bevels
+             and a slightly dished face, lit from the upper left. -->
+        <svg class="keycap-defs" width="0" height="0" aria-hidden="true" focusable="false">
+            <defs>
+                <clipPath id="keycap-clip"><rect width="100" height="100" rx="7"/></clipPath>
+                <!-- Dish: the face's upper-left wall is in shade, its lower-right wall lit. -->
+                <linearGradient id="keycap-dish" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#000" stop-opacity="0.2"/>
+                    <stop offset="0.2" stop-color="#000" stop-opacity="0"/>
+                    <stop offset="0.55" stop-color="#fff" stop-opacity="0"/>
+                    <stop offset="1" stop-color="#fff" stop-opacity="0.2"/>
+                </linearGradient>
+                <symbol id="keycap" viewBox="0 0 100 100">
+                    <g clip-path="url(#keycap-clip)">
+                        <rect class="keycap-edge" width="100" height="100"/>
+                        <!-- The bevels run on under the face so its rounded corners show bevel, not skirt. -->
+                        <polygon class="keycap-top" points="1.5,1.5 98.5,1.5 86,15 17,15"/>
+                        <polygon class="keycap-left" points="1.5,1.5 17,15 17,84 1.5,98.5"/>
+                        <polygon class="keycap-right" points="98.5,1.5 98.5,98.5 86,84 86,15"/>
+                        <polygon class="keycap-bottom" points="1.5,98.5 17,84 86,84 98.5,98.5"/>
+                        <rect class="keycap-face" x="12" y="10" width="79" height="79" rx="5"/>
+                        <rect x="12" y="10" width="79" height="79" rx="5" fill="url(#keycap-dish)"/>
+                        <path class="keycap-ridge" d="M11.4,86 V13"/>
+                        <path class="keycap-rim" d="M2.4,95 V5.2 Q2.4,2.4 5.2,2.4 H95"/>
+                    </g>
+                </symbol>
+            </defs>
+        </svg>
+
+        <!-- Function keys. RUN, increment and DA above; RES, HLT, REG and AD
+             below, starting one switch further left under the NOR/SS slide
+             switch. Legends are printed on the caps, as on the board. -->
+        <div class="part keyfield func" style="left:57.03%; bottom:6.95%;">
 
             <div class="switch-cell">
-                <div class="legend"><span>NOR</span><span>SS</span></div>
+                <svg class="switch-silk" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+                    <text x="-13" y="19.5" textLength="44.4" lengthAdjust="spacingAndGlyphs">NOR</text>
+                    <text x="71.6" y="19.5" textLength="27.5" lengthAdjust="spacingAndGlyphs">SS</text>
+                    <rect class="slot" x="60" y="33" width="38" height="51"/>
+                    <rect x="-0.9" y="28.6" width="102.3" height="60.3"/>
+                </svg>
                 <div class="slide-switch" title="NOR / single-step switch (decorative)"></div>
             </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="go" aria-label="RUN" title="RUN — start execution (Enter)"></button>
-                <span class="legend">RUN</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="+" aria-label="Increment" title="Increment address (+)"></button>
-                <span class="legend">&uarr;</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="da" aria-label="DA" title="DA — enter data (Arrow Down)"></button>
-                <span class="legend">DA</span>
-            </div>
+            <div class="keycell"><button class="key key-func" data-key="go" aria-label="RUN" title="RUN — start execution (Enter)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="62.6" lengthAdjust="spacingAndGlyphs">RUN</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="+" aria-label="Increment" title="Increment address (+)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><path class="legend-arrow" d="M50,33.5 L56.4,51.5 L51.8,59 V71.5 H48.2 V59 L43.6,51.5 Z"/></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="da" aria-label="DA" title="DA — enter data (Arrow Down)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="45" lengthAdjust="spacingAndGlyphs">DA</text></svg></button></div>
 
-            <div class="keycell">
-                <button class="key key-func" data-key="res" aria-label="RES" title="RES — stop whatever is running and return to the monitor, keeping RAM (Escape or Backspace)"></button>
-                <span class="legend">RES</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — not emulated: on the board it raises a CPU interrupt"></button>
-                <span class="legend">HLT</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="reg" aria-label="REG" title="REG — recall the saved program counter (R)"></button>
-                <span class="legend">REG</span>
-            </div>
-            <div class="keycell">
-                <button class="key key-func" data-key="ad" aria-label="AD" title="AD — enter address (Arrow Up)"></button>
-                <span class="legend">AD</span>
-            </div>
+            <div class="keycell"><button class="key key-func" data-key="res" aria-label="RES" title="RES — stop whatever is running and return to the monitor, keeping RAM (Escape or Backspace)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.8" lengthAdjust="spacingAndGlyphs">RES</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — not emulated: on the board it raises a CPU interrupt"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.4" lengthAdjust="spacingAndGlyphs">HLT</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="reg" aria-label="REG" title="REG — recall the saved program counter (R)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="61" lengthAdjust="spacingAndGlyphs">REG</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="ad" aria-label="AD" title="AD — enter address (Arrow Up)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="41.1" lengthAdjust="spacingAndGlyphs">AD</text></svg></button></div>
         </div>
 
-        <!-- Hex keypad -->
-        <div class="part keyfield hex" style="left:78.5%; top:44%; width:17%;">
-            <div class="keycell"><button class="key key-hex" data-key="0" aria-label="0"></button><span class="legend">0</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="1" aria-label="1"></button><span class="legend">1</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="2" aria-label="2"></button><span class="legend">2</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="3" aria-label="3"></button><span class="legend">3</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="4" aria-label="4"></button><span class="legend">4</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="5" aria-label="5"></button><span class="legend">5</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="6" aria-label="6"></button><span class="legend">6</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="7" aria-label="7"></button><span class="legend">7</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="8" aria-label="8"></button><span class="legend">8</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="9" aria-label="9"></button><span class="legend">9</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="a" aria-label="A"></button><span class="legend">A</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="b" aria-label="B"></button><span class="legend">B</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="c" aria-label="C"></button><span class="legend">C</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="d" aria-label="D"></button><span class="legend">D</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="e" aria-label="E"></button><span class="legend">E</span></div>
-            <div class="keycell"><button class="key key-hex" data-key="f" aria-label="F"></button><span class="legend">F</span></div>
-        </div>
-
-        <!-- Manufacturer silkscreen, bottom right edge -->
-        <div class="part maker" style="right:0.8%; bottom:12%;">
-            <span class="mark">A</span>
-            <span>A.S.E.L. &nbsp; AMICO 2000</span>
+        <!-- Hex keypad: 0-3, 4-7, 8-B, C-F from the top. -->
+        <div class="part keyfield hex" style="left:77.79%; bottom:6.95%;">
+            <div class="keycell"><button class="key key-hex" data-key="0" aria-label="0"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">0</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="1" aria-label="1"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">1</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="2" aria-label="2"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">2</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="3" aria-label="3"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">3</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="4" aria-label="4"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">4</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="5" aria-label="5"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">5</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="6" aria-label="6"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">6</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="7" aria-label="7"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">7</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="8" aria-label="8"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">8</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="9" aria-label="9"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend digit" x="50" y="66" textLength="21.5" lengthAdjust="spacingAndGlyphs">9</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="a" aria-label="A"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="19.6" lengthAdjust="spacingAndGlyphs">A</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="b" aria-label="B"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="23.2" lengthAdjust="spacingAndGlyphs">B</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="c" aria-label="C"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="19.9" lengthAdjust="spacingAndGlyphs">C</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="d" aria-label="D"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="22.1" lengthAdjust="spacingAndGlyphs">D</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="e" aria-label="E"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="20.6" lengthAdjust="spacingAndGlyphs">E</text></svg></button></div>
+            <div class="keycell"><button class="key key-hex" data-key="f" aria-label="F"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="66" textLength="15.8" lengthAdjust="spacingAndGlyphs">F</text></svg></button></div>
         </div>
 
       </div>
@@ -898,6 +1350,11 @@
                 <button class="control-btn" id="btn-reset" title="Power-on reset — clears RAM, the way switching the board off and on does. The board&rsquo;s own RES key keeps RAM.">Cold reset</button>
                 <button class="control-btn" id="btn-load" aria-describedby="load-help">Load ROM or tape</button>
             </div>
+            <div class="look-toggle" role="group" aria-label="How the displays are drawn">
+                <span class="k">Displays</span>
+                <button class="control-btn look-btn" data-look="readable" aria-pressed="true" title="Solid digits with no halo: easier to read on a screen">Readable</button>
+                <button class="control-btn look-btn" data-look="authentic" aria-pressed="false" title="Bright, blooming digits, as a photograph of a powered board shows them">Authentic</button>
+            </div>
             <p class="load-help" id="load-help">
                 Raw binary ROMs/programs (<code>.bin</code>, <code>.rom</code>,
                 <code>.ic9</code>, <code>.ic10</code>) or <code>.amtape</code> tape images.
@@ -907,6 +1364,7 @@
             </p>
             <h2>Processor state</h2>
             <div class="regs">
+                <div title="Running: the emulator is executing the program. Stopped: paused with the Stop button. Halted: the processor met an opcode this emulator does not implement and will execute nothing more until RES or a cold reset."><span class="k">CPU</span><span class="v"><span class="run-lamp" id="led-run"></span><span class="run-word"></span></span></div>
                 <div><span class="k">PC</span><span class="v" id="reg-pc">0000</span></div>
                 <div><span class="k">A</span><span class="v" id="reg-a">00</span></div>
                 <div><span class="k">X</span><span class="v" id="reg-x">00</span></div>
@@ -951,8 +1409,8 @@
                 This page runs the original monitor ROM, so entering and executing 6502
                 machine code works the way it did on the real hardware. The layout,
                 silkscreen legends and keycap colours follow photographs of a finished
-                board; the transformer, capacitors and slide switch are there for the
-                look of the thing and do nothing.
+                board; the regulator on its heatsink, the capacitors and the slide
+                switch are there for the look of the thing and do nothing.
             </p>
         </section>
 

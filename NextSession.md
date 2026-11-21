@@ -34,6 +34,23 @@ Priority order:
   was opened for what that fix showed about the cassette traps. `develop` was
   pushed, at the owner's direction, so that the closing comment could link the
   fix. `docs/logs/2026-11-21.md` has each one.
+- 2026-11-21, later the same day: the home page's board was redrawn from two
+  photographs of surviving boards, in seven agreed steps, each its own commit
+  or commits: key caps with their legends on them; the displays as six
+  separate TIL312 packages; the colour and bloom of lit segments; the four
+  phase LEDs D4-D7 in place of five invented ones; the silkscreen in yellow
+  with the real maker's mark; the board's colour, 3 to 1 proportions, copper
+  and mounting holes; and the real part population in place of an invented
+  one. A second agent's review of the first five commits found three things,
+  all fixed: the display test did not look at where segments are drawn, the
+  TIL312 has two decimal points and not one, and the lamp beside the
+  registers said "running" over a halted processor. `AGENTS.md` has a Board
+  Artwork section on how the drawing is organised and on the privacy rule for
+  the photographs; `docs/logs/2026-11-21.md` has each step. The owner pushed
+  all of it to `origin/develop` the same day. None of it is on `master`,
+  which stands at the merge of PR #43, made from `develop` just before the
+  redraw began, so the published site still shows the earlier board until
+  `develop` is merged again.
 - `#25` is done/closed: raw `.bin` program loads intentionally do not call
   `amico.reset()`.
 - `#22` is implemented: decimal-mode SBC now derives `N` from the binary
@@ -88,9 +105,11 @@ Priority order:
   regression coverage. The **machine layer is only partly covered**: the
   keyboard matrix and keypad workflow (`tests/keyboard-matrix.test.js`), run
   state (`tests/run-state.test.js`), resets, ROM protection and the cassette
-  traps have checks, but display multiplexing, segment patterns and the PIA's
-  partial address decoding do not. That is the clearest remaining gap. Keep
-  near-term verification there small and tied to a behavior fix.
+  traps have checks, and `tests/display-renderer.test.js` checks the renderer's
+  segment mapping against the monitor's digit table, but the machine layer's
+  display multiplexing and the PIA's partial address decoding have none. That
+  is the clearest remaining gap. Keep near-term verification there small and
+  tied to a behavior fix.
 
 ## Outstanding (as of 2026-11-21)
 
@@ -113,10 +132,13 @@ Known open work, in rough priority order. None of it is started.
    points at it, so it can only be reached through those RAM vectors. If HLT plus a vector set to `$FE00` is the intended halt-and-resume
    path, then REG followed by RUN would resume the halted program. Confirm in
    the manual before building it.
-2. **Machine-layer checks** for what is still uncovered: display multiplexing
-   and the segment patterns at `$FFEA` (the monitor's digit table), and the
-   `$FD00-$FDFF` partial decoding. The keypad tests show the pattern: run the
-   real monitor in Node and assert on RAM or PIA state, with no DOM.
+2. **Machine-layer checks** for what is still uncovered: display multiplexing,
+   meaning how Port A and Port B writes become the six-pattern display buffer,
+   and the `$FD00-$FDFF` partial decoding. The renderer's side is done: the
+   segment mapping and the digit table at `$FFEA` are checked by
+   `tests/display-renderer.test.js`. The keypad tests show the pattern for the
+   rest: run the real monitor in Node and assert on RAM or PIA state, with no
+   DOM.
 3. **`#41`: the cassette traps differ from the real routines.** With IC10
    readable (`#35`), the trapped LOAD and SAVE can be compared with the code
    they stand in for, and they differ in what they leave behind:
@@ -152,6 +174,44 @@ Known open work, in rough priority order. None of it is started.
    other links carry the same 2026-01-13 timestamp, to images, PDFs and
    magazine scans, and none of them has been tested.
 6. **`#19`, `#20`**: see Cassette Work below.
+7. **The board drawing, unverified and unfinished ends** (2026-11-21):
+   - It has been looked at in Chrome only. Safari and Firefox were not run.
+     The key legends use the two DIN faces macOS ships; elsewhere they fall
+     back to another face at pinned widths, which nobody has looked at.
+     Touch input was not exercised.
+   - The four LEDs D4-D7 are drawn and never lit. How they are wired is
+     settled from the supplement's schematic (`AGENTS.md`, Cassette Interface
+     Reference): an LED is lit while Port B bit 7 and its own Port A bit are
+     both high. Lighting them is a small, well-defined piece of machine-layer
+     work, not started: for each frame, add up how long each LED's condition
+     held, and give the page the four duties. Two details matter. LOAD only
+     pulses the LEDs, so sampling the ports once a frame would flicker. And a
+     real 8255 is said to reset its output registers whenever a mode word is
+     written to its control register, which `_writePIA` does not do, so Port B
+     bit 7 could linger where the real chip has dropped it; that is from
+     memory of the 8255A data sheet and should be confirmed before it is
+     built on. The LEDs would show only with the trap off and IC10 fitted,
+     since the traps return at once. One photograph of a powered board shows
+     D7 lit with the monitor idle, against the schematic; nothing explains
+     it yet.
+   - On a phone the board pans sideways and the keys start off screen, as
+     before the redraw. Whether to reflow it, or start it scrolled to the
+     keys, is an owner decision.
+   - The measurement table the drawing was made from, and the scripts that
+     drove Chrome and compared screenshots with the photographs, are kept with
+     the private photographs, outside the repository. Neither contains a name
+     or image data. Whether either belongs in the repository is the owner's
+     call.
+   - Not started, from the owner's earlier list of ideas: one consistent
+     pass on wear and physical irregularity, sound, and a desk scene around
+     the board.
+
+Browser checks, learned on 2026-11-21: driving headless Chrome over the
+DevTools protocol in real time avoids both problems described next. A script
+evaluated through the protocol is not subject to the page's CSP, so the real
+`index.html` can be checked as served, and `requestAnimationFrame` fires at
+60 Hz, so the emulator runs normally. Real mouse and key events can be sent
+the same way.
 
 Browser checks, learned on 2026-11-19: the pages' CSP forbids inline scripts,
 so an automated check needs a scratch copy of `index.html` without the CSP
@@ -176,7 +236,8 @@ behavior:
   longer has a keyboard shortcut.
 - Keyboard matrix behavior, including row/column assumptions and active-low
   reads: done on 2026-11-19 with the keypad fix above.
-- Display multiplexing and seven-segment patterns.
+- Display multiplexing in the machine layer. The renderer's seven-segment
+  mapping: done on 2026-11-21 (`tests/display-renderer.test.js`).
 - RAM/ROM/PIA memory map, especially `$FD00-$FDFF` partial decoding.
 - Manual program listings under `docs/manual-extraction/listings/` as practical
   smoke checks.
