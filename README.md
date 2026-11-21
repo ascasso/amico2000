@@ -112,7 +112,8 @@ Example: `AD → 0 0 2 0 → DA → E A → + → F0`
 
 Click the **Load ROM or tape** button under Bench controls to load:
 - **prom.ic9** - Monitor ROM (loads at $FE00)
-- **prom.ic10** - Cassette ROM (loads at $FB00)
+- **prom.ic10** - Cassette ROM (fits at $FB00-$FCFF; a PROM dump in chip
+  order, so its first half appears at $FC00 and its second half at $FB00)
 - **.amtape** - Mock cassette tape image for the IC10 LOAD routine
 - Other `.bin` files - Loaded as programs at $0000
 

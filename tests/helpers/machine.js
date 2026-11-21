@@ -30,6 +30,11 @@ function romFromMainJs(name, expectedLength) {
 
 const MONITOR_ROM = romFromMainJs('MONITOR_ROM', 512);
 
+// The optional cassette PROM (IC10), in chip order as main.js embeds it. No
+// machine built here has it fitted; a check that wants it calls
+// loadCassetteROM() itself.
+const CASSETTE_ROM = romFromMainJs('CASSETTE_ROM', 512);
+
 // $FE22 is the monitor's cold-start entry and the target of the $FFFC vector,
 // so it is what a healthy reset must land on (#24).
 const MONITOR_RESET = 0xFE22;
@@ -54,4 +59,4 @@ function runAt(amico, address, bytes, instructionCount) {
     }
 }
 
-module.exports = { Amico2000, MONITOR_ROM, MONITOR_RESET, bootedMachine, runAt };
+module.exports = { Amico2000, MONITOR_ROM, CASSETTE_ROM, MONITOR_RESET, bootedMachine, runAt };

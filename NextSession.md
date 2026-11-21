@@ -29,6 +29,9 @@ Priority order:
   the bench Run/Stop state fixed, the keyboard scan made Node-safe, the
   keyboard test pages and `original-documentation.html` removed, and every
   pending cleanup in `AGENTS.md` done. `docs/logs/2026-11-19.md` has each one.
+- 2026-11-21 session: `AGENTS.md` now lets named agents close an issue
+  without being asked, `#23` was closed, and `#35` was fixed.
+  `docs/logs/2026-11-21.md` has each one.
 - `#25` is done/closed: raw `.bin` program loads intentionally do not call
   `amico.reset()`.
 - `#22` is implemented: decimal-mode SBC now derives `N` from the binary
@@ -60,13 +63,23 @@ Priority order:
   sweeps all 20,000 valid-BCD operand pairs per instruction against an
   independent reference (#4, #22), and `tests/cpu6502-cycles.test.js` checks
   the base cost of all 151 documented opcodes plus every dynamic penalty (#5).
-  `node --test tests/` was 76 checks then and is 90 after 2026-11-19.
+  `node --test tests/` was 76 checks then, 90 after 2026-11-19, and is 97
+  after the `#35` fix.
 - `#23` is fixed and closed: cassette SAVE refuses the whole `$0000-$FFFF`
   range, the one range whose length overflows the 16-bit `.amtape` header, with
-  the routine's `$0000 = $FF` status. That is the issue's first suggested
-  option, made in commit `1ecbfaf`, which does not name the issue; the issue
-  was closed on 2026-11-21 with a pointer to it. Protected by
-  `tests/cassette-tape-length.test.js`.
+  `$0000 = $FF`. That is the issue's first suggested option, made in commit
+  `1ecbfaf`, which does not name the issue; the issue was closed on 2026-11-21
+  with a pointer to it. Protected by `tests/cassette-tape-length.test.js`.
+  The fix and the closing comment call `$FF` the routine's own error status;
+  the PROM has since shown that the real SAVE reports nothing, so it is the
+  trap's convention (see Outstanding).
+- `#35` is fixed: the cassette PROM (IC10) is installed by its address pins,
+  so the first half of the image answers at `$FC00` and the second half at
+  `$FB00`. The issue's diagnosis was wrong. The embedded `CASSETTE_ROM` bytes
+  are the published dump byte for byte; only the loader's file-order copy was
+  at fault. See PROM Image Order in `AGENTS.md`. Protected by
+  `tests/cassette-rom-mapping.test.js`. The issue is still open on GitHub as
+  of this commit.
 - Open on GitHub: `#19`, `#20`, `#35`.
 - The CPU core now has broad instruction-level coverage *and* per-fix
   regression coverage. The **machine layer is only partly covered**: the
@@ -101,11 +114,38 @@ Known open work, in rough priority order. None of it is started.
    and the segment patterns at `$FFEA` (the monitor's digit table), and the
    `$FD00-$FDFF` partial decoding. The keypad tests show the pattern: run the
    real monitor in Node and assert on RAM or PIA state, with no DOM.
-3. **`#35`**: when it is worked, the stale "Load ROM" mention and the claim
-   that cassette needs the ROM, in the `CASSETTE_ROM` comment in `main.js`,
-   belong to the same change; they were left alone on 2026-11-19 for that
-   reason.
-4. **`#19`, `#20`**: unchanged; see Cassette Work below.
+3. **The cassette traps differ from the real routines.** With IC10 readable
+   (`#35`), the trapped LOAD and SAVE can be compared with the code they stand
+   in for, and they differ in what they leave behind:
+   - Real SAVE never writes `$0000-$0004`. On success the parameters are still
+     there, so the display reads `0000` and the low byte of the start address.
+     When the end address is before the start, it returns to the monitor with
+     no status at all. The trap writes `0000` to `$0000/$0001` on success, and
+     `$FF` to `$0000` for that error and for the oversized range of `#23`.
+     `$FF` at `$0000` is the real routines' status for one case only: a LOAD
+     whose checksum does not match.
+   - Real LOAD leaves `$0001/$0002` alone. The trap overwrites them with the
+     address it loaded at.
+   - Real LOAD, given an identifier that is not on the tape, keeps searching
+     until RES, as the manual says. The trap returns `$FF` at once, which the
+     guide documents.
+
+   Decide which of these to bring into line. None is tracked in a GitHub
+   issue.
+4. **Whether to fit IC10 by default.** The cassette PROM is still opt-in. Now
+   that it maps correctly, fitting it at startup would make `$FB00-$FCFF` read
+   as it does on a board with the cassette interface, which the working LOAD
+   and SAVE already imply: AD or REG would show `FBBC D8` and `FC54 A9` as the
+   manual prints them, where an empty socket shows `FF`, and a program could
+   call the PROM's subroutines. The traps would still take both entry points.
+   This is an owner decision about which board the emulator presents, not a
+   defect.
+5. **The PROM dump links are dead.** The four `amico2000_replica_PROM_*.bin`
+   links in `docs/computerhistory-amico2000.md` point at a Wayback snapshot
+   that never captured the files (HTTP 404 on 2026-11-21). The live site still
+   serves all four, and its IC9 and IC10 files are byte-identical to the
+   arrays in `main.js`, which are the repository's only copies.
+6. **`#19`, `#20`**: see Cassette Work below.
 
 Browser checks, learned on 2026-11-19: the pages' CSP forbids inline scripts,
 so an automated check needs a scratch copy of `index.html` without the CSP
@@ -189,14 +229,21 @@ Cassette support is nice to have, but do it after core machine and CPU behavior.
 
 Relevant open items:
 
-- `#35`: the `CASSETTE_ROM` array in `main.js` does not disassemble as coherent
-  6502 code at `$FB00`: the ROM's own `JMP $FC54` at `$FBF3` lands on `$FB`, an
-  invalid opcode, because `$FC52` holds `JSR $FB00`. It is not loaded by
-  default, so nothing depends on it today, but it should be replaced with the
-  archived `prom.ic10` binary before any cassette work relies on real ROM
-  execution. See `docs/computerhistory-amico2000.md` for the source link.
-- `#19`: document the `.amtape` mock cassette file format after behavior is
-  settled.
-- `#20`: analog cassette signal fidelity is long-term only.
+- `#35`: fixed on 2026-11-21, see Current Status; the GitHub issue is still to
+  be closed.
+- `#19`: document the `.amtape` mock cassette file format. The format has been
+  stable at version 1 since `#23`. Two things to settle while writing it: the
+  parser does not check that the recorded start, end and length agree, and
+  `.amtape` is the emulator's own container rather than the tape record, whose
+  layout is now known from the PROM (Cassette Interface Reference in
+  `AGENTS.md`).
+- `#20`: analog cassette signal fidelity is long-term only, but it is no
+  longer blocked on an unreadable ROM. With the trap off
+  (`amico.cassette.interceptROM = false`) the real SAVE routine already runs
+  to completion, at 332 bit/s with a 6.2 second leader, against the manual's
+  "about 300 bit/s" and "about six seconds". LOAD cannot run yet: it waits
+  for tape input on Port A bit 7, which nothing drives, and it relies on the
+  8255 control word to switch Port A's direction, which the PIA emulation
+  stores and ignores. The port usage is in `AGENTS.md`.
 
 For cassette work, prefer correctness and clear limits over expanding scope.

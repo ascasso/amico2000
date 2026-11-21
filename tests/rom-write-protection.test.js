@@ -69,8 +69,10 @@ test('the optional cassette PROM region ignores guest stores whether or not it i
     const image = Uint8Array.from({ length: 512 }, (unused, i) => i & 0xFF);
     fitted.loadCassetteROM(image);
     runAt(fitted, 0x0200, storeTo(CASSETTE_BASE, 0x42), 2);
-    assert.equal(fitted.cpu.memory[CASSETTE_BASE], image[0], 'fitted PROM must be unchanged');
-    assert.equal(fitted.cpu.memory[0xFCFF], image[511], 'including the last byte of the socket');
+    // An image is in chip order and IC10 is addressed by A0-A8, so $FB00 is
+    // cell $100 and $FCFF is cell $0FF (#35).
+    assert.equal(fitted.cpu.memory[CASSETTE_BASE], image[0x100], 'fitted PROM must be unchanged');
+    assert.equal(fitted.cpu.memory[0xFCFF], image[0x0FF], 'including the last byte of the socket');
 });
 
 test('RAM and the PIA still take writes (#31)', () => {

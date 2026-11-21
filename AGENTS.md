@@ -171,7 +171,8 @@ empty socket latches a store no better than a fitted chip does.
 Three paths write `cpu.memory[]` directly and therefore bypass those callbacks.
 Two are deliberate and must keep working: `loadMonitorROM()` and
 `loadCassetteROM()` install an image the way fitting a chip does, bounded to
-the size of the socket. The others validate their destination against
+the size of the socket and placed by the chip's own address pins (see PROM
+Image Order below). The others validate their destination against
 `_findROMOverlap()`: `loadProgram()` throws, and the trapped IC10 tape LOAD
 returns the routine's own `$0000 = $FF` error status because the monitor
 expects a status byte, not an exception.
@@ -194,6 +195,39 @@ by `tests/rom-write-protection.test.js`.
 Note that `amico.writeMemory()` goes through `cpu.write()` and so cannot patch
 ROM either; that is intentional, and the ROM loaders remain the way to change a
 PROM image from the console.
+
+### PROM Image Order
+
+Issue #35: a PROM image is in chip order, and for IC10 that is not address
+order. A 512-cell PROM is addressed by A0-A8 alone, so the cell that answers
+at an address is that address's low nine bits, not its distance from the start
+of the socket. IC9 starts at `$FE00`, where those bits are all low, and its
+image reads out in order. IC10 starts at `$FB00`, an odd page: A8 is high
+across `$FB00-$FBFF` and low across `$FC00-$FCFF`, so the first 256 bytes of
+the image answer at `$FC00` and the last 256 at `$FB00`.
+`Amico2000._installROM()` places both images this way.
+
+Before the fix the image was copied in file order from `$FB00`, which left
+both documented entry points in the middle of instructions. The issue read
+that as a damaged transcription. It was not: `CASSETTE_ROM` in `main.js` is
+byte-identical to `amico2000_replica_PROM_IC10.bin` as ComputerHistory.it
+publishes it, and a test pins its hash. Do not reorder the array, and do not
+rearrange a `prom.ic10` file into address order before loading it.
+
+The evidence does not rest on the loader:
+
+- The manual prints what REG shows at each entry point, `FBBC D8` (supplement
+  page 47) and `FC54 A9` (page 46). The mapped PROM shows exactly those; in
+  file order it showed `0A` and `FB`.
+- Followed from the two entry points, every byte of the PROM is coherent 6502
+  code except ten `$FF` filler bytes at `$FCF6-$FCFF`.
+- With the trap off (`amico.cassette.interceptROM = false`) the real SAVE
+  routine runs to completion and writes the record drawn in the manual's
+  Fig. 27, lighting the phase LEDs in the order the manual describes.
+- The published dump of decoder PROM IC7 enables the IC10 socket on pages
+  `$FB` and `$FC` and nowhere else.
+
+Covered by `tests/cassette-rom-mapping.test.js`.
 
 ### Reset Semantics
 
@@ -256,7 +290,9 @@ neither the current implementation nor the ROM's decode.
 ### ROM Data
 The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loading ROM files:
 - `prom.ic9` goes at $FE00 (Monitor ROM, 512 bytes) - **required**
-- `prom.ic10` goes at $FB00 (Cassette ROM, 512 bytes) - optional
+- `prom.ic10` fits the socket at $FB00-$FCFF (Cassette ROM, 512 bytes) -
+  optional. The file is in chip order, so its first half answers at $FC00 and
+  its second half at $FB00; see PROM Image Order above
 - Other .bin files load as programs at $0000
 
 **Note on hardware PROMs**: The original AMICO 2000 used `prom.ic6` and `prom.ic7` for address decoding logic (generating chip-select signals). These are **not needed** in the emulator as address decoding is implemented in software through the CPU's memory read/write callbacks.
@@ -279,6 +315,27 @@ documents the original cassette workflow:
   roughly 45 seconds including leader/trailer sections.
 - Physical recorder wiring uses `GND`, `IN` to the microphone input, and `OUT`
   from the speaker output.
+
+The PROM itself fills in what the manual leaves out. These were read from the
+IC10 listing once the image was mapped correctly (#35), and the SAVE half is
+checked by running the real routine in `tests/cassette-rom-mapping.test.js`:
+
+- Leader and trailer are 256 zero bytes each, and the start byte is `$A5`.
+- The header is the identifier, the load address low then high, and a 16-bit
+  count low then high. The count is the end address minus the start address,
+  one less than the number of data bytes.
+- Data is not in ascending order, because the routines count `Y` down to
+  zero. A full 256-byte page goes out as offset 0 followed by offsets `$FF`
+  down to 1; the last, partial page goes out from its highest offset down to
+  1 and then offset 0. LOAD stores the bytes the same way round.
+- The checksum is the 8-bit sum of the start byte, the header and the data.
+- The four phase LEDs of the manual's Fig. 26 are Port A bits 0-3: D4 leader,
+  D5 text, D6 recording, D7 reading. That assignment is inferred: it is the
+  one that makes the values the routines write match the LEDs the manual says
+  light in each phase.
+- Tape input is sampled on Port A bit 7. LOAD switches Port A between output,
+  to set the LEDs, and input, to read the tape, with 8255 control words `$89`
+  and `$99`.
 
 The emulator's current cassette support is intentionally file-backed: it traps
 the IC10 entry points and reads/writes `.amtape` images instead of emulating the
@@ -338,7 +395,9 @@ When implementing changes based on a GitHub issue:
 1. **Browser Tab Throttling**: Modern browsers throttle `requestAnimationFrame` when tabs are backgrounded, causing the emulator to pause/slow down
 2. **Cassette I/O**: File-backed mock cassette LOAD/SAVE is implemented by
    trapping the IC10 ROM entry points ($FBBC and $FC54), but the analog
-   300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated
+   300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated.
+   The traps also differ from the real routines in what they leave in
+   `$0000-$0004`; `NextSession.md` lists the differences
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
 4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate;
    sufficient for the monitor ROM and simple programs. The functional suite the
@@ -350,8 +409,9 @@ When implementing changes based on a GitHub issue:
    frame layout, decimal flag semantics, and instruction timing. Still
    uncovered: external interrupt *delivery* under load, decimal arithmetic with
    invalid BCD operands, undocumented opcodes, and most of the machine layer,
-   which beyond the keypad, resets, ROM protection and cassette traps is
-   covered only by browser testing. See `docs/6502-conformance.md`
+   which beyond the keypad, resets, ROM protection, PROM image order and
+   cassette traps is covered only by browser testing. See
+   `docs/6502-conformance.md`
 6. **HLT**: the HLT key is not emulated. On the board it raises a CPU
    interrupt, but the manual does not say which line; see Keyboard Mappings
 

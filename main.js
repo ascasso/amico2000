@@ -71,8 +71,15 @@ const MONITOR_ROM = new Uint8Array([
 // You can also load different ROMs using the "Load ROM or tape" button.
 
 // ============================================================================
-// Cassette ROM Data ($FB00-$FCFF, 512 bytes) - OPTIONAL
+// Cassette ROM Data (IC10 at $FB00-$FCFF, 512 bytes) - OPTIONAL
 // Cassette interface routines - prom.ic10
+//
+// The bytes are in chip order, as read from an original machine and published
+// as amico2000_replica_PROM_IC10.bin. That is not address order (#35). A
+// 512-cell PROM is addressed by A0-A8 and this socket starts on an odd page,
+// so the first 256 bytes answer at $FC00-$FCFF and the last 256 at
+// $FB00-$FBFF. Amico2000.loadCassetteROM() does that mapping. Keep the array
+// as it is: tests/cassette-rom-mapping.test.js pins it to the published dump.
 // ============================================================================
 const CASSETTE_ROM = new Uint8Array([
     0xb5, 0x04, 0x85, 0xf1, 0x20, 0x0a, 0xfb, 0x86, 0xef, 0x20, 0x95, 0xfb,
@@ -120,10 +127,11 @@ const CASSETTE_ROM = new Uint8Array([
     0xfb, 0xa9, 0x06, 0x8d, 0x00, 0xfd, 0xa2, 0xe3
 ]);
 
-// Note: The cassette ROM provides routines for loading/saving programs to tape.
-// It is NOT loaded by default. To enable cassette functionality, uncomment the
-// line below in the initialization section, or use the "Load ROM" button.
-// amico.loadCassetteROM(CASSETTE_ROM);
+// Note: this PROM is not fitted by default, and cassette LOAD and SAVE do not
+// need it: the emulator traps the entry points $FBBC and $FC54 whether or not
+// the socket is filled. To fit it, run amico.loadCassetteROM(CASSETTE_ROM) in
+// the browser console, or choose a prom.ic10 file with the "Load ROM or tape"
+// button.
 
 // ============================================================================
 // Application State

@@ -141,8 +141,11 @@
                     <td>Installs a monitor ROM at <code>$FE00</code>, then cold resets.
                         A complete image is 512 bytes; larger files are rejected.</td></tr>
                 <tr><td>Name contains <code>ic10</code> or <code>cassette</code></td>
-                    <td>Installs a cassette ROM at <code>$FB00</code>, then cold resets.
-                        A complete image is 512 bytes; larger files are rejected.</td></tr>
+                    <td>Fits a cassette ROM in the IC10 socket at <code>$FB00-$FCFF</code>,
+                        then cold resets. The file is a PROM dump in chip order, so its
+                        first 256 bytes appear at <code>$FC00</code> and its last 256 at
+                        <code>$FB00</code>. A complete image is 512 bytes; larger files
+                        are rejected.</td></tr>
                 <tr><td>Any other 512-byte file</td><td>Installs it as a monitor ROM,
                     then cold resets, even if the extension is <code>.bin</code>.</td></tr>
                 <tr><td>Other raw binary files</td><td>Copies bytes to <code>$0000</code>
