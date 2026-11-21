@@ -305,8 +305,12 @@ particular, `archived/GEMINI3.md` contains a keyboard matrix table that matches
 neither the current implementation nor the ROM's decode.
 
 ### ROM Data
-The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loading ROM files:
-- `prom.ic9` goes at $FE00 (Monitor ROM, 512 bytes) - **required**
+The MONITOR_ROM array in main.js contains the actual monitor ROM bytes, and
+`main.js` fits it at startup, so a user never has to load one. When loading ROM
+files:
+- `prom.ic9` replaces the monitor at $FE00 (Monitor ROM, 512 bytes). A board
+  cannot run without a monitor, which is why one is always fitted; a file is
+  only for trying a different image
 - `prom.ic10` fits the socket at $FB00-$FCFF (Cassette ROM, 512 bytes). It
   was optional on the real machine, part of the cassette interface, and
   `main.js` fits the embedded `CASSETTE_ROM` at startup because the board the

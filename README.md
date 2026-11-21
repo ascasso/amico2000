@@ -112,8 +112,11 @@ Example: `AD → 0 0 2 0 → DA → E A → + → F0`
 
 ## 💾 Loading ROMs And Tapes
 
-Click the **Load ROM or tape** button under Bench controls to load:
-- **prom.ic9** - Monitor ROM (loads at $FE00)
+Nothing needs loading: the monitor ROM (IC9) and the cassette ROM (IC10) are
+built in and fitted when the page opens. Click the **Load ROM or tape** button
+under Bench controls only to replace one of them, import a tape, or load a
+program:
+- **prom.ic9** - Monitor ROM (replaces the built-in one at $FE00)
 - **prom.ic10** - Cassette ROM (replaces the one fitted at $FB00-$FCFF; a
   PROM dump in chip order, so its first half appears at $FC00 and its second
   half at $FB00)

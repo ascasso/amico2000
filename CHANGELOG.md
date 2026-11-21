@@ -152,6 +152,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The guide's "What files can I load?" section and the README now say first
+  that nothing needs loading: both ROMs are built in and fitted when the page
+  opens, and loading a ROM file only replaces one. The home page's **File
+  formats** link jumps straight to that section, past the guide's Getting
+  started, and its table, which led with the ROM rows, read as if a monitor
+  had to be loaded. `AGENTS.md` no longer calls `prom.ic9` "required".
 - The cassette PROM (IC10) is now fitted when the page opens, beside the
   monitor, as on a board built with the cassette interface, which is the board
   the page draws. AD now shows `FBBC D8` and `FC54 A9`, as the manual prints

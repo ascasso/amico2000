@@ -130,6 +130,10 @@
 
     <section id="file-formats">
         <h2>What files can I load?</h2>
+        <p>You do not need to load anything to use the emulator. Both ROMs are
+            built in and fitted when the page opens: the monitor (IC9) and the
+            cassette ROM (IC10). Load a ROM file only to replace one of them,
+            for example with a modified monitor.</p>
         <p>Choose <strong>Load ROM or tape</strong> on the home page. The picker
             offers <code>.bin</code>, <code>.rom</code>, <code>.ic9</code>,
             <code>.ic10</code>, and <code>.amtape</code> files.</p>
@@ -143,7 +147,7 @@
                 <tr><td><code>.amtape</code></td><td>Imports an emulator cassette record
                     for a later LOAD. It does not immediately copy the program into RAM.</td></tr>
                 <tr><td>Name contains <code>ic9</code> or <code>monitor</code></td>
-                    <td>Installs a monitor ROM at <code>$FE00</code>, then cold resets.
+                    <td>Replaces the monitor ROM at <code>$FE00</code>, then cold resets.
                         A complete image is 512 bytes; larger files are rejected.</td></tr>
                 <tr><td>Name contains <code>ic10</code> or <code>cassette</code></td>
                     <td>Replaces the cassette ROM in the IC10 socket at
@@ -151,7 +155,7 @@
                         first 256 bytes appear at <code>$FC00</code> and its last 256 at
                         <code>$FB00</code>. A complete image is 512 bytes; larger files
                         are rejected.</td></tr>
-                <tr><td>Any other 512-byte file</td><td>Installs it as a monitor ROM,
+                <tr><td>Any other 512-byte file</td><td>Replaces the monitor ROM with it,
                     then cold resets, even if the extension is <code>.bin</code>.</td></tr>
                 <tr><td>Other raw binary files</td><td>Copies bytes to <code>$0000</code>
                     without resetting or starting the program. Select its entry address
