@@ -145,6 +145,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The board's printed legends are now the mustard yellow of a real board's
+  silkscreen instead of white, and the maker's mark is the real one: the boxed
+  monogram, `A.S.EL` and `AMICO 2000` running up the right-hand edge and
+  reading from the bottom, with `1 79` further along and a bar of ink in the
+  corner. It had read `A.S.E.L.` from the top down. `NOR` and `SS` and the
+  printed box around the slide switch sit where the board has them. Four
+  legends that the board never carried are gone: BUS, J1 EXP, MONITOR ROM and
+  7805.
 - The board now carries the four LEDs the real one has, D4 to D7, drawn as
   5 mm red LEDs with their designators beneath, in place of five invented
   ones labelled PWR, RUN, IRQ, NMI and RW. They belong to the cassette
