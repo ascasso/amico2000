@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a choice of how the six displays are drawn, under Bench controls:
+  **Readable**, now the default, keeps each segment solid with only a narrow
+  glow and dims the unlit segments, so digits read easily at the size a page
+  draws them; **Authentic** is the blooming look of a real powered board that
+  the displays had before. Only the drawing changes, never which segments are
+  lit. The page remembers the choice in the browser.
 - Added `tests/display-renderer.test.js`, the first check of the seven-segment
   renderer. `display.js` draws into the DOM, so nothing in Node could see it;
   the test stands it on a small stand-in for the handful of DOM calls it makes.

@@ -116,7 +116,7 @@ Machine emulation layer that connects CPU to hardware:
 - Display updates are decoupled from PIA writes for performance - buffered and updated once per frame
 - Keyboard scanning matches the ROM's timing expectations (port B values: 1, 3, 5 for rows 0, 1, 2)
 
-### 3. display.js (~360 lines)
+### 3. display.js (~440 lines)
 SVG-based seven-segment display renderer:
 - Six separate TIL312 packages, as on the board: four for the address, a gap
   where the board shows through, then two for the data:
@@ -126,7 +126,12 @@ SVG-based seven-segment display renderer:
 - Each digit has two decimal points, one each side of its foot, as a TIL312
   does. Nothing lights them: the board does not appear to wire them, and the
   machine layer drops bit 7 before a pattern reaches the renderer
-- Red LED appearance with glow effects
+- Two looks, chosen with `setLook()`: `authentic`, the bloom and halo of a
+  powered board as photographed, and `readable`, solid bars with a narrow
+  fringe and a dimmer ghost 8 for reading on a screen. A look changes only
+  how segments are painted, never which are lit or where. The page starts
+  in `readable`; the bench panel's **Displays** buttons switch, and `main.js`
+  remembers the choice in `localStorage` under `amico2000.displayLook`
 - The machine layer calls `update()` once per frame (60 fps, from its
   `requestAnimationFrame` loop, independent of CPU speed); the renderer compares
   each pattern with the one it last drew and writes to the DOM only for
@@ -134,7 +139,7 @@ SVG-based seven-segment display renderer:
 
 **Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second. The geometry is in the single `DISPLAY_LAYOUT` object at the top of the file, measured on a photograph of a real board. `tests/display-renderer.test.js` pins the bit-to-segment mapping, the left-to-right order of the digits, and where each named segment is actually drawn; keep it passing when changing how the display is drawn.
 
-### 4. main.js (~550 lines)
+### 4. main.js (~590 lines)
 Application initialization and UI:
 - Contains the Monitor ROM data (MONITOR_ROM constant at top of file)
 - Keyboard event handling (both physical keyboard and on-screen buttons)

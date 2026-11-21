@@ -414,6 +414,57 @@ test('the named segments sit where a seven-segment digit has them', () => {
     });
 });
 
+test('a look changes how segments are painted, never which are lit or where', () => {
+    const { renderer, container } = makeRenderer();
+    const svg = container.children[0];
+    renderer.showHex(0x2B78, 0xCD);
+    const lit = wholeDisplay(renderer);
+    const where = (r) => r.digits.map((digit) => SEGMENT_NAMES.map((name) => {
+        const box = drawnBox(digit.segments[name]);
+        return [box.cx.toFixed(2), box.cy.toFixed(2)].join(',');
+    }).join(' '));
+    const placed = where(renderer);
+
+    for (const look of Object.keys(renderer.constructor.LOOKS)) {
+        assert.equal(renderer.setLook(look), look);
+        assert.equal(renderer.look, look);
+        assert.equal(svg.getAttribute('data-look'), look);
+        assert.deepEqual(wholeDisplay(renderer), lit, `${look}: the same segments lit`);
+        assert.deepEqual(where(renderer), placed, `${look}: every segment where it was`);
+
+        // The lit layer's filter must name one the renderer defined.
+        const filter = svg.children.find((el) => el.getAttribute('class') === 'lit').getAttribute('filter');
+        const id = filter.match(/^url\(#([\w-]+)\)$/)[1];
+        assert.ok(allElements(svg).some((el) => el.tagName === 'filter' && el.getAttribute('id') === id),
+            `${look}: filter #${id} exists`);
+    }
+});
+
+test('the looks are authentic and readable, and nothing else is accepted', () => {
+    const { renderer } = makeRenderer();
+    assert.deepEqual(Object.keys(renderer.constructor.LOOKS).sort(), ['authentic', 'readable']);
+    assert.equal(renderer.look, 'authentic', 'the renderer itself starts authentic; the page chooses');
+    // 'toString' is the case a plain property lookup would let through.
+    for (const bad of ['clear', 'toString', '__proto__', '', undefined]) {
+        assert.throws(() => renderer.setLook(bad), /unknown display look/, `setLook(${String(bad)})`);
+    }
+    assert.equal(renderer.look, 'authentic', 'a refused look changes nothing');
+});
+
+test('switching looks leaves the per-frame path as cheap as before', () => {
+    const { renderer, container } = makeRenderer();
+    const everything = allElements(container.children[0]);
+    const writes = () => everything.reduce((sum, el) => sum + el.writes, 0);
+
+    renderer.setLook('readable');
+    renderer.showHex(0x02A5, 0x3C);
+    const before = writes();
+    for (let frame = 0; frame < 60; frame++) {
+        renderer.showHex(0x02A5, 0x3C);
+    }
+    assert.equal(writes(), before, 'sixty identical frames in the readable look write nothing');
+});
+
 test('the renderer draws nothing but SVG and never reaches for a network resource', () => {
     const { container } = makeRenderer();
 

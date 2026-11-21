@@ -90,20 +90,43 @@ const DISPLAY_LAYOUT = (() => {
 })();
 
 class DisplayRenderer {
+    /**
+     * Two ways of drawing the same lights. Which segments are lit never
+     * depends on the look; only how a lit and an unlit segment are painted.
+     *
+     * authentic: as unit A's photograph shows a powered board. A lit
+     *   TIL312 is a deep red, about 660 nm, with none of the orange an early
+     *   red LED is often drawn with; the camera records it as #fe085b, and
+     *   cameras push that wavelength toward pink, so the red here is the
+     *   same hue pulled back a little. A lit segment swells past its window,
+     *   the hairlines between segments close, and a dim halo lies on the
+     *   face. An unlit segment on unit B is a dusty red window with a paler
+     *   rim, so the idle "8" looks drawn in outline.
+     *
+     * readable: the same red, a little darker, held close to its own window:
+     *   solid bars only slightly widened, a narrow fringe of glow with no
+     *   halo, and the unlit "8" dimmed so it does not compete. It gives up
+     *   the photograph's bloom for digits that read at a glance at the size
+     *   a web page draws them, where a digit is barely 20 pixels tall and
+     *   the bloom runs its bars together.
+     */
+    static LOOKS = Object.freeze({
+        authentic: Object.freeze({
+            filter: 'amico-display-glow',
+            on: '#ff1f45', litStroke: '#ff1f45', litStrokeWidth: 3.2, pointGrow: 1.2,
+            off: '#64263f', offRim: '#a84a66',
+        }),
+        readable: Object.freeze({
+            filter: 'amico-display-glow-readable',
+            on: '#ec2340', litStroke: '#ec2340', litStrokeWidth: 1.4, pointGrow: 0.5,
+            off: '#3d1a2b', offRim: '#5c293e',
+        }),
+    });
+
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.digits = [];
 
-        // Colors. A lit TIL312 is a deep red, about 660 nm, with none of the
-        // orange an early red LED is often drawn with. Unit A's photograph
-        // records it as #fe085b; cameras push that wavelength toward pink,
-        // so the red here is the same hue pulled back a little.
-        this.colorOn = '#ff1f45';       // Lit segment
-        // An unlit segment on unit B is not a flat bar: it is a dusty red
-        // window with a paler rim, darker in the middle, so the idle "8"
-        // looks drawn in outline.
-        this.colorOff = '#64263f';
-        this.colorOffRim = '#a84a66';
         this.colorFace = '#231d28';     // Package face
 
         // The pattern each digit currently shows. update() is called on every
@@ -111,7 +134,51 @@ class DisplayRenderer {
         // is what keeps a steady display from touching the DOM at all.
         this._shown = [0, 0, 0, 0, 0, 0];
 
+        // Everything setLook() repaints, gathered as the display is built.
+        this._litShapes = [];
+        this._litPoints = [];
+        this._unlitGlyphs = [];
+        this._unlitPoints = [];
+
         this._createDisplay();
+        this.setLook('authentic');
+    }
+
+    /**
+     * Choose how the lights are drawn: 'authentic' or 'readable' (see LOOKS).
+     * This repaints a few dozen elements once; it does not touch the
+     * per-frame path, which only ever shows and hides segments.
+     * @param {string} name
+     * @returns {string} the look now in use
+     */
+    setLook(name) {
+        // hasOwn, not a plain lookup: a name such as 'toString' would
+        // otherwise find an inherited function and get past the check.
+        const look = Object.hasOwn(DisplayRenderer.LOOKS, name) ? DisplayRenderer.LOOKS[name] : null;
+        if (!look) {
+            throw new Error(`unknown display look "${name}"; expected ${Object.keys(DisplayRenderer.LOOKS).join(' or ')}`);
+        }
+        this.look = name;
+        this.svg.setAttribute('data-look', name);
+        this._litLayer.setAttribute('filter', `url(#${look.filter})`);
+        for (const shape of this._litShapes) {
+            shape.setAttribute('fill', look.on);
+            shape.setAttribute('stroke', look.litStroke);
+            shape.setAttribute('stroke-width', look.litStrokeWidth);
+        }
+        for (const point of this._litPoints) {
+            point.setAttribute('fill', look.on);
+            point.setAttribute('r', DISPLAY_LAYOUT.decimalPoints.left.r + look.pointGrow);
+        }
+        for (const glyph of this._unlitGlyphs) {
+            glyph.setAttribute('fill', look.off);
+            glyph.setAttribute('stroke', look.offRim);
+        }
+        for (const point of this._unlitPoints) {
+            point.setAttribute('fill', look.off);
+            point.setAttribute('stroke', look.offRim);
+        }
+        return name;
     }
 
     /**
@@ -150,6 +217,21 @@ class DisplayRenderer {
         this._el('feMergeNode', { in: 'bloom' }, merge);
         this._el('feMergeNode', { in: 'SourceGraphic' }, merge);
 
+        // The readable look's glow: one narrow, faint fringe, enough to read as
+        // light rather than paint, with no halo to blur the digit's outline.
+        const fringe = this._el('filter', {
+            id: 'amico-display-glow-readable',
+            filterUnits: 'userSpaceOnUse',
+            x: -L.sideW, y: 0, width: L.totalW + L.sideW, height: L.faceH,
+            'color-interpolation-filters': 'sRGB',
+        }, defs);
+        this._el('feGaussianBlur', { in: 'SourceGraphic', stdDeviation: 1.6, result: 'soft' }, fringe);
+        const faint = this._el('feComponentTransfer', { in: 'soft', result: 'edge' }, fringe);
+        this._el('feFuncA', { type: 'linear', slope: 0.55 }, faint);
+        const fringeMerge = this._el('feMerge', {}, fringe);
+        this._el('feMergeNode', { in: 'edge' }, fringeMerge);
+        this._el('feMergeNode', { in: 'SourceGraphic' }, fringeMerge);
+
         // The face is matt plastic, a shade lighter toward the top where the
         // light comes from.
         const face = this._el('linearGradient', { id: 'amico-display-face', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
@@ -158,7 +240,9 @@ class DisplayRenderer {
         this._el('stop', { offset: 1, 'stop-color': '#1a151e' }, face);
 
         const packages = this._el('g', { class: 'packages' }, svg);
-        const lit = this._el('g', { class: 'lit', filter: 'url(#amico-display-glow)' }, svg);
+        const lit = this._el('g', { class: 'lit' }, svg);
+        this.svg = svg;
+        this._litLayer = lit;
 
         // Layout: [A3][A2][A1][A0]   [D1][D0]
         for (let i = 0; i < 6; i++) {
@@ -234,41 +318,42 @@ class DisplayRenderer {
         // Real segments lean: the top of the digit is to the right of its foot.
         const slant = `translate(${L.glyphX}, ${L.glyphY}) skewX(${-L.slantDegrees})`;
         const unlit = this._el('g', {
-            transform: slant, fill: this.colorOff,
-            stroke: this.colorOffRim, 'stroke-width': 1.1, 'stroke-linejoin': 'round',
+            transform: slant, 'stroke-width': 1.1, 'stroke-linejoin': 'round',
         }, group);
+        this._unlitGlyphs.push(unlit);
 
         // The lit copies live in the shared glow layer, under the same transform.
         const litGroup = this._el('g', { transform: `translate(${x}, 0)` }, litLayer);
         const litGlyph = this._el('g', { transform: slant }, litGroup);
 
-        // A lit segment is drawn with a round-jointed stroke of its own
-        // colour, so it stands wider than its unlit window, loses its sharp
-        // points and closes the hairline to its neighbours, as on unit A.
+        // A lit segment is the unlit window's outline with a round-jointed
+        // stroke of its own red. The stroke's width comes from the look: in
+        // the authentic one it is wide, so the segment stands well past its
+        // window and closes the hairlines, as on unit A; in the readable one it
+        // only softens the corners.
         const segments = {};
         for (const [name, outline] of Object.entries(DisplayRenderer._segmentOutlines())) {
             const points = outline.map(([px, py]) => `${px},${py}`).join(' ');
             this._el('polygon', { points }, unlit);
             segments[name] = this._el('polygon', {
-                points, fill: this.colorOn,
-                stroke: this.colorOn, 'stroke-width': 3.2, 'stroke-linejoin': 'round',
+                points, 'stroke-linejoin': 'round',
                 class: 'segment', 'data-bit': L.segmentBits[name], visibility: 'hidden',
             }, litGlyph);
+            this._litShapes.push(segments[name]);
         }
 
         // The two decimal points, unlit as photographed on unit B, and a lit
         // copy of each in one group that bit 7 shows or hides.
         const { left, right } = L.decimalPoints;
-        this._el('circle', {
-            cx: left.x, cy: left.y, r: left.r, fill: this.colorOff,
-            stroke: this.colorOffRim, 'stroke-width': 0.6,
-        }, group);
+        this._unlitPoints.push(this._el('circle', {
+            cx: left.x, cy: left.y, r: left.r, 'stroke-width': 0.6,
+        }, group));
         this._el('circle', { cx: right.x, cy: right.y, r: right.r, fill: '#55454f' }, group);
         segments.dp = this._el('g', {
             class: 'segment', 'data-bit': L.segmentBits.dp, visibility: 'hidden',
         }, litGroup);
         for (const point of [left, right]) {
-            this._el('circle', { cx: point.x, cy: point.y, r: point.r + 1.2, fill: this.colorOn }, segments.dp);
+            this._litPoints.push(this._el('circle', { cx: point.x, cy: point.y, r: point.r }, segments.dp));
         }
 
         group.segments = segments;

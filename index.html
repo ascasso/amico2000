@@ -751,6 +751,25 @@
         }
         .control-btn-primary:hover { background: #3a8047; }
 
+        /* How the six displays are drawn: two looks, see display.js. A pair
+           of buttons rather than one that flips, so the current choice is
+           always visible and announced by aria-pressed. */
+        .look-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin: -0.35rem 0 1.1rem;
+            font-size: 0.8rem;
+        }
+        .look-toggle .k { color: var(--ink-soft); margin-right: 0.2rem; }
+        .look-toggle .control-btn { flex: 0 1 auto; padding: 0.35rem 0.8rem; }
+        .look-toggle .control-btn[aria-pressed="true"] {
+            background: var(--ink-soft);
+            border-color: var(--ink);
+            color: var(--paper);
+            cursor: default;
+        }
+
         /* Keep format help next to the picker instead of hiding it in a tooltip. */
         .load-help { margin: 0 0 1.1rem; font-size: 0.8rem; line-height: 1.6; }
         .load-help a { color: #22522c; text-underline-offset: 0.15em; }
@@ -1330,6 +1349,11 @@
                 <button class="control-btn" id="btn-step">Step</button>
                 <button class="control-btn" id="btn-reset" title="Power-on reset — clears RAM, the way switching the board off and on does. The board&rsquo;s own RES key keeps RAM.">Cold reset</button>
                 <button class="control-btn" id="btn-load" aria-describedby="load-help">Load ROM or tape</button>
+            </div>
+            <div class="look-toggle" role="group" aria-label="How the displays are drawn">
+                <span class="k">Displays</span>
+                <button class="control-btn look-btn" data-look="readable" aria-pressed="true" title="Solid digits with no halo: easier to read on a screen">Readable</button>
+                <button class="control-btn look-btn" data-look="authentic" aria-pressed="false" title="Bright, blooming digits, as a photograph of a powered board shows them">Authentic</button>
             </div>
             <p class="load-help" id="load-help">
                 Raw binary ROMs/programs (<code>.bin</code>, <code>.rom</code>,

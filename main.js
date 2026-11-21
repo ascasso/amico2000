@@ -154,6 +154,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create display renderer
     display = new DisplayRenderer('display');
     
+    // Choose how the displays are drawn before the first frame paints.
+    setupDisplayLook();
+
     // Connect display callback
     amico.onDisplayUpdate = (patterns) => {
         display.update(patterns);
@@ -252,6 +255,44 @@ function setupKeyboard() {
         
         button.addEventListener('touchend', () => {
             button.style.transform = '';
+        });
+    });
+}
+
+// The displays can be drawn as a photograph of a powered board shows them,
+// blooming, or held to their segments so they read easily on a screen (see
+// DisplayRenderer.LOOKS). Readable is the default; the choice is remembered in
+// this browser only. Storage can be unavailable or throw (private windows,
+// blocked site data), and then the page simply starts with the default.
+const DISPLAY_LOOK_KEY = 'amico2000.displayLook';
+const DEFAULT_DISPLAY_LOOK = 'readable';
+
+function setupDisplayLook() {
+    const buttons = document.querySelectorAll('.look-btn');
+
+    const apply = (look) => {
+        display.setLook(look);
+        buttons.forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.look === look));
+        });
+    };
+
+    let saved = null;
+    try {
+        saved = localStorage.getItem(DISPLAY_LOOK_KEY);
+    } catch (err) {
+        // Storage blocked: keep the default.
+    }
+    apply(Object.hasOwn(DisplayRenderer.LOOKS, saved) ? saved : DEFAULT_DISPLAY_LOOK);
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+            apply(button.dataset.look);
+            try {
+                localStorage.setItem(DISPLAY_LOOK_KEY, button.dataset.look);
+            } catch (err) {
+                // Storage blocked: the choice lasts until the page is reloaded.
+            }
         });
     });
 }
