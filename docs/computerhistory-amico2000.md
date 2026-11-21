@@ -348,19 +348,30 @@ The article says the machine has four PROMs:
 
 Only two PROMs are needed for the base-board version.
 
+The four PROM image files linked below are not part of the 2026-01-13 snapshot this file was written from. The Wayback Machine held no copy of them, so links built from that snapshot's timestamp returned 404. They were captured from the live site on 2026-11-21, and the links below point at those captures.
+
+| File | Bytes | SHA-256 |
+| --- | --- | --- |
+| `amico2000_replica_PROM_IC9.bin` | 512 | `9134e059dd91b06480ecfe97f0eee6e15f338debbce0c50472e7ca5253bda7bb` |
+| `amico2000_replica_PROM_IC10.bin` | 512 | `0f9d27ffa5520cc22f629e7133b7415e9d6a8227484294f64f8f590a20ae6722` |
+| `amico2000_replica_PROM_IC6.bin` | 256 | `1b8832e3fad2aee5183e20734891a5cd2a29764c30e90a1509314a9d9753b12d` |
+| `amico2000_replica_PROM_IC7.bin` | 256 | `362c5335b0f4635f5c839055f0299b47bd3b565bec84071dd075f46e199d5542` |
+
+`MONITOR_ROM` and `CASSETTE_ROM` in `main.js` are byte-identical to the IC9 and IC10 files. Both are in chip order, which for IC10 is not address order; see PROM Image Order in `AGENTS.md`.
+
 ### Monitor ROM IC9
 
 The monitor ROM contents were published in the book `Costruiamo un vero microelaboratore elettronico`, and likely also in the magazine. Davide supplied a monitor ROM file that he had manually copied from the magazine.
 
 Download:
-- `amico2000_replica_PROM_IC9.bin`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC9.bin`
+- `amico2000_replica_PROM_IC9.bin`: `https://web.archive.org/web/20261121165217/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC9.bin`
 
 ### Cassette Software ROM IC10
 
 The second software ROM contained cassette-recorder management code. The article says the contents were not known to have been published. Mario, who owned an original AMICO 2000, read and supplied the ROM contents. The cassette ROM is not required for base-machine operation.
 
 Download:
-- `amico2000_replica_PROM_IC10.bin`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC10.bin`
+- `amico2000_replica_PROM_IC10.bin`: `https://web.archive.org/web/20261121165202/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC10.bin`
 
 ### Address-Decoding PROMs IC6 / IC7
 
@@ -418,7 +429,7 @@ The article says the following 4-bit output patterns define the standard `IC6` d
 | `FE-FF` | Monitor ROM | `1110 = E` |
 
 Download:
-- `amico2000_replica_PROM_IC6.bin`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC6.bin`
+- `amico2000_replica_PROM_IC6.bin`: `https://web.archive.org/web/20261121165223/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC6.bin`
 
 ### IC7 PROM Patterns
 
@@ -429,7 +440,7 @@ The article says `IC7` can be generated analogously.
 | `FB-FC` | Cassette ROM | `1110 = E` |
 
 Download:
-- `amico2000_replica_PROM_IC7.bin`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC7.bin`
+- `amico2000_replica_PROM_IC7.bin`: `https://web.archive.org/web/20261121165506/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC7.bin`
 
 ## Documentation Links Listed In The Article
 

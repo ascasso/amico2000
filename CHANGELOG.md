@@ -319,6 +319,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   LOAD and SAVE are unaffected, because the traps act before any ROM byte
   executes, and the PROM is still not fitted by default. Covered by
   `tests/cassette-rom-mapping.test.js`.
+- Fixed the four PROM image links in `docs/computerhistory-amico2000.md`. They
+  pointed at a Wayback Machine snapshot that never held the files, and
+  returned 404. The files were captured from the live site on 2026-11-21, and
+  the links now point at those captures, with each file's size and SHA-256
+  recorded beside them.
 - Fixed an uncaught console error when releasing the `"` key. The on-screen
   key highlight built its CSS selector from the raw key name, so a double quote
   produced an invalid selector; the name is now escaped with `CSS.escape()`. The emulator itself was unaffected, because the key had

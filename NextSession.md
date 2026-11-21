@@ -146,11 +146,11 @@ Known open work, in rough priority order. None of it is started.
    optional, and there is no way yet to take it back out for the bare board.
    This is an owner decision about which board the emulator presents, not a
    defect.
-5. **The PROM dump links are dead.** The four `amico2000_replica_PROM_*.bin`
-   links in `docs/computerhistory-amico2000.md` point at a Wayback snapshot
-   that never captured the files (HTTP 404 on 2026-11-21). The live site still
-   serves all four, and its IC9 and IC10 files are byte-identical to the
-   arrays in `main.js`, which are the repository's only copies.
+5. **The other archive links are unchecked.** The four PROM image links in
+   `docs/computerhistory-amico2000.md` pointed at a Wayback snapshot that never
+   held the files. They were captured and relinked on 2026-11-21. The file's
+   other links carry the same 2026-01-13 timestamp, to images, PDFs and
+   magazine scans, and none of them has been tested.
 6. **`#19`, `#20`**: see Cassette Work below.
 
 Browser checks, learned on 2026-11-19: the pages' CSP forbids inline scripts,
