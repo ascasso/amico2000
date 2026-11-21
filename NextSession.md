@@ -30,8 +30,10 @@ Priority order:
   keyboard test pages and `original-documentation.html` removed, and every
   pending cleanup in `AGENTS.md` done. `docs/logs/2026-11-19.md` has each one.
 - 2026-11-21 session: `AGENTS.md` now lets named agents close an issue
-  without being asked, `#23` was closed, and `#35` was fixed.
-  `docs/logs/2026-11-21.md` has each one.
+  without being asked, `#23` was closed, `#35` was fixed and closed, and `#41`
+  was opened for what that fix showed about the cassette traps. `develop` was
+  pushed, at the owner's direction, so that the closing comment could link the
+  fix. `docs/logs/2026-11-21.md` has each one.
 - `#25` is done/closed: raw `.bin` program loads intentionally do not call
   `amico.reset()`.
 - `#22` is implemented: decimal-mode SBC now derives `N` from the binary
@@ -78,9 +80,10 @@ Priority order:
   `$FB00`. The issue's diagnosis was wrong. The embedded `CASSETTE_ROM` bytes
   are the published dump byte for byte; only the loader's file-order copy was
   at fault. See PROM Image Order in `AGENTS.md`. Protected by
-  `tests/cassette-rom-mapping.test.js`. The issue is still open on GitHub as
-  of this commit.
-- Open on GitHub: `#19`, `#20`, `#35`.
+  `tests/cassette-rom-mapping.test.js`. The issue was retitled to say what
+  was really wrong, "Cassette PROM (IC10) is loaded with its two halves
+  swapped", and closed on 2026-11-21 with the corrected diagnosis.
+- Open on GitHub: `#19`, `#20`, `#41`.
 - The CPU core now has broad instruction-level coverage *and* per-fix
   regression coverage. The **machine layer is only partly covered**: the
   keyboard matrix and keypad workflow (`tests/keyboard-matrix.test.js`), run
@@ -114,9 +117,9 @@ Known open work, in rough priority order. None of it is started.
    and the segment patterns at `$FFEA` (the monitor's digit table), and the
    `$FD00-$FDFF` partial decoding. The keypad tests show the pattern: run the
    real monitor in Node and assert on RAM or PIA state, with no DOM.
-3. **The cassette traps differ from the real routines.** With IC10 readable
-   (`#35`), the trapped LOAD and SAVE can be compared with the code they stand
-   in for, and they differ in what they leave behind:
+3. **`#41`: the cassette traps differ from the real routines.** With IC10
+   readable (`#35`), the trapped LOAD and SAVE can be compared with the code
+   they stand in for, and they differ in what they leave behind:
    - Real SAVE never writes `$0000-$0004`. On success the parameters are still
      there, so the display reads `0000` and the low byte of the start address.
      When the end address is before the start, it returns to the monitor with
@@ -130,14 +133,17 @@ Known open work, in rough priority order. None of it is started.
      until RES, as the manual says. The trap returns `$FF` at once, which the
      guide documents.
 
-   Decide which of these to bring into line. None is tracked in a GitHub
-   issue.
-4. **Whether to fit IC10 by default.** The cassette PROM is still opt-in. Now
-   that it maps correctly, fitting it at startup would make `$FB00-$FCFF` read
-   as it does on a board with the cassette interface, which the working LOAD
-   and SAVE already imply: AD or REG would show `FBBC D8` and `FC54 A9` as the
-   manual prints them, where an empty socket shows `FF`, and a program could
-   call the PROM's subroutines. The traps would still take both entry points.
+   Decide which of these to bring into line. The issue lists the cases and
+   the tests and documents that assert the current behavior.
+4. **Whether to fit IC10 by default.** The cassette PROM is still opt-in, and
+   on 2026-11-21 the owner chose to keep it that way for now. Now that it maps
+   correctly, fitting it at startup would make `$FB00-$FCFF` read as it does
+   on a board with the cassette interface, which the working LOAD and SAVE
+   already imply: AD or REG would show `FBBC D8` and `FC54 A9` as the manual
+   prints them, where an empty socket shows `FF`, and a program could call the
+   PROM's subroutines. The traps would still take both entry points. If it is
+   taken up, the guide, `README.md` and `AGENTS.md` all call the PROM
+   optional, and there is no way yet to take it back out for the bare board.
    This is an owner decision about which board the emulator presents, not a
    defect.
 5. **The PROM dump links are dead.** The four `amico2000_replica_PROM_*.bin`
@@ -229,8 +235,8 @@ Cassette support is nice to have, but do it after core machine and CPU behavior.
 
 Relevant open items:
 
-- `#35`: fixed on 2026-11-21, see Current Status; the GitHub issue is still to
-  be closed.
+- `#41`: the trapped LOAD and SAVE leave different values in `$0000-$0004`
+  than the real routines do; see Outstanding above.
 - `#19`: document the `.amtape` mock cassette file format. The format has been
   stable at version 1 since `#23`. Two things to settle while writing it: the
   parser does not check that the recorded start, end and length agree, and
