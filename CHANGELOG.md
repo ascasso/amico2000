@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the renderer as `0000 00`. Two of them read the geometry rather than the
   names: every lit segment has to be drawn over its own package, on top of
   its unlit window, and the named segments have to sit where a seven-segment
-  digit has them, leaning the right way, with the decimal point at the foot.
+  digit has them, leaning the right way, with two decimal points at the foot,
+  one each side.
   It was first written against the renderer as it stood, ahead of redrawing
   the displays, so the redraw had something to hold it.
 - Added a link to the published emulator, `https://ascasso.github.io/amico2000/`,

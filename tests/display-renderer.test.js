@@ -398,10 +398,19 @@ test('the named segments sit where a seven-segment digit has them', () => {
 
         // A decimal point belongs at the foot of the digit, beside it, never
         // inside it.
-        for (const point of shapesIn(digit.segments.dp).map(drawnBox)) {
+        const points = shapesIn(digit.segments.dp).map(drawnBox);
+        for (const point of points) {
             assert.ok(point.cy > c.cy && point.cy < d.y1 + point.h, say('a decimal point should sit at the foot of the digit'));
             assert.ok(point.x1 <= e.x0 || point.x0 >= c.x1, say('a decimal point should sit beside the digit, not inside it'));
         }
+
+        // The TIL312 has two of them, one each side of the digit (Texas
+        // Instruments' data sheet: "common anode, two decimals"). An earlier
+        // version of the renderer drew the right-hand one as a mark in the
+        // moulding that could not light.
+        assert.equal(points.length, 2, say('a TIL312 has two decimal points'));
+        assert.ok(points.some((point) => point.x1 <= e.x0), say('one decimal point should be left of the digit'));
+        assert.ok(points.some((point) => point.x0 >= c.x1), say('one decimal point should be right of the digit'));
     });
 });
 
