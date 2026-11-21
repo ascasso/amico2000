@@ -146,8 +146,8 @@
                     <td>Installs a monitor ROM at <code>$FE00</code>, then cold resets.
                         A complete image is 512 bytes; larger files are rejected.</td></tr>
                 <tr><td>Name contains <code>ic10</code> or <code>cassette</code></td>
-                    <td>Fits a cassette ROM in the IC10 socket at <code>$FB00-$FCFF</code>,
-                        then cold resets. The file is a PROM dump in chip order, so its
+                    <td>Replaces the cassette ROM in the IC10 socket at
+                        <code>$FB00-$FCFF</code>, then cold resets. The file is a PROM dump in chip order, so its
                         first 256 bytes appear at <code>$FC00</code> and its last 256 at
                         <code>$FB00</code>. A complete image is 512 bytes; larger files
                         are rejected.</td></tr>
@@ -189,9 +189,12 @@ amico.start();</code></pre>
             and checksum. It is produced by this emulator; it is not a WAV/MP3
             recording or a raw ROM dump. Audio recordings need a separate decoding
             step before they can be used here.</p>
-        <p>The emulator intercepts the cassette entry points directly, so these
-            file operations do not require an additional cassette ROM. They return
-            to the monitor after the operation.</p>
+        <p>The cassette PROM is fitted when the page opens, so <code>$FBBC</code>
+            and <code>$FC54</code> hold the original routines, as on a board built
+            with the cassette interface. When you RUN from either address, the
+            emulator intercepts it and reads or writes an <code>.amtape</code>
+            file instead of sound. Either way it returns to the monitor
+            afterwards.</p>
         <h3>LOAD an imported tape</h3>
         <ol>
             <li>Choose the <code>.amtape</code> with <strong>Load ROM or tape</strong>.

@@ -114,13 +114,14 @@ Example: `AD → 0 0 2 0 → DA → E A → + → F0`
 
 Click the **Load ROM or tape** button under Bench controls to load:
 - **prom.ic9** - Monitor ROM (loads at $FE00)
-- **prom.ic10** - Cassette ROM (fits at $FB00-$FCFF; a PROM dump in chip
-  order, so its first half appears at $FC00 and its second half at $FB00)
+- **prom.ic10** - Cassette ROM (replaces the one fitted at $FB00-$FCFF; a
+  PROM dump in chip order, so its first half appears at $FC00 and its second
+  half at $FB00)
 - **.amtape** - Mock cassette tape image for the IC10 LOAD routine
 - Other `.bin` files - Loaded as programs at $0000
 
-The optional cassette ROM entry points are intercepted at $FBBC (SAVE) and
-$FC54 (LOAD). This provides file-backed cassette behavior without emulating the
+The cassette ROM is fitted at startup, and its entry points are intercepted
+at $FBBC (SAVE) and $FC54 (LOAD). This provides file-backed cassette behavior without emulating the
 original analog tape waveform. As on the original, control then returns to the
 monitor at $FE22 rather than through an `RTS`. Use `debug.saveTape()` after running the cassette
 SAVE routine to download the most recent mock tape image.
@@ -150,7 +151,7 @@ Chapter V, "L'uso del registratore a cassette":
 |---------|---------|
 | $0000-$03FF | RAM (1KB standard) |
 | $0400-$07FF | RAM (1KB expansion) |
-| $FB00-$FCFF | Cassette ROM (optional, read-only) |
+| $FB00-$FCFF | Cassette ROM (fitted at startup, read-only) |
 | $FD00-$FDFF | 8255 PIA (I/O, partially decoded) |
 | $FE00-$FFFF | Monitor ROM (read-only) |
 
@@ -240,7 +241,7 @@ Features:
 - 512 bytes Monitor ROM
 - 6 seven-segment LED displays
 - Hexadecimal keypad (23 keys)
-- Optional cassette interface
+- Optional cassette interface (fitted in the emulator)
 - Expansion bus for additional boards
 
 ### Original documentation

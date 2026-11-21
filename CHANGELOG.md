@@ -152,6 +152,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The cassette PROM (IC10) is now fitted when the page opens, beside the
+  monitor, as on a board built with the cassette interface, which is the board
+  the page draws. AD now shows `FBBC D8` and `FC54 A9`, as the manual prints
+  them, where the empty socket showed `FF`, and programs can call its routines.
+  Cassette LOAD and SAVE behave exactly as before: the emulator still
+  intercepts both entry points and uses `.amtape` files. On the real machine
+  IC10 was part of the optional cassette interface; to present a board
+  without it, run `amico.loadCassetteROM(new Uint8Array(512).fill(0xFF))` in
+  the browser console.
 - `AGENTS.md` now records how the four LEDs D4-D7 are wired, read from the
   schematic on page 28 of the supplement and checked against the cassette
   PROM: each is lit while Port B bit 7 and its own Port A bit are both high.

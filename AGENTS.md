@@ -149,7 +149,7 @@ Application initialization and UI:
 **Memory Map:**
 ```
 $0000-$07FF: 2KB RAM (expandable)
-$FB00-$FCFF: Cassette ROM (embedded as CASSETTE_ROM in main.js; opt-in via amico.loadCassetteROM)
+$FB00-$FCFF: Cassette ROM (embedded as CASSETTE_ROM in main.js; main.js fits it at startup)
 $FD00-$FD03: 8255 PIA I/O ports
 $FE00-$FFFF: Monitor ROM (512 bytes)
 ```
@@ -307,9 +307,13 @@ neither the current implementation nor the ROM's decode.
 ### ROM Data
 The MONITOR_ROM array in main.js contains the actual monitor ROM bytes. When loading ROM files:
 - `prom.ic9` goes at $FE00 (Monitor ROM, 512 bytes) - **required**
-- `prom.ic10` fits the socket at $FB00-$FCFF (Cassette ROM, 512 bytes) -
-  optional. The file is in chip order, so its first half answers at $FC00 and
-  its second half at $FB00; see PROM Image Order above
+- `prom.ic10` fits the socket at $FB00-$FCFF (Cassette ROM, 512 bytes). It
+  was optional on the real machine, part of the cassette interface, and
+  `main.js` fits the embedded `CASSETTE_ROM` at startup because the board the
+  page draws has that interface. The file is in chip order, so its first half
+  answers at $FC00 and its second half at $FB00; see PROM Image Order above.
+  Node tests built on `tests/helpers/machine.js` start with the socket empty,
+  as before, and fit it themselves where they need it
 - Other .bin files load as programs at $0000
 
 **Note on hardware PROMs**: The original AMICO 2000 used `prom.ic6` and `prom.ic7` for address decoding logic (generating chip-select signals). These are **not needed** in the emulator as address decoding is implemented in software through the CPU's memory read/write callbacks.

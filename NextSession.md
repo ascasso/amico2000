@@ -157,17 +157,15 @@ Known open work, in rough priority order. None of it is started.
 
    Decide which of these to bring into line. The issue lists the cases and
    the tests and documents that assert the current behavior.
-4. **Whether to fit IC10 by default.** The cassette PROM is still opt-in, and
-   on 2026-11-21 the owner chose to keep it that way for now. Now that it maps
-   correctly, fitting it at startup would make `$FB00-$FCFF` read as it does
-   on a board with the cassette interface, which the working LOAD and SAVE
-   already imply: AD or REG would show `FBBC D8` and `FC54 A9` as the manual
-   prints them, where an empty socket shows `FF`, and a program could call the
-   PROM's subroutines. The traps would still take both entry points. If it is
-   taken up, the guide, `README.md` and `AGENTS.md` all call the PROM
-   optional, and there is no way yet to take it back out for the bare board.
-   This is an owner decision about which board the emulator presents, not a
-   defect.
+4. **Done: IC10 is fitted at startup** (decided 2026-11-21, kept here so the
+   decision is easy to find). The owner first kept it
+   opt-in, then chose to fit it once the redrawn board showed the cassette
+   interface. `main.js` fits `CASSETTE_ROM` beside the monitor, so AD or REG
+   show `FBBC D8` and `FC54 A9` as the manual prints them, and programs can
+   call the PROM's subroutines. The traps still take both entry points, so
+   LOAD and SAVE behave as before. The bare board is one console line away:
+   `amico.loadCassetteROM(new Uint8Array(512).fill(0xFF))`, since an empty
+   socket reads `$FF`. Nothing in the page offers that, and nobody has asked.
 5. **The other archive links are unchecked.** The four PROM image links in
    `docs/computerhistory-amico2000.md` pointed at a Wayback snapshot that never
    held the files. They were captured and relinked on 2026-11-21. The file's
@@ -190,10 +188,10 @@ Known open work, in rough priority order. None of it is started.
      written to its control register, which `_writePIA` does not do, so Port B
      bit 7 could linger where the real chip has dropped it; that is from
      memory of the 8255A data sheet and should be confirmed before it is
-     built on. The LEDs would show only with the trap off and IC10 fitted,
-     since the traps return at once. One photograph of a powered board shows
-     D7 lit with the monitor idle, against the schematic; nothing explains
-     it yet.
+     built on. The LEDs would show only with the trap off, since the traps
+     return at once; IC10 is fitted at startup. One photograph of a powered
+     board shows D7 lit with the monitor idle, against the schematic;
+     nothing explains it yet.
    - On a phone the board pans sideways and the keys start off screen, as
      before the redraw. Whether to reflow it, or start it scrolled to the
      keys, is an owner decision.

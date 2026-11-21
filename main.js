@@ -71,7 +71,7 @@ const MONITOR_ROM = new Uint8Array([
 // You can also load different ROMs using the "Load ROM or tape" button.
 
 // ============================================================================
-// Cassette ROM Data (IC10 at $FB00-$FCFF, 512 bytes) - OPTIONAL
+// Cassette ROM Data (IC10 at $FB00-$FCFF, 512 bytes) - fitted at startup
 // Cassette interface routines - prom.ic10
 //
 // The bytes are in chip order, as read from an original machine and published
@@ -127,11 +127,18 @@ const CASSETTE_ROM = new Uint8Array([
     0xfb, 0xa9, 0x06, 0x8d, 0x00, 0xfd, 0xa2, 0xe3
 ]);
 
-// Note: this PROM is not fitted by default, and cassette LOAD and SAVE do not
-// need it: the emulator traps the entry points $FBBC and $FC54 whether or not
-// the socket is filled. To fit it, run amico.loadCassetteROM(CASSETTE_ROM) in
-// the browser console, or choose a prom.ic10 file with the "Load ROM or tape"
-// button.
+// The page fits this PROM at startup, next to the monitor. On the real machine
+// it was part of an option: the supplement's parts list marks IC10, with the
+// LEDs D4-D7 and IC19-IC21, as "fornito per completare il microcomputer AMICO
+// 2000/A con l'interfaccia per il registratore a cassette" (page 33, note 1).
+// The board drawn on the page has that interface, so the emulated socket is
+// filled to match: AD shows FBBC D8 and FC54 A9, as the manual prints them.
+//
+// Cassette LOAD and SAVE do not depend on it: the emulator traps the entry
+// points $FBBC and $FC54 before the CPU fetches from the socket. To present
+// the bare board instead, empty the socket from the browser console with
+// amico.loadCassetteROM(new Uint8Array(512).fill(0xFF)); an empty socket
+// reads $FF, because the CPU starts with every unused byte at $FF.
 
 // ============================================================================
 // Application State
@@ -171,8 +178,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // a console start() or stop() updates the label and the run lamp as well.
     amico.onRunStateChange = updateRunButton;
 
-    // Load monitor ROM
+    // Fit both PROMs: the monitor (IC9), which every board has, and the
+    // cassette PROM (IC10), which a board built with the cassette interface
+    // has. See the note after CASSETTE_ROM. Neither is touched by reset().
     amico.loadMonitorROM(MONITOR_ROM);
+    amico.loadCassetteROM(CASSETTE_ROM);
 
     // Initialize and start (CPU runs continuously like real hardware)
     amico.reset();
