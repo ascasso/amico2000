@@ -42,6 +42,10 @@ This file provides repository guidance for agents working in this repository.
 - Do not add a build system or test framework for a small fix. Prefer the
   existing browser workflow and dependency-free Node checks.
 - Do not push, publish, or alter external GitHub state unless explicitly asked.
+  The one exception is closing an issue: Claude on an Opus or Fable model, and
+  Codex on an Astra or Sol model, may close an issue without being asked. Any
+  other agent or model still needs an explicit request, and so does every
+  other change to GitHub state.
 - Report browser/manual-test limitations clearly when a check cannot be
   automated.
 
