@@ -476,7 +476,9 @@ class Amico2000 {
     
     /**
      * Load the cassette ROM
-     * @param {Uint8Array|Array} data - ROM data (512 bytes)
+     * @param {Uint8Array|Array} data - PROM image in chip order (512 bytes),
+     *     as a programmer reads or writes it. That is not address order for
+     *     this socket: see _installROM().
      */
     loadCassetteROM(data) {
         this._installROM(data, Amico2000.CASSETTE_ROM_REGION);
@@ -484,10 +486,26 @@ class Amico2000 {
 
     /**
      * Fix for #31: install a PROM image, bypassing the write protection the way
-     * physically fitting the chip does. The size check stops a wrongly
-     * identified file from running past the end of its socket, which for the
-     * monitor means loadBinary()'s address masking silently wrapping the tail
-     * of the image into zero page.
+     * physically fitting the chip does. The size check refuses a wrongly
+     * identified file outright. It was added when the excess ran past the end
+     * of the socket, which for the monitor meant wrapping into zero page. The
+     * loop below cannot do that, but quietly installing the first 512 bytes
+     * of a larger file would be no better an answer.
+     *
+     * Fix for #35: an image is in chip order. Byte N is the cell the PROM
+     * selects when its own address pins carry N, and a 512-cell PROM has only
+     * nine of them, A0-A8. Which cell answers at a given address is therefore
+     * the low nine bits of that address, not its distance from the start of
+     * the socket.
+     *
+     * For the monitor the two agree: IC9 starts at $FE00, where A0-A8 are all
+     * low. For the cassette PROM they do not. IC10 starts at $FB00, an odd
+     * page, so A8 is high across $FB00-$FBFF and low across $FC00-$FCFF. The
+     * first half of the image answers at $FC00 and the second half at $FB00.
+     *
+     * This used to copy the image in file order from the start of the socket,
+     * which put the halves of IC10 the wrong way round and left both
+     * documented entry points, $FBBC and $FC54, in the middle of instructions.
      */
     _installROM(data, region) {
         const capacity = region.end - region.start + 1;
@@ -497,7 +515,18 @@ class Amico2000 {
                 `${region.name} image is ${data.length} bytes, but ${range} holds ${capacity}`
             );
         }
-        this.cpu.loadBinary(data, region.start);
+
+        // Both sockets hold 512 cells, so this mask is A0-A8. It needs the
+        // capacity to be a power of two, which a PROM's always is.
+        const cellMask = capacity - 1;
+        for (let address = region.start; address <= region.end; address++) {
+            const cell = address & cellMask;
+            // An image shorter than the chip fills only its first cells and
+            // leaves the rest of the socket as it was, as it always has.
+            if (cell < data.length) {
+                this.cpu.memory[address] = data[cell];
+            }
+        }
     }
     
     /**
@@ -955,6 +984,9 @@ Amico2000.TAPE_MAGIC = new Uint8Array([0x41, 0x4D, 0x49, 0x43, 0x4F, 0x54, 0x41,
 // protected either way, because an empty socket latches a store no better than
 // a PROM does. Keeping the table here rather than in cpu6502.js is what lets
 // the CPU core stay a generic 6502 with plain writable memory.
+//
+// Each region is one 512-cell PROM. _installROM() relies on that to place an
+// image by the chip's address pins rather than in file order (#35).
 Amico2000.MONITOR_ROM_REGION = { name: 'monitor ROM (IC9)', start: 0xFE00, end: 0xFFFF };
 Amico2000.CASSETTE_ROM_REGION = { name: 'cassette ROM (IC10)', start: 0xFB00, end: 0xFCFF };
 Amico2000.ROM_REGIONS = [Amico2000.MONITOR_ROM_REGION, Amico2000.CASSETTE_ROM_REGION];

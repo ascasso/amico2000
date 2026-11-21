@@ -304,6 +304,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   $FF` error status, as it does for an end address before the start; every
   smaller range, up to 65,535 bytes, saves and loads as before. The user guide
   lists both failure cases. Covered by `tests/cassette-tape-length.test.js`.
+- Fixed the cassette PROM (IC10) being installed with its two halves the wrong
+  way round (#35). A PROM image is in chip order, and a 512-byte PROM is
+  addressed by A0-A8 alone. The IC10 socket at `$FB00-$FCFF` starts on an odd
+  page, so the first 256 bytes of the image belong at `$FC00` and the last 256
+  at `$FB00`. The loader copied the image in file order from `$FB00` instead,
+  which left both documented entry points, `$FBBC` and `$FC54`, in the middle
+  of instructions: a fitted cassette ROM could not run, and REG showed the
+  wrong byte at each address. `loadCassetteROM()` and a `prom.ic10` file chosen
+  with **Load ROM or tape** now place the image by the chip's address pins, so
+  REG shows `FBBC D8` and `FC54 A9` as the manual prints them. The embedded
+  `CASSETTE_ROM` bytes are unchanged. They were never at fault: they are
+  byte-identical to the dump ComputerHistory.it publishes. File-backed cassette
+  LOAD and SAVE are unaffected, because the traps act before any ROM byte
+  executes, and the PROM is still not fitted by default. Covered by
+  `tests/cassette-rom-mapping.test.js`.
+- Fixed the four PROM image links in `docs/computerhistory-amico2000.md`. They
+  pointed at a Wayback Machine snapshot that never held the files, and
+  returned 404. The files were captured from the live site on 2026-11-21, and
+  the links now point at those captures, with each file's size and SHA-256
+  recorded beside them.
 - Fixed an uncaught console error when releasing the `"` key. The on-screen
   key highlight built its CSS selector from the raw key name, so a double quote
   produced an invalid selector; the name is now escaped with `CSS.escape()`. The emulator itself was unaffected, because the key had
