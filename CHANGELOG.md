@@ -152,7 +152,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runs the routines that light them. Whether the processor is running, which
   the invented RUN LED used to show, is now a small lamp beside the registers
   under Processor state; it still follows the Run/Stop button and a console
-  `amico.start()` or `amico.stop()`. The decorative power LED is gone.
+  `amico.start()` or `amico.stop()`. It also turns amber and reads "halted"
+  when the processor meets an opcode the emulator does not implement, where
+  the RUN LED went on showing a running machine; RES or a cold reset clears
+  it. The decorative power LED is gone.
 - Lit display segments are now the deep red of the real displays instead of
   an orange-red, and they bloom: a lit segment swells past its window, the
   hairlines between segments close, and a faint red halo lies on the package

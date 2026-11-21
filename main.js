@@ -377,6 +377,12 @@ function updateStatusDisplay(state) {
         (flags.Z ? 'Z' : '-') +
         (flags.C ? 'C' : '-');
     document.getElementById('reg-flags').textContent = flagStr;
+
+    // The CPU core stops itself on an opcode it does not implement, but the
+    // emulator's frame loop keeps going so that RES can still bring the board
+    // back. Without this the lamp beside the registers would go on saying
+    // "running" over a processor that is executing nothing.
+    document.getElementById('led-run').classList.toggle('halted', amico.cpu.halted);
 }
 
 function updateRunButton() {
