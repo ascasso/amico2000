@@ -141,6 +141,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The display is now drawn as the board has it: six separate display packages,
+  four for the address and two for the data with a gap between the groups,
+  hard against the top right corner. The digits lean, and an unlit segment
+  stays faintly visible in dusty red, so a blank digit shows a ghost 8 as the
+  real parts do. The colon and the ADDRESS and DATA captions are gone; the
+  board has neither. A steady display no longer touches the page at all: the
+  renderer redraws only the segments that change.
 - The on-screen keys now look like the caps on a real board. The legends are
   printed in white on the caps, where earlier they sat beneath blank caps; the
   caps are square and sculpted, in the red and blue sampled from a photograph

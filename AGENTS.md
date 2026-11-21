@@ -114,13 +114,22 @@ Machine emulation layer that connects CPU to hardware:
 - Display updates are decoupled from PIA writes for performance - buffered and updated once per frame
 - Keyboard scanning matches the ROM's timing expectations (port B values: 1, 3, 5 for rows 0, 1, 2)
 
-### 3. display.js (~240 lines)
+### 3. display.js (~320 lines)
 SVG-based seven-segment display renderer:
-- 6 displays arranged as: [A3][A2][A1][A0] : [D1][D0]
-- Authentic red LED appearance with glow effects
-- Runs at 60fps via `requestAnimationFrame`, independent of CPU speed
+- Six separate TIL312 packages, as on the board: four for the address, a gap
+  where the board shows through, then two for the data:
+  `[A3][A2][A1][A0]  [D1][D0]`. The board has no colon and no captions
+- Slanted segments; an unlit segment stays visible in dusty red, so an idle
+  digit reads as a faint 8
+- Each digit has a decimal point at its lower left. Nothing lights it: the
+  machine layer drops bit 7 before a pattern reaches the renderer
+- Red LED appearance with glow effects
+- The machine layer calls `update()` once per frame (60 fps, from its
+  `requestAnimationFrame` loop, independent of CPU speed); the renderer compares
+  each pattern with the one it last drew and writes to the DOM only for
+  segments that changed, so a steady display costs nothing
 
-**Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second.
+**Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second. The geometry is in the single `DISPLAY_LAYOUT` object at the top of the file, measured on a photograph of a real board. `tests/display-renderer.test.js` pins the bit-to-segment mapping and the left-to-right order of the digits; keep it passing when changing how the display is drawn.
 
 ### 4. main.js (~490 lines)
 Application initialization and UI:

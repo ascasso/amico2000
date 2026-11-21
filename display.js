@@ -2,159 +2,242 @@
  * =============================================================================
  * AMICO 2000 Display Renderer
  * =============================================================================
- * 
- * Renders 6 seven-segment displays using SVG for crisp scaling.
- * Authentic red LED appearance with glow effects.
- * 
+ *
+ * Draws the board's six seven-segment displays in SVG.
+ *
+ * The board carries six separate TIL312 packages (the manual's parts list,
+ * IC18/1-6), not one display bar: four for the address, a gap about half a
+ * package wide where the board shows through, then two for the data. There is
+ * no colon and no caption on the board. The geometry and colours below were
+ * measured on a photograph of a surviving board taken from straight above,
+ * called unit B in the comments; that photograph is private and is not in the
+ * repository.
+ *
  * Author: Andrea Scasso / Claude
  * License: MIT
  * Date: December 2025
- * 
+ *
  * =============================================================================
  */
+
+// Everything about the displays' size and wiring, kept in one object because the
+// browser scripts share a single global scope and plain names such as PITCH or
+// DP would be easy to collide with.
+//
+// Lengths are in units where one package face is 100 wide. Measured on unit B:
+// a face is 105 x 188 px, so 100 x 179 here; the packages stand on a 111 px
+// pitch; and the first data package starts 1.46 pitches after the last address
+// package, which leaves a gap of about half a package between the two groups.
+const DISPLAY_LAYOUT = (() => {
+    const faceW = 100;
+    const pitch = 106;
+    const groupGap = 154.4;         // left of digit 3 to left of digit 4
+    const digitX = [0, pitch, 2 * pitch, 3 * pitch, 3 * pitch + groupGap, 4 * pitch + groupGap];
+    return Object.freeze({
+        faceW,
+        faceH: 179,
+        digitX: Object.freeze(digitX),
+        totalW: digitX[5] + faceW,
+        sideW: 5,                   // strip left of each face, see _createPackage()
+
+        // The digit: 46.5 x 77 before it is slanted, strokes 10 thick, leaning
+        // 8 degrees. It sits in the middle of the face, so nearly a third of
+        // the package above and below it is blank.
+        glyphW: 46.5,
+        glyphH: 77,
+        stroke: 10,
+        segmentGap: 1.1,
+        slantDegrees: 8,
+        glyphX: 29.8,               // top-left corner of the unslanted digit box
+        glyphY: 50.6,
+
+        // The decimal point is at the digit's lower left: the TIL312 is a
+        // left-decimal part, and the displays are fitted with the point toward
+        // the keys (manual, PDF page 25). The moulding has a matching mark at
+        // the lower right, greyer than the segments on unit B; it is drawn but
+        // it is not a light.
+        decimalPoint: Object.freeze({ x: 12.4, y: 124.6, r: 2.7 }),
+        mouldMark: Object.freeze({ x: 85.5, y: 126.5, r: 2.7 }),
+
+        // Segment name -> pattern bit. Port A bit 0 drives segment a, round to
+        // g on bit 6, with the decimal point on bit 7:
+        //
+        //     aaa
+        //    f   b
+        //     ggg
+        //    e   c
+        //     ddd
+        //  dp
+        segmentBits: Object.freeze({ a: 0, b: 1, c: 2, d: 3, e: 4, f: 5, g: 6, dp: 7 }),
+    });
+})();
 
 class DisplayRenderer {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.digits = [];
-        this.segmentPaths = [];
-        
+
         // Colors
-        this.colorOn = '#ff2200';      // Bright red LED
-        this.colorOff = '#330800';     // Dim red (LED off but visible)
-        this.colorGlow = '#ff4400';    // Glow color
-        
+        this.colorOn = '#ff2200';       // Lit segment
+        // An unlit segment on unit B is not a flat bar: it is a dusty red
+        // window with a paler rim, darker in the middle, so the idle "8"
+        // looks drawn in outline.
+        this.colorOff = '#64263f';
+        this.colorOffRim = '#a84a66';
+        this.colorFace = '#231d28';     // Package face
+
+        // The pattern each digit currently shows. update() is called on every
+        // frame with patterns that almost never change; comparing against this
+        // is what keeps a steady display from touching the DOM at all.
+        this._shown = [0, 0, 0, 0, 0, 0];
+
         this._createDisplay();
     }
-    
+
     /**
      * Create the SVG display structure
      */
     _createDisplay() {
-        // Create SVG element
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 520 100');
-        svg.setAttribute('class', 'amico-display');
-        
-        // Add glow filter
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        defs.innerHTML = `
-            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-            </filter>
-        `;
-        svg.appendChild(defs);
-        
-        // Background
-        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        bg.setAttribute('x', '0');
-        bg.setAttribute('y', '0');
-        bg.setAttribute('width', '520');
-        bg.setAttribute('height', '100');
-        bg.setAttribute('fill', '#1a1a1a');
-        bg.setAttribute('rx', '8');
-        svg.appendChild(bg);
-        
-        // Create 6 digits
-        // Layout: [A3][A2][A1][A0] : [D1][D0]
-        // Positions: 4 address digits, gap, colon, 2 data digits
-        const positions = [20, 90, 160, 230, 340, 410];
-        
+        const L = DISPLAY_LAYOUT;
+        const svg = this._el('svg', {
+            viewBox: `${-L.sideW} 0 ${L.totalW + L.sideW} ${L.faceH}`,
+            class: 'amico-display',
+            role: 'img',
+            'aria-label': 'Six seven-segment displays: four address digits, then two data digits',
+        });
+
+        const defs = this._el('defs', {}, svg);
+
+        // Glow for lit segments. One filter over one group holding every lit
+        // segment, with a fixed region, so the blur is computed for the whole
+        // display at once and only when a segment actually changes.
+        const glow = this._el('filter', {
+            id: 'amico-display-glow',
+            filterUnits: 'userSpaceOnUse',
+            x: -L.sideW, y: 0, width: L.totalW + L.sideW, height: L.faceH,
+        }, defs);
+        this._el('feGaussianBlur', { stdDeviation: 3, result: 'coloredBlur' }, glow);
+        const merge = this._el('feMerge', {}, glow);
+        this._el('feMergeNode', { in: 'coloredBlur' }, merge);
+        this._el('feMergeNode', { in: 'SourceGraphic' }, merge);
+
+        // The face is matt plastic, a shade lighter toward the top where the
+        // light comes from.
+        const face = this._el('linearGradient', { id: 'amico-display-face', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+        this._el('stop', { offset: 0, 'stop-color': '#2c2531' }, face);
+        this._el('stop', { offset: 0.25, 'stop-color': this.colorFace }, face);
+        this._el('stop', { offset: 1, 'stop-color': '#1a151e' }, face);
+
+        const packages = this._el('g', { class: 'packages' }, svg);
+        const lit = this._el('g', { class: 'lit', filter: 'url(#amico-display-glow)' }, svg);
+
+        // Layout: [A3][A2][A1][A0]   [D1][D0]
         for (let i = 0; i < 6; i++) {
-            const digitGroup = this._createDigit(positions[i], 15);
-            svg.appendChild(digitGroup);
-            this.digits.push(digitGroup);
+            this.digits.push(this._createPackage(L.digitX[i], packages, lit));
         }
-        
-        // Add separator dots between address and data
-        const dot1 = this._createDot(305, 35);
-        const dot2 = this._createDot(305, 65);
-        svg.appendChild(dot1);
-        svg.appendChild(dot2);
-        
-        // Add labels
-        const labelAddr = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        labelAddr.setAttribute('x', '145');
-        labelAddr.setAttribute('y', '95');
-        labelAddr.setAttribute('fill', '#666');
-        labelAddr.setAttribute('font-family', 'monospace');
-        labelAddr.setAttribute('font-size', '10');
-        labelAddr.setAttribute('text-anchor', 'middle');
-        labelAddr.textContent = 'ADDRESS';
-        svg.appendChild(labelAddr);
-        
-        const labelData = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        labelData.setAttribute('x', '375');
-        labelData.setAttribute('y', '95');
-        labelData.setAttribute('fill', '#666');
-        labelData.setAttribute('font-family', 'monospace');
-        labelData.setAttribute('font-size', '10');
-        labelData.setAttribute('text-anchor', 'middle');
-        labelData.textContent = 'DATA';
-        svg.appendChild(labelData);
-        
+
         this.container.appendChild(svg);
     }
-    
+
     /**
-     * Create a single 7-segment digit
+     * Create an SVG element with attributes, optionally appended to a parent
      */
-    _createDigit(x, y) {
-        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        group.setAttribute('transform', `translate(${x}, ${y})`);
-        
-        // Segment definitions (relative positions within digit)
-        // Standard 7-segment layout:
-        //   AAA
-        //  F   B
-        //   GGG
-        //  E   C
-        //   DDD  DP
-        
-        const segmentDefs = {
-            a: { path: 'M 8,0 L 52,0 L 46,6 L 14,6 Z', bit: 0 },
-            b: { path: 'M 54,2 L 54,32 L 48,38 L 48,8 Z', bit: 1 },
-            c: { path: 'M 54,40 L 54,70 L 48,64 L 48,46 Z', bit: 2 },
-            d: { path: 'M 8,72 L 52,72 L 46,66 L 14,66 Z', bit: 3 },
-            e: { path: 'M 6,40 L 6,70 L 12,64 L 12,46 Z', bit: 4 },
-            f: { path: 'M 6,2 L 6,32 L 12,38 L 12,8 Z', bit: 5 },
-            g: { path: 'M 8,36 L 52,36 L 48,42 L 12,42 L 8,36 L 12,30 L 48,30 L 52,36 Z', bit: 6 },
-            dp: { path: 'M 60,66 A 6,6 0 1,1 60,54 A 6,6 0 1,1 60,66', bit: 7 }
-        };
-        
-        const segments = {};
-        
-        for (const [name, def] of Object.entries(segmentDefs)) {
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', def.path);
-            path.setAttribute('fill', this.colorOff);
-            path.setAttribute('data-bit', def.bit);
-            path.classList.add('segment');
-            group.appendChild(path);
-            segments[name] = path;
+    _el(name, attributes = {}, parent = null) {
+        const el = document.createElementNS('http://www.w3.org/2000/svg', name);
+        for (const [key, value] of Object.entries(attributes)) {
+            el.setAttribute(key, value);
         }
-        
+        if (parent) parent.appendChild(el);
+        return el;
+    }
+
+    /**
+     * Outlines of the seven segments in the unslanted digit box: bars with
+     * pointed ends that meet at the corners with a hairline between them.
+     */
+    static _segmentOutlines() {
+        const { glyphW, glyphH, stroke, segmentGap } = DISPLAY_LAYOUT;
+        const half = stroke / 2;
+        const mid = glyphH / 2;
+        const horizontal = (cy) => {
+            const x1 = half + segmentGap;
+            const x2 = glyphW - half - segmentGap;
+            return [[x1, cy], [x1 + half, cy - half], [x2 - half, cy - half],
+                    [x2, cy], [x2 - half, cy + half], [x1 + half, cy + half]];
+        };
+        const vertical = (cx, y1, y2) => [
+            [cx, y1], [cx + half, y1 + half], [cx + half, y2 - half],
+            [cx, y2], [cx - half, y2 - half], [cx - half, y1 + half]];
+        const upper = [half + segmentGap, mid - segmentGap];
+        const lower = [mid + segmentGap, glyphH - half - segmentGap];
+        return {
+            a: horizontal(half),
+            b: vertical(glyphW - half, ...upper),
+            c: vertical(glyphW - half, ...lower),
+            d: horizontal(glyphH - half),
+            e: vertical(half, ...lower),
+            f: vertical(half, ...upper),
+            g: horizontal(mid),
+        };
+    }
+
+    /**
+     * Create one display package: the body, its unlit segments, and a lit copy
+     * of each segment that stays hidden until its pattern bit is set.
+     *
+     * Returns the package's group. Its `segments` property maps each segment
+     * name to the lit element for it, which is what update() switches.
+     */
+    _createPackage(x, packagesLayer, litLayer) {
+        const L = DISPLAY_LAYOUT;
+        const group = this._el('g', { transform: `translate(${x}, 0)` }, packagesLayer);
+
+        // The package stands a few millimetres proud of the board, so it
+        // throws a short shadow down and to the right, away from the light.
+        this._el('rect', { x: 1.6, y: 2.6, width: L.faceW, height: L.faceH, rx: 2.2, fill: '#000', opacity: 0.42 }, group);
+
+        // Both photographs show a pale line between neighbouring packages: the
+        // light side wall of the moulding, caught in the gap. Drawn as a strip
+        // on the left of each face.
+        this._el('rect', { x: -L.sideW + 1, y: 1.5, width: L.sideW - 1.5, height: L.faceH - 3, fill: '#c9c4c1' }, group);
+        this._el('rect', { x: 0, y: 0, width: L.faceW, height: L.faceH, rx: 2.2, fill: 'url(#amico-display-face)' }, group);
+        this._el('circle', { cx: L.mouldMark.x, cy: L.mouldMark.y, r: L.mouldMark.r, fill: '#55454f' }, group);
+
+        // Real segments lean: the top of the digit is to the right of its foot.
+        const slant = `translate(${L.glyphX}, ${L.glyphY}) skewX(${-L.slantDegrees})`;
+        const unlit = this._el('g', {
+            transform: slant, fill: this.colorOff,
+            stroke: this.colorOffRim, 'stroke-width': 1.1, 'stroke-linejoin': 'round',
+        }, group);
+
+        // The lit copies live in the shared glow layer, under the same transform.
+        const litGroup = this._el('g', { transform: `translate(${x}, 0)` }, litLayer);
+        const litGlyph = this._el('g', { transform: slant }, litGroup);
+
+        const segments = {};
+        for (const [name, outline] of Object.entries(DisplayRenderer._segmentOutlines())) {
+            const points = outline.map(([px, py]) => `${px},${py}`).join(' ');
+            this._el('polygon', { points }, unlit);
+            segments[name] = this._el('polygon', {
+                points, fill: this.colorOn, class: 'segment',
+                'data-bit': L.segmentBits[name], visibility: 'hidden',
+            }, litGlyph);
+        }
+
+        const dp = L.decimalPoint;
+        this._el('circle', {
+            cx: dp.x, cy: dp.y, r: dp.r, fill: this.colorOff,
+            stroke: this.colorOffRim, 'stroke-width': 0.6,
+        }, group);
+        segments.dp = this._el('circle', {
+            cx: dp.x, cy: dp.y, r: dp.r, fill: this.colorOn, class: 'segment',
+            'data-bit': L.segmentBits.dp, visibility: 'hidden',
+        }, litGroup);
+
         group.segments = segments;
         return group;
     }
-    
-    /**
-     * Create a separator dot
-     */
-    _createDot(x, y) {
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', x);
-        circle.setAttribute('cy', y);
-        circle.setAttribute('r', '5');
-        circle.setAttribute('fill', this.colorOn);
-        circle.setAttribute('filter', 'url(#glow)');
-        return circle;
-    }
-    
+
     /**
      * Update the display with new segment patterns
      * @param {Array} patterns - Array of 6 bytes, one per digit
@@ -164,42 +247,41 @@ class DisplayRenderer {
             this._updateDigit(i, patterns[i]);
         }
     }
-    
+
     /**
-     * Update a single digit
+     * Update a single digit, switching only the segments whose bit changed
      */
     _updateDigit(digitIndex, pattern) {
         const digit = this.digits[digitIndex];
         if (!digit || !digit.segments) return;
 
-        for (const path of Object.values(digit.segments)) {
-            const bit = parseInt(path.getAttribute('data-bit'));
-            const isOn = (pattern & (1 << bit)) !== 0;
+        const next = pattern & 0xFF;
+        const changed = next ^ this._shown[digitIndex];
+        if (changed === 0) return;
+        this._shown[digitIndex] = next;
 
-            path.setAttribute('fill', isOn ? this.colorOn : this.colorOff);
-
-            if (isOn) {
-                path.setAttribute('filter', 'url(#glow)');
-            } else {
-                path.removeAttribute('filter');
+        for (const [name, element] of Object.entries(digit.segments)) {
+            const mask = 1 << DISPLAY_LAYOUT.segmentBits[name];
+            if (changed & mask) {
+                element.setAttribute('visibility', (next & mask) ? 'visible' : 'hidden');
             }
         }
     }
-    
+
     /**
      * Clear the display
      */
     clear() {
         this.update([0, 0, 0, 0, 0, 0]);
     }
-    
+
     /**
      * Test pattern - all segments on
      */
     test() {
         this.update([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
     }
-    
+
     /**
      * Show a hex value (address + data format)
      * @param {number} address - 16-bit address
@@ -216,7 +298,7 @@ class DisplayRenderer {
         ];
         this.update(patterns);
     }
-    
+
     /**
      * Convert hex digit to segment pattern
      * Uses authentic ASEL AMICO 2000 ROM segment table from address $FFEA

@@ -69,7 +69,7 @@ function makeRenderer() {
 // The only place in this file that knows how the renderer marks a lit segment.
 // Everything else speaks in segment names.
 function isLit(renderer, segmentElement) {
-    return segmentElement.getAttribute('fill') === renderer.colorOn;
+    return segmentElement.getAttribute('visibility') === 'visible';
 }
 
 // Where a digit sits across the display, in the SVG's own units. renderer.digits
@@ -233,6 +233,27 @@ test('what the booted monitor shows reaches the renderer as readable digits', ()
     // After a power-on reset the monitor shows address 0000 and the byte there,
     // which reset() has just cleared.
     assert.equal(shown, '000000');
+});
+
+test('a display that has not changed is not redrawn', () => {
+    const { renderer, container } = makeRenderer();
+    const everything = allElements(container.children[0]);
+    const writes = () => everything.reduce((sum, el) => sum + el.writes, 0);
+
+    // update() is called on every animation frame, nearly always with the
+    // patterns it was given the frame before. That must cost no DOM work.
+    renderer.showHex(0x02A5, 0x3C);
+    const afterFirst = writes();
+    for (let frame = 0; frame < 60; frame++) {
+        renderer.showHex(0x02A5, 0x3C);
+    }
+    assert.equal(writes(), afterFirst, 'sixty identical frames should write nothing');
+
+    // One digit changing from 5 to 6 lights segment e and darkens nothing
+    // else, so it should be a single write, not a redraw of the display.
+    renderer.showHex(0x02A6, 0x3C);
+    assert.equal(writes(), afterFirst + 1);
+    assert.equal(litSegments(renderer, 3), HEX_GLYPHS[0x6]);
 });
 
 test('the renderer draws nothing but SVG and never reaches for a network resource', () => {

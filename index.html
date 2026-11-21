@@ -390,35 +390,22 @@
             color: var(--silk-dim);
         }
 
-        /* --- Seven-segment display block ------------------------------ */
+        /* --- Seven-segment displays -----------------------------------
+           The six packages are drawn by display.js. This element only
+           places them: it is as wide as the four address packages, the
+           gap and the two data packages, all measured on unit B.
+           --------------------------------------------------------------- */
 
-        .display-block {
-            padding: 0.55cqw 0.7cqw;
-            border-radius: 0.2cqw;
-            background: linear-gradient(180deg, #232329 0%, #121216 30%, #050506 100%);
-            box-shadow:
-                0 0.5cqw 1cqw rgba(0,0,0,0.5),
-                inset 0 0.12cqw 0 rgba(255,255,255,0.09);
-        }
+        .display-block { line-height: 0; }
 
-        .display-block .pins {
-            position: absolute;
-            left: 0.6cqw;
-            right: 0.6cqw;
-            height: 0.35cqw;
-            background: repeating-linear-gradient(90deg,
-                var(--gold) 0 0.4cqw, transparent 0.4cqw 1.15cqw);
-        }
-        .display-block .pins.top    { top: -0.28cqw; }
-        .display-block .pins.bottom { bottom: -0.28cqw; }
-
-        /* display.js injects its SVG here */
-        #display { line-height: 0; }
-
+        /* display.js injects its SVG here. overflow stays visible so the
+           shadow each package throws on the board is not cut off at the
+           edge of the drawing. */
         .amico-display {
+            display: block;
             width: 100%;
             height: auto;
-            display: block;
+            overflow: visible;
         }
 
         /* --- Keys ------------------------------------------------------
@@ -615,15 +602,17 @@
             align-items: center;
             gap: 0.5cqw;
             writing-mode: vertical-rl;
-            font-size: 1.15cqw;
-            letter-spacing: 0.16em;
+            /* Set a little smaller than before so the legend ends below the
+               sixth display, which now reaches the right-hand edge. */
+            font-size: 1cqw;
+            letter-spacing: 0.12em;
             color: var(--silk);
         }
 
         .maker .mark {
             writing-mode: horizontal-tb;
             padding: 0.15cqw 0.3cqw;
-            font-size: 1.1cqw;
+            font-size: 1cqw;
             font-weight: 700;
             border: 0.12cqw solid var(--silk);
         }
@@ -881,11 +870,11 @@
             <div class="led-slot"><div class="led"></div><b>RW</b></div>
         </div>
 
-        <!-- Seven-segment display block -->
-        <div class="part display-block" style="left:69%; top:19%; width:26.5%;">
-            <div class="pins top"></div>
+        <!-- Seven-segment displays: six TIL312 packages, four for the address
+             and two for the data, hard against the top right corner as on
+             the board. -->
+        <div class="part display-block" style="left:74.86%; top:16.8%; width:23.92%;">
             <div id="display"></div>
-            <div class="pins bottom"></div>
         </div>
 
         <!-- Key cap artwork, drawn once and reused by every key through <use>.
