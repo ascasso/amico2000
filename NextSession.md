@@ -26,7 +26,7 @@ hardware over convenience abstractions. Priority order:
   after it, the ComputerHistory.it links and this file's own update, is on
   `develop` and waits for the next pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 179
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 188
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -36,7 +36,8 @@ hardware over convenience abstractions. Priority order:
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
   PROM (IC10).
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
-  which RUN then resumes.
+  which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
+  executes one instruction.
 - **Cassette:** LOAD and SAVE work on the emulator's own tape records, which
   come and go as `.amtape` files or as `.wav` sound files. By default they
   are trapped at `$FC54` and `$FBBC` and instant. With **Cassette: Real
@@ -49,20 +50,15 @@ hardware over convenience abstractions. Priority order:
 
 In rough priority order. None of it is started.
 
-1. **Single step is not emulated.** HLT now works (`AGENTS.md`, HLT and the
-   NMI Line), and the NOR/SS slide switch beside it is the same NMI line.
-   The circuit is read from the CPU schematic and written down in that
-   section: with the switch at SS, every instruction fetched from outside the
-   monitor PROM raises an NMI, so the CPU executes one instruction and the
-   monitor shows the address of the next. What building it takes: make the
-   switch on the page move, and in the machine layer raise an NMI before each
-   instruction whose address is below `$FE00` while the switch is at SS. The
-   manual's own walk-through on pages 85 and 86 of the supplement is the
-   test: RUN shows the second instruction's address, each further RUN one
-   more, and the registers are read at `$F3-$FE`.
-   Two decisions were made for HLT and are the owner's to overrule: the
-   power-on NMI vector is `$FE00` where the board has nothing in particular,
-   and the IRQ vector, where a `BRK` goes, was left at `$FE30`.
+1. **Two interrupt decisions are the owner's to confirm.** HLT and the
+   NOR/SS single-step switch both work now (`AGENTS.md`, HLT and the NMI
+   Line). Both go through the NMI vector at `$03FC/$03FD`, which the board
+   leaves to the user and the emulator has to start with something in. It
+   starts with `$FE00`, the monitor's own routine and the value the manual
+   has the user key in; it was `$FE30`. The IRQ vector, where a `BRK` goes,
+   was left at `$FE30`. Making it `$FE00` too would turn a `BRK` into a
+   breakpoint that shows where it was, and would change what programs that
+   end in `BRK` do today.
 2. **Machine-layer checks** for display multiplexing, pattern by pattern (how
    Port A and Port B writes become the six-pattern buffer; when digits go
    dark is covered), and the `$FD00-$FDFF` partial decoding.

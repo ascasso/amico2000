@@ -133,7 +133,8 @@ class Amico2000 {
         this.haltKeys = new Set(['h']);
         this.haltKeyDown = false;
 
-        // Single-step mode
+        // The NOR/SS slide switch: false at NOR, the normal position, true at
+        // SS, single step. See setSingleStep().
         this.singleStep = false;
         
         // Running state
@@ -223,7 +224,32 @@ class Amico2000 {
     }
 
     _setupCassetteROMTraps() {
-        this.cpu.onBeforeExecute((pc) => this._handleCassetteROMEntry(pc));
+        this.cpu.onBeforeExecute((pc) => this._beforeInstruction(pc));
+    }
+
+    /**
+     * Called by the CPU core before it fetches each instruction, with the
+     * address it is about to fetch from. Returning a number of cycles means
+     * the instruction slot was used up here and nothing is fetched.
+     *
+     * Two things on the board watch that address. The cassette traps stand
+     * in for the IC10 routines at their entry points. And with the slide
+     * switch at SS, the single-step circuit raises an NMI for every
+     * instruction fetched from outside the monitor; see setSingleStep(). A
+     * trapped LOAD or SAVE is over before anything is fetched, so it is not
+     * stepped: it is one step.
+     */
+    _beforeInstruction(pc) {
+        const handled = this._handleCassetteROMEntry(pc);
+        if (handled !== null) return handled;
+
+        if (this.singleStep && pc < Amico2000.MONITOR_ROM_REGION.start) {
+            // The NMI is taken once this instruction has been executed: the
+            // CPU core looks for a pending NMI before it comes back here for
+            // the next one. One instruction, then the interrupt.
+            this.cpu.nmi();
+        }
+        return null;
     }
 
     _handleCassetteROMEntry(pc) {
@@ -1423,10 +1449,32 @@ class Amico2000 {
     }
     
     /**
-     * Set single-step mode
+     * Move the NOR/SS slide switch: true for SS, single step, false for NOR.
+     *
+     * The CPU schematic (supplement page 25) has a second gate of IC4 on the
+     * NMI line beside the one for HLT, and the switch connects it. Its
+     * inputs are the 6502's SYNC output, high while an opcode is being
+     * fetched, and CS4, the monitor PROM's chip select, low only for
+     * $FE00-$FFFF. So with the switch at SS, the fetch of every instruction
+     * that is not the monitor's own pulls NMI low. The CPU executes that one
+     * instruction and takes the interrupt, which goes where HLT's goes,
+     * through $03FC/$03FD.
+     *
+     * With the monitor's routine at $FE00 in that vector, which is what the
+     * manual has the user store there for this and what the emulator starts
+     * with, the monitor comes back after each instruction showing the address
+     * of the next, with the registers saved at $F3-$FE. The manual, page 85:
+     * "premendo il tasto RUN vediamo che sul display appare l'indirizzo della
+     * seconda istruzione del programma". Each RUN after that executes one
+     * more. The monitor itself runs at full speed throughout: its own
+     * instructions are the ones the circuit leaves alone.
+     *
+     * This is not the bench Step button, which is the emulator's and advances
+     * a paused processor by one instruction of whatever is running, monitor
+     * included.
      */
     setSingleStep(enabled) {
-        this.singleStep = enabled;
+        this.singleStep = Boolean(enabled);
     }
 }
 

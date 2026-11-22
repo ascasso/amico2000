@@ -184,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     amico.onTapeRecorded = reportRecording;
     amico.onCassetteTrap = reportTrap;
     setupCassetteMode();
+    setupSingleStepSwitch();
 
     // The machine owns its run state; the bench controls only reflect it, so
     // a console start() or stop() updates the label and the run lamp as well.
@@ -359,6 +360,35 @@ function setupCassetteMode() {
             }
         });
     });
+}
+
+// The NOR/SS slide switch on the board: single step. At SS the machine raises
+// an NMI after every instruction of a user's program, so that each RUN
+// executes one and the monitor comes back showing the address of the next.
+// See Amico2000.setSingleStep().
+//
+// The page always opens with it at NOR. A real switch stays where it was
+// left, but a page that came back at SS would open with a RUN key that
+// seemed not to run anything.
+const SWITCH_TITLES = {
+    false: 'NOR / SS switch, at NOR: programs run normally. Click for SS, single step.',
+    true: 'NOR / SS switch, at SS: RUN executes one instruction and shows the address of the next. Click for NOR.'
+};
+
+function setupSingleStepSwitch() {
+    const button = document.getElementById('ss-switch');
+
+    const move = (toSS) => {
+        amico.setSingleStep(toSS);
+        button.setAttribute('aria-checked', String(toSS));
+        button.title = SWITCH_TITLES[toSS];
+        // The class goes on the cell, because the printed slot beside the
+        // switch changes sides with it.
+        button.parentElement.classList.toggle('ss', toSS);
+    };
+
+    button.addEventListener('click', () => move(!amico.singleStep));
+    move(false);
 }
 
 // The phase LEDs D4-D7. The machine reports how much of the last frame each
