@@ -284,6 +284,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Recorded that the handheld layout for phones held upright was opened by the
+  owner on an iPhone 17 Pro and looked right, with everything working. It had
+  been checked only in headless Chrome emulation before. The browser was not
+  noted, and no other phone has been tried. Documentation only.
 - Changed the `AGENTS.md` guidance on attribution: an agent no longer puts a
   link to its session anywhere it is published. Commit messages ended with a
   `Claude-Session:` line and pull request descriptions with the session's

@@ -904,7 +904,10 @@ on such a screen, and only there, the page rearranges itself.
   match; without touch emulation the layout stays off. Tap keys with
   `Input.dispatchTouchEvent` and read the display, and change the metrics to
   landscape and back to check the move both ways. Then on a real phone: a
-  headless browser is not one.
+  headless browser is not one. The owner has done so: on 2026-11-22 the page
+  was opened on an iPhone 17 Pro held upright and looked right, with
+  everything working. The browser was not recorded, and no other phone has
+  been tried.
 
 ## Development Guidelines
 
@@ -988,7 +991,8 @@ When implementing changes based on a GitHub issue:
    a person works are rearranged into one column (see Handheld Layout); in a
    desktop window narrower than about 800 pixels the board keeps its size and
    pans sideways, as before. The drawing has been looked at in Chrome only,
-   and the handheld layout in emulation only. See Board Artwork
+   and the handheld layout in emulation and on one iPhone 17 Pro, held
+   upright (the browser was not recorded). See Board Artwork
 
 ## Keyboard Mappings
 
