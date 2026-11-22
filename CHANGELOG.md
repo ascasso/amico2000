@@ -664,6 +664,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Also in the guide: "RES vi rimedia" and "reintroducetevi", where "vi"
     can be read as "you"; and two sentences that had the reader "start an
     address" with RUN.
+- The Italian now calls the NOR/SS switch "interruttore", the manual's word
+  for it, on the home page, in its tooltip and in the guide. It said
+  "commutatore", which is a fair name for a two-way slide switch but appears
+  nowhere in the manual: the parts list has "SS, interruttore unipolare",
+  the assembly instructions "l'interruttore SS", and the chapter on single
+  step "l'interruttore del single step". Likewise a program on the home page
+  "gira in un loop", as the manual and the guide say, and is no longer
+  "chiuso in un ciclo". The table of the Italian's words in `AGENTS.md` has
+  both.
 - Corrected what the page and the documentation said about the LEDs D4-D7:
   that they light only with **Cassette: Real time**. They light for any
   program that drives them, at either setting. What is true is that the

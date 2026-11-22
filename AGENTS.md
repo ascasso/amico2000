@@ -1010,6 +1010,8 @@ choosing one of your own:
 | the displays; the address digits | i display; display indirizzi | Tabella 6; "display dati" for the other two is ours, by analogy |
 | memory location | locazione di memoria | throughout |
 | single step | passo singolo | 'in "Single Step" o passo singolo' |
+| the NOR/SS switch | interruttore | "l'interruttore SS" (page 25), "l'interruttore del single step" (page 85), "interruttore unipolare" in the parts list (page 33); once "deviatore" (page 14); never "commutatore", which the site had at first |
+| loop | loop | "in questo Loop il programma gira su se stesso" (page 85); "ciclo" is not the manual's word for it |
 | interrupt | interruzione | "genera una interruzione a livello CPU" |
 | cassette recorder; tape | registratore a cassette; nastro | Chapter V |
 | leader; text | coda; testo | Fig. 27, and "i LED relativi alla coda" |

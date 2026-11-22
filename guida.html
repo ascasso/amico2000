@@ -91,7 +91,7 @@
             computer elencati più sotto.</p>
         <p>Su un telefono tenuto in verticale la scheda è troppo larga per
             essere usata così com'è disegnata. La pagina ne raccoglie allora i
-            display, i LED, il commutatore NOR/SS e i tasti in una sola
+            display, i LED, l'interruttore NOR/SS e i tasti in una sola
             colonna in alto, con i tasti a misura di pollice, e sotto mostra
             una figura della scheda intera. Tutto funziona allo stesso modo.
             Girate il telefono in orizzontale per usare la scheda così com'è
@@ -119,7 +119,7 @@
                 mentre il processore è in pausa. Il riquadro Stato del
                 processore mostra i registri della CPU istante per istante.
                 Per eseguire un vostro programma un'istruzione alla volta
-                usate invece il commutatore NOR/SS della scheda; vedi
+                usate invece l'interruttore NOR/SS della scheda; vedi
                 <a href="#single-step">Eseguire un programma a passo singolo</a>.</li>
             <li><strong>Display: Leggibili / Autentici</strong> cambia
                 soltanto il modo in cui le cifre sono disegnate. Leggibili,
@@ -242,7 +242,7 @@
             e <code>FE</code>, oppure usate Reset a freddo, perché HLT torni
             a fermare i programmi.</p>
         <h3 id="single-step">Eseguire un programma a passo singolo</h3>
-        <p>Il commutatore a slitta sopra il tasto RES, con le scritte NOR e
+        <p>L'interruttore a slitta sopra il tasto RES, con le scritte NOR e
             SS, è il passo singolo della scheda. In posizione SS la scheda
             genera da sola la stessa interruzione di HLT dopo ogni istruzione
             del vostro programma, che avanza così di un'istruzione alla
@@ -250,7 +250,7 @@
         <ol>
             <li>Selezionate il primo indirizzo del programma con
                 <strong>AD</strong>, per esempio <code>0 2 0 0</code>.</li>
-            <li>Spostate il commutatore su <strong>SS</strong> con un clic.</li>
+            <li>Spostate l'interruttore su <strong>SS</strong> con un clic.</li>
             <li>Premete <strong>RUN</strong>. Viene eseguita una sola
                 istruzione, e i display mostrano l'indirizzo della successiva
                 e il byte che vi si trova.</li>
@@ -261,10 +261,10 @@
                 locazioni elencate sopra. Se vi siete spostati su un altro
                 indirizzo, premete <strong>REG</strong> prima di
                 <strong>RUN</strong>.</li>
-            <li>Per lasciar correre il programma riportate il commutatore su
+            <li>Per lasciar correre il programma riportate l'interruttore su
                 <strong>NOR</strong> e premete <strong>RUN</strong>.</li>
         </ol>
-        <p>Spostare il commutatore su SS mentre un programma gira lo ferma in
+        <p>Spostare l'interruttore su SS mentre un programma gira lo ferma in
             quel punto. Il monitor non viene mai eseguito a passo singolo,
             perciò la tastiera funziona come sempre. Il passo singolo ha
             bisogno degli stessi due byte in <code>$03FC/$03FD</code> di cui

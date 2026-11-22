@@ -60,14 +60,16 @@ const AmicoLang = (() => {
         'run': { en: 'Run', it: 'Avvia' },
         'stop': { en: 'Stop', it: 'Ferma' },
 
-        // The NOR/SS slide switch's tooltip, which says where it stands
+        // The NOR/SS slide switch's tooltip, which says where it stands. The
+        // manual's word for the part is "interruttore": "l'interruttore SS",
+        // "l'interruttore del single step". It never says "commutatore".
         'switch.nor': {
             en: 'NOR / SS switch, at NOR: programs run normally. Click for SS, single step.',
-            it: 'Commutatore NOR / SS, su NOR: i programmi vengono eseguiti normalmente. Un clic per SS, passo singolo.'
+            it: 'Interruttore NOR / SS, su NOR: i programmi vengono eseguiti normalmente. Un clic per SS, passo singolo.'
         },
         'switch.ss': {
             en: 'NOR / SS switch, at SS: RUN executes one instruction and shows the address of the next. Click for NOR.',
-            it: 'Commutatore NOR / SS, su SS: RUN esegue una sola istruzione e mostra l’indirizzo della successiva. Un clic per NOR.'
+            it: 'Interruttore NOR / SS, su SS: RUN esegue una sola istruzione e mostra l’indirizzo della successiva. Un clic per NOR.'
         },
 
         // What a screen reader is told the displays are

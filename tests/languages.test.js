@@ -98,6 +98,22 @@ test('the guide quotes these words, so they are held to what it says', () => {
     }
 });
 
+test('the Italian calls the NOR/SS switch what the manual calls it', () => {
+    // "Interruttore": "SS, interruttore unipolare" in the parts list, and
+    // "l'interruttore del single step" in the chapter on it. The site first
+    // said "commutatore", a word the manual never uses. See the table under
+    // Two Languages in AGENTS.md before choosing a word of one's own.
+    const guida = fs.readFileSync(path.join(ROOT, 'guida.html'), 'utf8');
+    for (const [name, text] of [['index.html', page], ['guida.html', guida], ['lang.js', langSource]]) {
+        const withoutComments = text.replace(/\/\/.*$/gm, '');   // lang.js tells this story in one
+        assert.ok(!/commutatore/i.test(withoutComments), `${name} does not say "commutatore"`);
+    }
+    assert.match(AmicoLang.t('switch.nor', {}, 'it'), /^Interruttore NOR \/ SS, su NOR:/);
+    assert.match(AmicoLang.t('switch.ss', {}, 'it'), /^Interruttore NOR \/ SS, su SS:/);
+    assert.match(page, /L&rsquo;interruttore a slitta sopra RES/, 'the home page names it');
+    assert.match(guida, /L'interruttore a slitta sopra il tasto RES/, 'and so does the guide');
+});
+
 test('a number is written with the language\'s own decimal mark', () => {
     assert.equal(AmicoLang.decimal(12.34, 1, 'en'), '12.3');
     assert.equal(AmicoLang.decimal(12.34, 1, 'it'), '12,3');
