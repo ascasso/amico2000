@@ -20,17 +20,21 @@ hardware over convenience abstractions. Priority order:
 - **Publishing:** GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 133
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 156
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
   the rule that the photographs and their owners stay out of the repository.
-  The displays have a Readable look (the default) and an Authentic one.
+  The displays have a Readable look (the default) and an Authentic one, and
+  go dark when nothing is scanning them, as on the board.
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
-  PROM (IC10). Cassette LOAD and SAVE are trapped at `$FC54` and `$FBBC` and
-  use the emulator's own tape records, which come and go as `.amtape` files
-  or as `.wav` sound files.
-- **Open issues:** `#19`, `#20`, `#41`.
+  PROM (IC10).
+- **Cassette:** LOAD and SAVE work on the emulator's own tape records, which
+  come and go as `.amtape` files or as `.wav` sound files. By default they
+  are trapped at `$FC54` and `$FBBC` and instant. With **Cassette: Real
+  time** the PROM's own routines run against an emulated recorder, with the
+  phase LEDs lit (`#20`, closed).
+- **Open issues:** `#19`, `#41`.
 - **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-21.
 
 ## Outstanding
@@ -93,7 +97,8 @@ In rough priority order. None of it is started.
    - Not measured: how fast Max is. The monitor never sleeps, it idles in its
      scan loop, so Max keeps a processor core busy while the page is open.
    - Unaffected: the trapped cassette LOAD and SAVE, which are instant at any
-     speed. The display is still drawn once per frame, so a program that
+     speed. The real-time cassette keeps time by CPU cycles, so it would run
+     faster with the processor, which is probably what a user wants from it. The display is still drawn once per frame, so a program that
      animates the digits shows only some of its steps.
 8. **Ideas, not started:** a pass on wear and physical irregularity, sound,
    and a desk scene around the board.
@@ -104,10 +109,8 @@ In rough priority order. None of it is started.
   `1`, identifier, start, end, checksum and length, then the bytes. The parser
   does not check that start, end and length agree. `.amtape` is the
   emulator's container, not the tape record, whose layout is in `AGENTS.md`.
-- `#20`, analog fidelity. Done on 2026-11-21: tapes as sound files.
-  `tape-audio.js` writes a record as a WAV file and reads the programs out of
-  a recording, the page loads `.wav` and has `debug.saveTapeAudio()`, and
-  Cassette Sound Format in `AGENTS.md` describes the signal. Still open:
+- `#20`, analog fidelity, is closed. `AGENTS.md` has it under Cassette Sound
+  Format. What it did not settle:
   - **No real recording has been through the decoder.** The owner is asking
     owners of the machine for one. When one arrives, try it first; if it does
     not read, `detectPulses()` in `tape-audio.js` is where to look, and the
@@ -115,20 +118,26 @@ In rough priority order. None of it is started.
     simulated faults. A recording must not be committed without its owner's
     leave.
   - Nor has a real board been played a WAV file written here.
-  - The routines are still not run against a signal in the page. With
-    `amico.cassette.interceptROM = false` the real SAVE runs to completion
-    (332 bit/s, a 6.2 s leader; the manual says about 300 and about six), but
-    LOAD reads the tape on Port A bit 7, which nothing in `amico2000.js`
-    drives. `tests/helpers/cassette-signal.js` has a stand-in for that input
-    circuit, a latch set by the signal and cleared by Port B bit 0, with
-    which the real LOAD does run in Node. Moving that into the machine layer,
-    and lighting D4-D7 from it, would be the rest of this issue.
+  - The emulated recorder plays the emulator's list of programs, laid out as
+    SAVE would have written them. It cannot play a recording as it was made:
+    a `.wav` is decoded to programs on import and what does not decode is
+    lost. Keeping an imported recording's own pulse times as the tape, so
+    that the real LOAD routine is the one to read it, would be the faithful
+    way, and the pieces are there: `detectPulses()` gives the times and
+    `createRecorder()` plays times.
+  - The recorder has no keys, no rewind and no sound. The board starts and
+    stops it, and every LOAD begins at the start of the tape.
+  - The look of an LED during LOAD, `.led.on.dim`, is a guess.
+  - A mode word does not clear the 8255's output latches, which the data
+    sheet says it does. Nothing in the ROMs depends on it. A user program
+    that set its ports before its mode word would behave differently here.
   - There is no button for saving a tape, as sound or as `.amtape`; both are
     console commands.
 - The real routines lose the last byte of a block one byte longer than a
   whole number of pages (Cassette Sound Format in `AGENTS.md`). The traps do
   not. It is not on issue `#41`'s list of trap differences, and belongs
-  there.
+  there. With Cassette: Real time the real routines can now be seen doing
+  each thing `#41` lists, which may make its decisions easier.
 
 ## How to Verify
 

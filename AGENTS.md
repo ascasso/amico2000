@@ -100,19 +100,30 @@ Complete 6502 CPU interpreter implementing:
 - Interrupts are polled before each instruction fetch (see `_checkInterrupts()`)
 - Stack lives at $0100-$01FF (standard 6502)
 
-### 2. amico2000.js (~500 lines)
+### 2. amico2000.js (~1320 lines)
 Machine emulation layer that connects CPU to hardware:
 - Manages 8255 PIA (Programmable Interface Adapter) for I/O
 - Implements display multiplexing (refreshes 6 digits sequentially)
 - Keyboard matrix scanning (3 rows × 7 columns)
 - ROM/RAM memory mapping
+- The cassette: the traps and their store of tape records, and the interface
+  circuit the real routines use when the traps are off
 
 **Key architectural details:**
 - The 8255 PIA is memory-mapped at $FD00-$FD03:
-  - $FD00 (Port A): Display segments (output) / Keyboard column data (input)
-  - $FD01 (Port B): Digit select bits 0-5 / Keyboard row scan bits 0-3
+  - $FD00 (Port A): Display segments and LED patterns (output) / Keyboard
+    column data on bits 0-6 and the cassette latch on bit 7 (input)
+  - $FD01 (Port B): Digit select bits 0-5 / Keyboard row scan bits 0-3.
+    Also bit 0, low to clear the cassette latch; bits 5 and 6, the level sent
+    to the recorder; and bit 7, which enables the phase LEDs
   - $FD02 (Port C): Expansion port (unused)
-  - $FD03: Control register
+  - $FD03: Control register. Bit 4 of a mode word is Port A's direction,
+    which only the phase LEDs depend on
+- The cassette interface circuit (#20) is under Cassette Interface Circuit in
+  the file: `_settleTapeLatch()`, `_driveTapeOut()`, `_phaseLEDsNow()`, and
+  `connectRecorder()` for whatever is on the other end. It keeps time by
+  `cpu.cycles`, which `cpu.reset()` restarts, so `res()` restarts its clocks
+  too. See Cassette Sound Format
 - Display updates are decoupled from PIA writes for performance - buffered and updated once per frame
 - The board has no display latch, so neither has the emulator: `getDisplay()`
   shows a digit only if it was driven within `DISPLAY_PERSISTENCE_CYCLES`, a
@@ -146,12 +157,15 @@ SVG-based seven-segment display renderer:
 
 **Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second. The geometry is in the single `DISPLAY_LAYOUT` object at the top of the file, measured on a photograph of a real board. `tests/display-renderer.test.js` pins the bit-to-segment mapping, the left-to-right order of the digits, and where each named segment is actually drawn; keep it passing when changing how the display is drawn.
 
-### 4. main.js (~670 lines)
+### 4. main.js (~800 lines)
 Application initialization and UI:
 - Contains the Monitor ROM data (MONITOR_ROM constant at top of file)
 - Keyboard event handling (both physical keyboard and on-screen buttons)
 - ROM, program and tape loading via file input, including `.wav` recordings
   of a cassette, which it hands to `tape-audio.js`
+- The **Cassette** setting, Instant or Real time, remembered in `localStorage`
+  under `amico2000.cassetteMode`; the recorder it connects at startup; the
+  phase LEDs, drawn from `amico.onPhaseLEDs`; and the recorder's status line
 - Debug console commands exposed via global `debug` object
 
 **Memory Map:**
@@ -165,14 +179,19 @@ $FE00-$FFFF: Monitor ROM (512 bytes)
 Both PROM regions are read-only to the running program; see ROM Write
 Protection below.
 
-### 5. tape-audio.js (~700 lines)
-The cassette as sound (#20): a codec between tape records and WAV files,
-exposed as the single global `AmicoTapeAudio`.
+### 5. tape-audio.js (~820 lines)
+The cassette as sound (#20): a codec between tape records and WAV files, and
+a recorder, exposed as the single global `AmicoTapeAudio`.
 - `encodeWav()` writes a record as the sound the board's SAVE routine would
   put on tape; `decodeWav()` reads every block out of a recording
-- Plain functions over bytes and samples. It knows nothing about the page or
-  the machine, and `amico2000.js` knows nothing about it; `main.js` joins them
-  through `amico.addTapeRecord()` and `amico.findTape()`
+- `createRecorder()` makes a recorder for `amico.connectRecorder()`: it plays
+  the cassette's programs as pulses for the real LOAD routine and reads back
+  the pulses the real SAVE routine makes
+- Plain functions over bytes and samples, and a recorder that is told the
+  time. It knows nothing about the page or the machine, and `amico2000.js`
+  knows nothing about it beyond the five things it asks of a recorder;
+  `main.js` joins them through `amico.addTapeRecord()`, `amico.findTape()`
+  and `amico.connectRecorder()`
 - `blockOffsets()` is the PROM's own loop for the order of a block's bytes,
   step for step, faults included. Do not tidy it into the obvious order
 
@@ -400,11 +419,11 @@ checked by running the real routine in `tests/cassette-rom-mapping.test.js`:
   together with recording. LOAD only pulses the LEDs, for about 0.7 ms at
   each refresh, between spells of reading the tape with Port A as an input.
 - The monitor never sets Port B bit 7, so by that schematic all four LEDs are
-  dark while it idles, which is how the home page draws them. Nothing lights
-  them there: the traps stand in for the routines that would, and the machine
-  layer has no model of the LEDs. One photograph of a powered board shows D7
-  lit with the monitor idle. The schematic does not account for that, and it
-  is not modelled.
+  dark while it idles, which is how the home page draws them. The machine
+  layer models them as wired (#20) and the page lights them, so they show
+  whenever the real routines run; a trapped LOAD or SAVE never touches them.
+  One photograph of a powered board shows D7 lit with the monitor idle. The
+  schematic does not account for that, and it is not modelled.
 - The same schematic has the 74LS145's inputs on PB1-PB4, its outputs 0-2 on
   the three key rows and its outputs 4-9 on the six digit transistors, as the
   display and keyboard code assume. Output 3 goes nowhere, which is why the
@@ -415,11 +434,14 @@ checked by running the real routine in `tests/cassette-rom-mapping.test.js`:
   to set the LEDs, and input, to read the tape, with 8255 control words `$89`
   and `$99`.
 
-The emulator's current cassette support is intentionally file-backed: it traps
-the IC10 entry points and reads/writes its own store of tape records instead
-of running the routines against a signal with exact Port A/B timing. A record
-enters or leaves that store as an `.amtape` image or as sound; see Cassette
-Sound Format below.
+The emulator has the cassette twice over, and
+`amico.cassette.interceptROM` chooses. Set, which is the default and the
+page's **Cassette: Instant**, it traps the IC10 entry points and reads or
+writes its own store of tape records at once. Clear, the page's **Real
+time**, the routines themselves run, against the interface circuit and a
+recorder, in the time the board takes; see Cassette Sound Format below. Both
+work on the same store, `amico.cassette.tapes`, and a record enters or leaves
+it as an `.amtape` image or as sound.
 
 Return convention (issue #24): the IC10 routines do not end in `RTS`. They exit
 with `JMP $FE22`, the monitor's reset entry and the `$FFFC` vector target, whose
@@ -499,7 +521,33 @@ uncompressed and at most 64 MB, and `debug.saveTapeAudio()` writes one. The
 decoder takes tape speed from the leader, accepting 0.6 to 1.6 times the
 board's own, and needs 64 zero bits before the `$A5`.
 
-Covered by `tests/tape-audio.test.js` and `tests/cassette-tape-records.test.js`.
+**Running the routines for real.** With `interceptROM` clear and a recorder
+connected, nothing stands in for the PROM:
+
+- The board side is in `amico2000.js`: the latch on Port A bit 7, the output
+  level, and the LEDs, each as the schematic has it. `takePhaseLEDs()` gives
+  the share of time each LED was on, because the routines switch them faster
+  than a frame: 97% for SAVE's pair, 24% for LOAD's.
+- The recorder is `AmicoTapeAudio.createRecorder()`. Its tape is pulse times,
+  not sound: when a pulse arrives is all the latch responds to. Playing, it
+  lays out the cassette's programs in order, each as SAVE would have written
+  it, after half a second of blank tape. Recording, it notes the board's
+  pulses and, when stopped, reads the programs out of them with
+  `decodePulses()`; they go onto the cassette as the latest save.
+- The board works the recorder's motor, which on the real machine is the
+  user's job: `$FC54` rewinds and plays, `$FBBC` records, and `$FE22`, where
+  both routines end and RES leads, stops. That is an emulator convenience.
+  Every LOAD therefore starts at the beginning of the tape.
+- Run this way the emulator has the PROM's behaviour where the traps differ:
+  the parameters in `$0000-$0004` are left alone, a LOAD for a program that
+  is not on the tape waits until RES, and the last byte of a block one byte
+  longer than whole pages is lost.
+- A real 8255A clears its output latches when a mode word is written,
+  according to its data sheet. The emulator does not. Nothing in either ROM
+  depends on it: each writes the ports afresh after every mode word.
+
+Covered by `tests/tape-audio.test.js`, `tests/cassette-tape-records.test.js`,
+`tests/cassette-interface.test.js` and `tests/tape-recorder.test.js`.
 
 ### Board Artwork
 
@@ -550,8 +598,9 @@ unit A; the page follows unit B.
 
 **What the scripts depend on.** `main.js` looks up `btn-run`, `btn-step`,
 `btn-reset`, `btn-load`, `led-run`, `reg-pc`, `reg-a`, `reg-x`, `reg-y`,
-`reg-sp`, `reg-flags`, `rom-file` and `display`, and every `.key` by its
-`data-key`. Keep those when redrawing. A pressed key is styled through the
+`reg-sp`, `reg-flags`, `rom-file`, `display`, `led-d4` to `led-d7` and
+`tape-status`, every `.key` by its `data-key`, and every `.look-btn` and
+`.tape-btn`. Keep those when redrawing. A pressed key is styled through the
 inline `translateY` that `main.js` sets on its button, for mouse, touch and
 keyboard alike, so the keyboard handling does not need to know about the
 artwork.
@@ -561,9 +610,12 @@ so every legend uses a stack of system faces. Each legend's `textLength` pins
 its width, so a substitute face fills the same space; letter shapes still
 vary between systems.
 
-**What is drawn but does nothing.** The four LEDs D4-D7 are never lit (see
-Cassette Interface Reference), and the NOR/SS switch is not wired to
-single-step. The lamp beside the registers is the emulator's own and has
+**What is drawn but does nothing.** The NOR/SS switch is not wired to
+single-step. The four LEDs D4-D7 do work, but only while the real cassette
+routines run, which is the **Cassette: Real time** setting. `main.js` gives
+an LED the class `on`, the lit look taken from unit A, or `on dim` for
+LOAD's quarter-time flashing, a look that is a guess, since no photograph
+shows a board during LOAD. The lamp beside the registers is the emulator's own and has
 three states: running, stopped, and halted, the last when the CPU core has
 stopped itself on an opcode it does not implement.
 
@@ -618,14 +670,16 @@ When implementing changes based on a GitHub issue:
 ## Known Limitations
 
 1. **Browser Tab Throttling**: Modern browsers throttle `requestAnimationFrame` when tabs are backgrounded, causing the emulator to pause/slow down
-2. **Cassette I/O**: File-backed mock cassette LOAD/SAVE is implemented by
-   trapping the IC10 ROM entry points ($FBBC and $FC54). The routines are not
-   run against a tape signal in real time, so a LOAD or SAVE is instant and
-   the phase LEDs stay dark. Tapes can be read from and written to `.wav`
-   sound files, but that format is taken from the PROM and the schematic and
-   has never been tried on a recording of a real tape or on a real board; the
-   part most likely to need adjusting is the pulse detector. Only
-   uncompressed WAV is read. The traps also differ from the real routines in
+2. **Cassette I/O**: By default LOAD and SAVE are trapped at the IC10 entry
+   points ($FBBC and $FC54) and done at once. With **Cassette: Real time**
+   the routines themselves run against an emulated recorder, but that
+   recorder has no keys and no sound: the board starts and stops it, every
+   LOAD begins at the start of the tape, and its tape is the emulator's list
+   of programs laid out as SAVE would have written them, not a recording.
+   Tapes can be read from and written to `.wav` sound files, but that format
+   is taken from the PROM and the schematic and has never been tried on a
+   recording of a real tape or on a real board; the part most likely to need
+   adjusting is the pulse detector. Only uncompressed WAV is read. The traps also differ from the real routines in
    what they leave in `$0000-$0004`, which issue `#41` lists, and in keeping
    the last byte of a block the real routines lose; see Cassette Sound Format
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
@@ -644,8 +698,9 @@ When implementing changes based on a GitHub issue:
    `docs/6502-conformance.md`
 6. **HLT**: the HLT key is not emulated. On the board it raises a CPU
    interrupt, but the manual does not say which line; see Keyboard Mappings
-7. **Board drawing**: the LEDs D4-D7 are drawn but never lit, and the NOR/SS
-   slide switch is drawn but does nothing. At window widths under about
+7. **Board drawing**: the NOR/SS slide switch is drawn but does nothing, and
+   the LEDs D4-D7 light only with **Cassette: Real time**. The displays do
+   not show the 31 ms blink a real board gives when a key is pressed. At window widths under about
    800 pixels the board keeps its size and pans sideways, so on a phone the
    keys and displays, at its right-hand end, are off screen until it is
    panned. The drawing has been looked at in Chrome only. See Board Artwork
@@ -708,9 +763,13 @@ None are open at the moment.
   renderer's bit-to-segment mapping, checked against the monitor's digit table
   at `$FFEA` by `tests/display-renderer.test.js`, which stands `display.js` on
   a small stand-in for the DOM. The machine layer's display multiplexing, how
-  Port A and Port B writes become the six-pattern buffer, is not covered
-  beyond one check that a booted monitor reads `0000 00`, and the PIA's
-  `$FD00-$FDFF` partial decoding is not covered at all.
+  Port A and Port B writes become the six-pattern buffer, is covered by a
+  check that a booted monitor reads `0000 00` and by
+  `tests/display-persistence.test.js`, which checks when digits go dark, but
+  not pattern by pattern. The cassette interface circuit and the real
+  routines are covered (`tests/cassette-interface.test.js`,
+  `tests/tape-recorder.test.js`). The PIA's `$FD00-$FDFF` partial decoding is
+  not covered at all.
   `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
   Node and assert on RAM or PIA state.
 - HLT is not emulated (see Keyboard Mappings). `NextSession.md` records what
