@@ -53,6 +53,7 @@
         <a href="#getting-started">Getting started</a>
         <a href="#keypad">Keypad and memory</a>
         <a href="#hlt">HLT, interrupts and single step</a>
+        <a href="#leds">The four LEDs</a>
         <a href="#file-formats">File formats</a>
         <a href="#cassette">Cassette LOAD/SAVE</a>
         <a href="#troubleshooting">Troubleshooting</a>
@@ -227,6 +228,54 @@
             belongs to the emulator: it advances a paused processor by one
             instruction of whatever is running, the monitor included, which
             is rarely what you want to watch.</p>
+    </section>
+
+    <section id="leds">
+        <h2>The four LEDs in your own program</h2>
+        <p>The manual gives the LEDs D4 to D7 one job, showing what the
+            cassette is doing, and you can watch them at it with
+            <a href="#tape-real-time">the cassette in real time</a>. But
+            nothing on the board ties them to the cassette. Each one is lit
+            while two lines of the 8255 are both high: bit 7 of Port B at
+            <code>$FD01</code>, which all four share, and its own line of
+            Port A at <code>$FD00</code>, bit 0 for D4 up to bit 3 for D7. A
+            program of your own can set those lines, whatever the Cassette
+            setting.</p>
+        <h3>Light them</h3>
+        <p>Key this in at <code>$0200</code> and run it from there:</p>
+        <pre><code>0200: A9 89 8D 03 FD A9 0F 8D 00 FD A9 87 8D 01 FD 4C
+0210: 0F 02</code></pre>
+        <p>All four LEDs light and the six displays go dark. Press RES to get
+            the monitor back, which puts them out. What the program does:</p>
+        <ul>
+            <li><code>A9 89 8D 03 FD</code> makes Port A an output, with the
+                same word the monitor uses.</li>
+            <li><code>A9 0F 8D 00 FD</code> puts the pattern on Port A. Its
+                low four bits are the four LEDs.</li>
+            <li><code>A9 87 8D 01 FD</code> sets bit 7 of Port B. The rest of
+                the <code>87</code> keeps the displays dark: Port A's lines
+                are the displays' segments as well, and this value selects
+                none of the six digits. The cassette's LOAD routine lights
+                the LEDs with the same value.</li>
+            <li><code>4C 0F 02</code> goes round in a loop.</li>
+        </ul>
+        <p>To light only some, change the pattern, the byte at
+            <code>$0206</code>: <code>01</code> for D4, <code>02</code> for
+            D5, <code>04</code> for D6, <code>08</code> for D7, added
+            together for more than one. <code>0A</code> lights D5 and D7.</p>
+        <h3>Count on them</h3>
+        <pre><code>0200: A9 89 8D 03 FD A9 87 8D 01 FD E6 20 A5 20 29 0F
+0210: 8D 00 FD A2 00 A0 00 88 D0 FD CA D0 F8 4C 00 02</code></pre>
+        <p>Run from <code>$0200</code>, this counts in binary on the four
+            LEDs, D4 the lowest bit, about three steps a second, keeping its
+            count at <code>$0020</code>. Press <strong>HLT</strong> and the
+            LEDs go out, because the monitor takes the two ports back for the
+            displays and never sets bit 7; press <strong>RUN</strong> and the
+            count carries on from where it stopped.</p>
+        <p class="callout">The manual does not describe this use. It follows
+            from the manual's schematic of the board, and from the cassette
+            routine, which lights the LEDs in the same way. It has not been
+            tried on a real board.</p>
     </section>
 
     <section id="file-formats">

@@ -151,6 +151,10 @@ time the real machine took, about thirteen seconds for a short program, with
 the displays dark and the phase LEDs D4-D7 lit as the manual describes.
 **Instant** is the default.
 
+The four LEDs are not only the cassette's. A program of your own can light
+them at either setting, as it could on the board; the
+[guide](guide.html#leds) has two short ones to key in.
+
 Tapes can also be read and written as sound. Loading a `.wav` recording of a
 cassette imports the programs on it, and `debug.saveTapeAudio()` downloads the
 most recent save as the sound the board would have sent to the recorder. The

@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a section to the guide, The four LEDs in your own program, with two
+  short programs to key in: one lights any of D4 to D7, the other counts in
+  binary on them. The manual gives the four LEDs to the cassette, but on its
+  schematic nothing ties them to it: each is lit while Port B bit 7 and one
+  of Port A's lines 0-3 are both high, and a program can set those. The
+  emulator has modelled them that way since the cassette interface was
+  added, so this needed no change to the machine; what it adds is the
+  programs, a test that runs them as the guide prints them
+  (`tests/user-leds.test.js`), and the account in `AGENTS.md`. It follows
+  from the schematic and the cassette PROM and has not been tried on a real
+  board.
 - Added a layout for phones held upright. The board is drawn three times as
   wide as it is tall, so on a phone in portrait the page showed its left half
   and left the displays and the whole keypad off screen to the right, behind
@@ -556,6 +567,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Corrected what the page and the documentation said about the LEDs D4-D7:
+  that they light only with **Cassette: Real time**. They light for any
+  program that drives them, at either setting. What is true is that the
+  monitor and the instant cassette never do. The LEDs' tooltips, the README,
+  `AGENTS.md` and `NextSession.md` now say so.
 - Fixed the sound decoder returning nothing from a recording in which one
   program's length was damaged (review of PR #47). A block is as long as its
   own byte count says, and a spoiled count can claim thousands of bytes the

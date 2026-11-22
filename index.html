@@ -371,7 +371,9 @@
            that bit, so dark is how they stand on a board that is merely
            idling. They light when the cassette routines run for real,
            which is the bench panel's Cassette: Real time setting; with
-           Instant the routines are trapped and never touch them. main.js
+           Instant the routines are trapped and never touch them. A
+           program of the user's own can set the same two lines and light
+           them at either setting; the guide has two that do. main.js
            sets the classes from how much of each frame an LED was on.
            --------------------------------------------------------------- */
 
@@ -1450,10 +1452,10 @@
              others: the PWR, RUN, IRQ, NMI and RW lamps drawn here once
              were invented. -->
         <div class="part led-bank" style="left:49.94%; top:14.1%;">
-            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Lit during LOAD and SAVE when Cassette is set to Real time."></div><b>D4</b></div>
-            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Lit during LOAD and SAVE when Cassette is set to Real time."></div><b>D5</b></div>
-            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Lit during SAVE when Cassette is set to Real time."></div><b>D6</b></div>
-            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Lit during LOAD when Cassette is set to Real time."></div><b>D7</b></div>
+            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own."></div><b>D4</b></div>
+            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own."></div><b>D5</b></div>
+            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Lit during SAVE when Cassette is set to Real time, or by a program of your own."></div><b>D6</b></div>
+            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Lit during LOAD when Cassette is set to Real time, or by a program of your own."></div><b>D7</b></div>
         </div>
 
         <!-- Seven-segment displays: six TIL312 packages, four for the address
