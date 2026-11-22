@@ -549,6 +549,8 @@ checked by running the real routine in `tests/cassette-rom-mapping.test.js`:
   dark while it idles, which is how the home page draws them. The machine
   layer models them as wired (#20) and the page lights them, so they show
   whenever the real routines run; a trapped LOAD or SAVE never touches them.
+  A user's program can light them as well; see The LEDs D4-D7 Under a
+  Program.
   One photograph of a powered board shows D7 lit with the monitor idle. The
   schematic does not account for that, and it is not modelled.
 - The same schematic has the 74LS145's inputs on PB1-PB4, its outputs 0-2 on
@@ -704,6 +706,55 @@ connected, nothing stands in for the PROM:
 Covered by `tests/tape-audio.test.js`, `tests/cassette-tape-records.test.js`,
 `tests/cassette-interface.test.js` and `tests/tape-recorder.test.js`.
 
+### The LEDs D4-D7 Under a Program
+
+The four LEDs are not the cassette's alone. Any program can light them, on
+the board as far as the schematic shows and in the emulator as a fact, with
+**Cassette** at either setting.
+
+- **What the manual says.** Only the cassette use. The assembly instructions
+  for the interface, supplement page 43: the LEDs "servono a sapere cosa sta
+  accadendo quando è in funzione il registratore". Fig. 26, page 45: they
+  "servono a controllare le operazioni di lettura e scrittura del nastro".
+  No other use was found in the supplement's text.
+- **What the wiring allows.** The schematic on page 28 connects them to
+  nothing of the cassette circuit: an LED is lit while Port B bit 7 and its
+  own Port A line are both high (the wiring is under Cassette Interface
+  Reference), and Port B bit 7 does nothing else on the board.
+- **In the emulator.** `_phaseLEDsNow()` is worked out after every write to
+  the 8255, whatever `interceptROM` is, and the page draws the result every
+  frame. Earlier versions of this file and of the page's tooltips said the
+  LEDs light only with **Cassette: Real time**. That was wrong. What is true
+  is narrower: the monitor never sets Port B bit 7 and neither do the traps,
+  so with **Instant** nothing lights them unless a program does.
+- **Keeping the displays dark.** Port A's lines are the displays' segments
+  too, so a program sets Port B to `$87`: bit 7, and PB1-PB4 at 3, the
+  74LS145 output that goes nowhere, so no digit and no key row is selected.
+  It is the value the PROM's LOAD routine uses. Bit 0 high leaves the tape
+  latch alone, and bits 5 and 6 low leave `REG IN` where the monitor leaves
+  it. To show digits and LEDs together a program has to take turns between
+  them, as the monitor does between digits.
+- **Port A's direction.** While Port A is an input its lines are held high
+  by the key columns' pull-ups, so with Port B at `$87` all four LEDs light
+  whatever was written. A program therefore writes the mode word `$89`
+  first. A real 8255A clears its output latches at a mode word
+  (`docs/8255-data-sheet.md`), which the emulator does not, so the order
+  that works on both is the mode word and then the two ports.
+- **The monitor takes the ports back.** After HLT, or single step, the
+  monitor is scanning the displays and keys, never with bit 7 set, so the
+  LEDs are out. RUN resumes the program but does not restore the ports: a
+  program that set them once stays dark, and one that sets them each time
+  round lights again.
+
+The guide prints two programs for it, one that lights a chosen pattern and
+one that counts in binary. `tests/user-leds.test.js` runs both as printed,
+read out of `guide.html`, with the traps on; it fails if the LEDs are ever
+made to depend on the cassette setting. They were also keyed in on the page
+in headless Chrome, on the board as drawn and in the handheld layout.
+
+Not tried on a real board. That the lines are free is read from the
+schematic and from what the PROM does with them, not observed.
+
 ### Board Artwork
 
 The home page draws the board as it is, not as a diagram: every part in
@@ -770,8 +821,9 @@ vary between systems.
 
 **What is drawn but does nothing.** Of the things a person operates,
 nothing: the NOR/SS switch is single step (see HLT and the NMI Line). The
-four LEDs D4-D7 work, but only while the real cassette
-routines run, which is the **Cassette: Real time** setting. `main.js` gives
+four LEDs D4-D7 work: the real cassette routines light them, which is the
+**Cassette: Real time** setting, and so can a program of the user's own, at
+either setting (see The LEDs D4-D7 Under a Program). `main.js` gives
 an LED the class `on`, the lit look taken from unit A, or `on dim` for
 LOAD's quarter-time flashing, a look that is a guess, since no photograph
 shows a board during LOAD. The lamp beside the registers is the emulator's own and has
@@ -916,8 +968,9 @@ When implementing changes based on a GitHub issue:
    the expansion connector, and the vectors at `$03FC-$03FF` start with
    values of the emulator's choosing where the board has none; see HLT and
    the NMI Line
-7. **Board drawing**: the LEDs D4-D7 light only with **Cassette: Real time**,
-   and the NOR/SS switch was photographed only at NOR, so its SS position is
+7. **Board drawing**: the cassette lights the LEDs D4-D7 only with
+   **Cassette: Real time**, though a program can light them at either
+   setting. The NOR/SS switch was photographed only at NOR, so its SS position is
    the same drawing moved across. The displays do not show the 31 ms blink a
    real board gives when a key is pressed. On a phone held upright the parts
    a person works are rearranged into one column (see Handheld Layout); in a

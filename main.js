@@ -178,7 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // The cassette recorder, wired to the board's interface. It runs only
     // while the real LOAD and SAVE routines do, which is the Cassette: Real
-    // time setting; the phase LEDs D4-D7 are lit by the same routines (#20).
+    // time setting. The phase LEDs D4-D7 are lit by the same routines (#20),
+    // and by any program that sets Port B bit 7 and their Port A lines, at
+    // either setting: the machine reports them every frame regardless.
     recorder = amico.connectRecorder(AmicoTapeAudio.createRecorder());
     amico.onPhaseLEDs = updatePhaseLEDs;
     amico.onTapeRecorded = reportRecording;

@@ -20,13 +20,13 @@ hardware over convenience abstractions. Priority order:
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
-  merged on request. Pull request 47,
-  `https://github.com/ascasso/amico2000/pull/47`, took the cassette work of
-  2026-11-21 into `master` that evening, so it is live. What was committed
-  after it, the ComputerHistory.it links and this file's own update, is on
-  `develop` and waits for the next pull request.
+  merged on request. Pull request 50,
+  `https://github.com/ascasso/amico2000/pull/50`, took the phone layout into
+  `master` on 2026-11-22, so it and everything before it is live. What was
+  committed after it, the guide's section on the LEDs and the corrections
+  that go with it, is on `develop` and waits for the next pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 193
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 198
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -44,6 +44,10 @@ hardware over convenience abstractions. Priority order:
   are trapped at `$FC54` and `$FBBC` and instant. With **Cassette: Real
   time** the PROM's own routines run against an emulated recorder, with the
   phase LEDs lit (`#20`, closed).
+- **LEDs:** D4-D7 are not the cassette's alone. A program can light them at
+  either Cassette setting, and the guide has two that do (`AGENTS.md`, The
+  LEDs D4-D7 Under a Program). Read from the schematic, not tried on a real
+  board.
 - **Open issues:** none.
 - **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-22.
 
@@ -84,7 +88,8 @@ In rough priority order. None of it is started.
    `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
    Node and assert on RAM or PIA state.
 4. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
-   wires them and light when the real cassette routines run. By that wiring
+   wires them and light when the real cassette routines run or a program
+   drives them. By that wiring
    all four are dark while the monitor idles, yet unit A's photograph shows
    D7 lit at idle. Nothing accounts for it.
 5. **Board drawing, unverified ends.**
