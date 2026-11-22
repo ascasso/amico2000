@@ -24,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   D4 and D6 again, and LOAD flashes D4 and D7, then D5 and D7, as the manual
   describes. Nothing on the page uses this yet, and with the traps on, which
   is the default, LOAD and SAVE behave as before.
+- Added a **Cassette** setting under Bench controls: **Instant**, the
+  default, is LOAD and SAVE as they have always been here, done at once by
+  the emulator; **Real time** runs the board's own routines from the cassette
+  PROM against an emulated recorder (#20). In real time the page shows what
+  the manual describes: the six displays go dark, the phase LEDs D4-D7 light
+  in turn, D6 with D4 then D5 then D4 during SAVE and D7, dimmer, with D4
+  then D5 during LOAD, and the routine takes about thirteen seconds for a
+  short program. LOAD starts from the beginning of the tape and passes over
+  the programs before the one asked for. A status line beside the buttons
+  says what the recorder is doing. The page remembers the choice. The user
+  guide has a new section, The cassette in real time, which also lists where
+  the real routines behave differently from the instant ones.
 - Added a cassette recorder, `AmicoTapeAudio.createRecorder()`, to plug into
   the board's interface (#20). With it connected and the traps off, LOAD and
   SAVE are the real IC10 routines working on a tape, in the time the board

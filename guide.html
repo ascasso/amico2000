@@ -200,11 +200,18 @@ amico.start();</code></pre>
             see <a href="#tape-sound">Tapes as sound</a>.</p>
         <p>The cassette PROM is fitted when the page opens, so <code>$FBBC</code>
             and <code>$FC54</code> hold the original routines, as on a board built
-            with the cassette interface. When you RUN from either address, the
-            emulator intercepts it and reads or writes its own store of tape
-            records, instantly, instead of running the routine against a
-            recorder for the half minute or so the real thing takes. Either
-            way it returns to the monitor afterwards.</p>
+            with the cassette interface. How they run is your choice, with the
+            <strong>Cassette</strong> buttons under Bench controls:</p>
+        <ul>
+            <li><strong>Instant</strong>, the default: when you RUN from either
+                address the emulator steps in and does the routine's job at
+                once, reading or writing its own store of programs.</li>
+            <li><strong>Real time</strong>: the original routines run, on an
+                emulated recorder, and take as long as the real machine did.
+                See <a href="#tape-real-time">The cassette in real time</a>.</li>
+        </ul>
+        <p>Either way the programs are the same ones, and control returns to
+            the monitor afterwards. The steps below describe Instant.</p>
         <h3>LOAD an imported tape</h3>
         <ol>
             <li>Choose the <code>.amtape</code> file, or a <code>.wav</code>
@@ -254,6 +261,45 @@ amico.writeMemory(0x0004, 0x01);
 amico.cpu.PC = 0xFBBC;
 amico.start();</code></pre>
         <p>Then run <code>debug.saveTape()</code> to download the result.</p>
+        <h3 id="tape-real-time">The cassette in real time</h3>
+        <p>Set <strong>Cassette</strong> to <strong>Real time</strong> and LOAD
+            and SAVE are the board's own routines, working on a tape. You key
+            the same parameters and RUN from the same addresses. What follows
+            is what the manual describes:</p>
+        <ul>
+            <li>The six displays go dark, because the routine does not refresh
+                them, and the keys do nothing except RES.</li>
+            <li>The four LEDs at the top of the board show the phase. During
+                SAVE, D6 (recording) is lit throughout, with D4 (leader) for
+                six seconds, then D5 (text) while the program goes out, then
+                D4 again. During LOAD it is D7 (reading), dimmer, with D4 and
+                then D5.</li>
+            <li>It takes time: about thirteen seconds for a short program plus
+                a second for every 41 bytes. LOAD always starts from the
+                beginning of the tape and passes over every program before the
+                one you asked for, each in its own full time.</li>
+            <li>A line beside the Cassette buttons says what the recorder is
+                doing. The emulator presses its keys for you: it plays when
+                LOAD starts, records when SAVE starts, and stops when the
+                routine hands back to the monitor.</li>
+        </ul>
+        <p>The tape holds the programs the emulator has: everything saved or
+            imported in this page session, in that order.</p>
+        <p>The real routines behave a little differently from the instant ones:</p>
+        <ul>
+            <li>LOAD for a program that is not on the tape never gives up. It
+                waits for more tape, as the real machine does, and the status
+                line says <em>End of tape</em>. Press RES.</li>
+            <li>SAVE leaves the addresses and identifier at
+                <code>$0000-$0004</code> as you keyed them. An end address
+                before the start address returns to the monitor at once with
+                no error.</li>
+            <li>The only error status is <code>FF</code> at <code>$0000</code>
+                after a LOAD whose checksum did not match.</li>
+            <li>A block one byte longer than a whole number of 256-byte pages
+                loses its last byte; see the end of this section.</li>
+        </ul>
+        <p>RES during a SAVE abandons it: nothing is put on the tape.</p>
         <h3 id="tape-sound">Tapes as sound</h3>
         <p>The real machine kept programs on audio cassettes. The emulator can
             read a recording of such a cassette, and write a program out as the
@@ -284,8 +330,9 @@ amico.start();</code></pre>
             record the last byte of a block that is one byte longer than a
             whole number of 256-byte pages, such as <code>$0200-$0300</code>.
             A sound file made here behaves the same way, so that it is what
-            the board would have written; an <code>.amtape</code> file keeps
-            every byte.</p>
+            the board would have written, and so does a SAVE with Cassette set
+            to Real time. An instant SAVE and an <code>.amtape</code> file
+            keep every byte.</p>
     </section>
 
     <section id="troubleshooting">

@@ -146,6 +146,7 @@ const CASSETTE_ROM = new Uint8Array([
 
 let amico = null;
 let display = null;
+let recorder = null;
 
 // ============================================================================
 // Initialization
@@ -172,7 +173,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Connect state callback
     amico.onStateUpdate = (state) => {
         updateStatusDisplay(state);
+        updateTapeStatus();
     };
+
+    // The cassette recorder, wired to the board's interface. It runs only
+    // while the real LOAD and SAVE routines do, which is the Cassette: Real
+    // time setting; the phase LEDs D4-D7 are lit by the same routines (#20).
+    recorder = amico.connectRecorder(AmicoTapeAudio.createRecorder());
+    amico.onPhaseLEDs = updatePhaseLEDs;
+    amico.onTapeRecorded = reportRecording;
+    setupCassetteMode();
 
     // The machine owns its run state; the bench controls only reflect it, so
     // a console start() or stop() updates the label and the run lamp as well.
@@ -305,6 +315,123 @@ function setupDisplayLook() {
             }
         });
     });
+}
+
+// How cassette LOAD and SAVE run (#20). 'instant' is the trap: the emulator
+// does the routine's job itself, at once. 'realtime' leaves the IC10 PROM to
+// do it, on the recorder's tape, in the time the board takes, with the
+// displays dark and the phase LEDs lit as the manual describes. Instant is the
+// default because a real LOAD is thirteen seconds at the least. The choice is
+// remembered like the display look, and for the same reason may not be.
+const CASSETTE_MODE_KEY = 'amico2000.cassetteMode';
+const CASSETTE_MODES = ['instant', 'realtime'];
+
+function setupCassetteMode() {
+    const buttons = document.querySelectorAll('.tape-btn');
+
+    const apply = (mode) => {
+        // A routine that is already running is not interrupted: the trap acts
+        // only at the two entry points, and the tape runs until the routine
+        // hands back to the monitor or RES is pressed.
+        amico.cassette.interceptROM = mode !== 'realtime';
+        buttons.forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.tape === mode));
+        });
+    };
+
+    let saved = null;
+    try {
+        saved = localStorage.getItem(CASSETTE_MODE_KEY);
+    } catch (err) {
+        // Storage blocked: keep the default.
+    }
+    apply(CASSETTE_MODES.includes(saved) ? saved : CASSETTE_MODES[0]);
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+            apply(button.dataset.tape);
+            try {
+                localStorage.setItem(CASSETTE_MODE_KEY, button.dataset.tape);
+            } catch (err) {
+                // Storage blocked: the choice lasts until the page is reloaded.
+            }
+        });
+    });
+}
+
+// The phase LEDs D4-D7. The machine reports how much of the last frame each
+// was on. SAVE has its two on nearly all the time; LOAD flashes its two for
+// about a quarter of it, which reads as lit but dimmer. A class is changed
+// only when the look changes, so a steady LED costs nothing.
+const PHASE_LED_IDS = ['led-d4', 'led-d5', 'led-d6', 'led-d7'];
+const phaseLEDLooks = ['', '', '', ''];
+
+function updatePhaseLEDs(share) {
+    share.forEach((on, n) => {
+        const look = on < 0.04 ? '' : on < 0.6 ? 'dim' : 'on';
+        if (look === phaseLEDLooks[n]) return;
+        phaseLEDLooks[n] = look;
+        const led = document.getElementById(PHASE_LED_IDS[n]);
+        led.classList.toggle('on', look !== '');
+        led.classList.toggle('dim', look === 'dim');
+    });
+}
+
+// What the recorder is doing, in words beside the Cassette buttons. This is
+// the emulator's own indicator, like the run lamp: the board has none, and a
+// user of the real machine watches the recorder. Called every frame; the text
+// changes at most once a second.
+let tapeStatusText = '';
+let tapeStatusNote = '';   // the outcome of the last recording, shown while stopped
+let tapeWasPlaying = false;
+
+function updateTapeStatus() {
+    const playing = recorder.state === 'playing';
+    if (playing && !tapeWasPlaying && recorder.skipped.length) {
+        recorder.skipped.forEach(({ id, reason }) => {
+            console.warn(`Program ${hexByte(id)} was left off the tape. ${reason}`);
+        });
+    }
+    tapeWasPlaying = playing;
+
+    let text = tapeStatusNote;
+    if (recorder.state !== 'stopped') {
+        tapeStatusNote = '';
+        const at = Math.floor(recorder.position(amico.cpu.cycles / Amico2000.CLOCK_HZ));
+        if (recorder.state === 'recording') {
+            text = `Recording, ${at} s`;
+        } else if (recorder.length === 0) {
+            text = 'The cassette is empty. Press RES.';
+        } else if (at >= recorder.length) {
+            text = 'End of tape. Press RES.';
+        } else {
+            text = `Playing, ${at} s of ${Math.ceil(recorder.length)} s`;
+        }
+    }
+    if (text !== tapeStatusText) {
+        tapeStatusText = text;
+        document.getElementById('tape-status').textContent = text;
+    }
+}
+
+// A recording made by the real SAVE routine has been read back and its
+// programs put on the cassette. Say what they were, and what was not readable,
+// which is all there is after a RES in the middle of a SAVE.
+function reportRecording(result) {
+    result.records.forEach((record) => {
+        const end = record.start + record.data.length - 1;
+        console.log(
+            `Saved program ${hexByte(record.id)}: $${hexWord(record.start)}-$${hexWord(end)}, ` +
+            `${record.data.length} bytes` + (record.note ? ` (${record.note})` : '')
+        );
+    });
+    result.problems.forEach((problem) => console.warn(`Not saved. ${problem}`));
+
+    if (result.records.length) {
+        tapeStatusNote = 'Saved program ' + result.records.map((record) => hexByte(record.id)).join(', ');
+    } else {
+        tapeStatusNote = 'Nothing was saved';
+    }
 }
 
 function setupControls() {

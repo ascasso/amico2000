@@ -369,10 +369,10 @@
            schematic (page 28) an LED lights only while Port B bit 7 and
            its own Port A bit are both high, and the monitor never sets
            that bit, so dark is how they stand on a board that is merely
-           idling. Nothing in the emulator drives them either: the
-           cassette is file-backed and the routines that would light them
-           are trapped. The lit style is here for whenever something
-           does.
+           idling. They light when the cassette routines run for real,
+           which is the bench panel's Cassette: Real time setting; with
+           Instant the routines are trapped and never touch them. main.js
+           sets the classes from how much of each frame an LED was on.
            --------------------------------------------------------------- */
 
         .led-bank { display: flex; }
@@ -406,6 +406,18 @@
             box-shadow:
                 0 0 0.45cqw 0.12cqw rgba(255, 31, 69, 0.9),
                 0 0 1.7cqw 0.45cqw rgba(255, 31, 69, 0.42),
+                inset 0 0 0 0.06cqw rgba(120, 0, 20, 0.3);
+        }
+
+        /* LOAD only flashes its LEDs, for about a quarter of each bit, so
+           the eye gets a quarter of the light: a red dome that is plainly
+           on but has no white centre and little halo. This look is a guess
+           at that; no photograph of a board during LOAD was available. */
+        .led.on.dim {
+            background: radial-gradient(circle at 47% 45%, #ff9aa6 0%, #ff4f68 22%, #e01138 55%, #a80826 100%);
+            box-shadow:
+                0 0 0.3cqw 0.06cqw rgba(255, 31, 69, 0.6),
+                0 0 0.9cqw 0.2cqw rgba(255, 31, 69, 0.22),
                 inset 0 0 0 0.06cqw rgba(120, 0, 20, 0.3);
         }
 
@@ -761,6 +773,10 @@
             margin: -0.35rem 0 1.1rem;
             font-size: 0.8rem;
         }
+        /* The Cassette pair below it is laid out the same way, with a line
+           of status after the buttons that takes whatever room is left. */
+        .look-toggle + .look-toggle { margin-top: -0.6rem; flex-wrap: wrap; }
+        .tape-status { flex: 1 1 8rem; color: var(--ink-soft); }
         .look-toggle .k { color: var(--ink-soft); margin-right: 0.2rem; }
         .look-toggle .control-btn { flex: 0 1 auto; padding: 0.35rem 0.8rem; }
         .look-toggle .control-btn[aria-pressed="true"] {
@@ -1249,10 +1265,10 @@
              others: the PWR, RUN, IRQ, NMI and RW lamps drawn here once
              were invented. -->
         <div class="part led-bank" style="left:49.94%; top:14.1%;">
-            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Not driven by the emulator."></div><b>D4</b></div>
-            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Not driven by the emulator."></div><b>D5</b></div>
-            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Not driven by the emulator."></div><b>D6</b></div>
-            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Not driven by the emulator."></div><b>D7</b></div>
+            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Lit during LOAD and SAVE when Cassette is set to Real time."></div><b>D4</b></div>
+            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Lit during LOAD and SAVE when Cassette is set to Real time."></div><b>D5</b></div>
+            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Lit during SAVE when Cassette is set to Real time."></div><b>D6</b></div>
+            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Lit during LOAD when Cassette is set to Real time."></div><b>D7</b></div>
         </div>
 
         <!-- Seven-segment displays: six TIL312 packages, four for the address
@@ -1354,6 +1370,12 @@
                 <span class="k">Displays</span>
                 <button class="control-btn look-btn" data-look="readable" aria-pressed="true" title="Solid digits with no halo: easier to read on a screen">Readable</button>
                 <button class="control-btn look-btn" data-look="authentic" aria-pressed="false" title="Bright, blooming digits, as a photograph of a powered board shows them">Authentic</button>
+            </div>
+            <div class="look-toggle" role="group" aria-label="How cassette LOAD and SAVE run">
+                <span class="k">Cassette</span>
+                <button class="control-btn tape-btn" data-tape="instant" aria-pressed="true" title="LOAD and SAVE happen at once">Instant</button>
+                <button class="control-btn tape-btn" data-tape="realtime" aria-pressed="false" title="LOAD and SAVE are the board&rsquo;s own routines working on a tape, as on the real machine: thirteen seconds or more, with the displays dark and the phase LEDs lit">Real time</button>
+                <span class="tape-status" id="tape-status" role="status"></span>
             </div>
             <p class="load-help" id="load-help">
                 Raw binary ROMs/programs (<code>.bin</code>, <code>.rom</code>,

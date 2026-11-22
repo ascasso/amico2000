@@ -131,6 +131,12 @@ original routines against a tape signal. As on the original, control then return
 monitor at $FE22 rather than through an `RTS`. Use `debug.saveTape()` after running the cassette
 SAVE routine to download the most recent mock tape image.
 
+Under Bench controls, **Cassette: Real time** turns the interception off. LOAD
+and SAVE are then the original routines working on an emulated recorder, in the
+time the real machine took, about thirteen seconds for a short program, with
+the displays dark and the phase LEDs D4-D7 lit as the manual describes.
+**Instant** is the default.
+
 Tapes can also be read and written as sound. Loading a `.wav` recording of a
 cassette imports the programs on it, and `debug.saveTapeAudio()` downloads the
 most recent save as the sound the board would have sent to the recorder. The
