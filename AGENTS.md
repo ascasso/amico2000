@@ -861,9 +861,10 @@ When implementing changes based on a GitHub issue:
    and the NOR/SS switch was photographed only at NOR, so its SS position is
    the same drawing moved across. The displays do
    not show the 31 ms blink a real board gives when a key is pressed. At window widths under about
-   800 pixels the board keeps its size and pans sideways, so on a phone the
-   keys and displays, at its right-hand end, are off screen until it is
-   panned. The drawing has been looked at in Chrome only. See Board Artwork
+   800 pixels the board keeps its size and pans sideways, so on a phone held
+   upright the first view is the board's left half and the keys and
+   displays, at its right-hand end, are off screen until it is panned. This
+   is the owner's priority; `NextSession.md` has the options. The drawing has been looked at in Chrome only. See Board Artwork
 
 ## Keyboard Mappings
 

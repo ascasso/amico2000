@@ -50,7 +50,39 @@ hardware over convenience abstractions. Priority order:
 
 In rough priority order. None of it is started.
 
-1. **Two interrupt decisions are the owner's to confirm.** HLT and the
+1. **Make the emulator usable on a phone held upright. The owner's priority.**
+   The owner uses a phone in portrait, with rotation locked, so portrait is
+   the case to design for and to judge by. Today it is nearly unusable
+   there. `.pcb` has `min-width: 760px`, so on a 390 px screen the board
+   keeps its size and the first view is its left half: the regulator, the
+   CPU and the ROMs. The displays and the whole keypad, which are the parts a
+   visitor needs, are off screen to the right behind a sideways pan that
+   nothing points to. Checked 2026-11-21 in headless Chrome at 390 x 844 with
+   `Emulation.setDeviceMetricsOverride` set to `mobile: true`; the keys were
+   30 px across at that width.
+   - Three ways were put to the owner, who had not chosen when this was
+     written. **Handheld layout**, recommended: below some width the live
+     parts regroup into one vertical column, six digits, LEDs, keypad with
+     keys near 50 px, the NOR/SS switch, then the bench controls, with the
+     board drawing still on the page further down. **Rotate the board** 90
+     degrees: true layout and large keys, but the lettering lies sideways.
+     **Open panned to the keypad**: cheapest, keys near 36 px, still relies
+     on a sideways scroll. Ask which first.
+   - The desktop view must not change. Landscape and wide windows stay
+     exactly as photographed.
+   - What makes the handheld layout cheaper than it looks: the keys
+     (`.keyfield`), the LEDs (`.led-bank`) and the switch are HTML placed in
+     percent of the board over the SVG, and the displays are SVG drawn by
+     `display.js` into `#display`. Moving them is mostly CSS in a media query.
+     What the scripts look up by id and class is listed in Board Artwork in
+     `AGENTS.md`; keep all of it.
+   - Check it in portrait by clicking real keys and reading the display, as
+     the other browser checks do, not only by looking. Tap targets want to be
+     about 44 px or more, and the page must not scroll sideways. Touch
+     support already exists in `main.js` (`touchstart` on the keys).
+   - Only Chrome has been used so far. A phone's own browser is the real test;
+     ask the owner to try it.
+2. **Two interrupt decisions are the owner's to confirm.** HLT and the
    NOR/SS single-step switch both work now (`AGENTS.md`, HLT and the NMI
    Line). Both go through the NMI vector at `$03FC/$03FD`, which the board
    leaves to the user and the emulator has to start with something in. It
@@ -59,27 +91,25 @@ In rough priority order. None of it is started.
    was left at `$FE30`. Making it `$FE00` too would turn a `BRK` into a
    breakpoint that shows where it was, and would change what programs that
    end in `BRK` do today.
-2. **Machine-layer checks** for display multiplexing, pattern by pattern (how
+3. **Machine-layer checks** for display multiplexing, pattern by pattern (how
    Port A and Port B writes become the six-pattern buffer; when digits go
    dark is covered), and the `$FD00-$FDFF` partial decoding.
    `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
    Node and assert on RAM or PIA state.
-3. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
+4. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
    wires them and light when the real cassette routines run. By that wiring
    all four are dark while the monitor idles, yet unit A's photograph shows
    D7 lit at idle. Nothing accounts for it.
-4. **Board drawing, unverified ends.**
+5. **Board drawing, unverified ends.**
    - Only Chrome has been used. Safari, Firefox, touch and screen readers
      have not been tried, nor the key legends on systems without the macOS
      DIN faces.
-   - On a phone the board pans sideways and the keys start off screen.
-     Reflowing it is an owner decision.
    - The measurement table and the browser-check scripts live with the
      private photographs, outside the repository. Whether they belong in it
      is the owner's call. The three checks of the cassette written on
      2026-11-21 are there too, as `cassette-files.mjs`, `cassette-realtime.mjs`
      and `cassette-instant.mjs`; they hold nothing private.
-5. **Speed multiplier, requested by the owner, not started.** Three settings:
+6. **Speed multiplier, requested by the owner, not started.** Three settings:
    **1x**, the default, which is today's behaviour and stays as close to the
    real board as the emulator can manage; **10x**; and **Max**, as fast as
    the browser can run it.
@@ -102,7 +132,7 @@ In rough priority order. None of it is started.
      faster with the processor, which is probably what a user wants from it.
    - The display is still drawn once per frame, so a program that animates
      the digits shows only some of its steps.
-6. **Ideas, not started:** a pass on wear and physical irregularity, sound,
+7. **Ideas, not started:** a pass on wear and physical irregularity, sound,
    and a desk scene around the board.
 
 ## Cassette Work (Secondary)
