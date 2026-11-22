@@ -1,0 +1,6 @@
+# Everything on the site is public and meant to be found. The sitemap lists
+# the two pages; the rest of the repository is not served as pages.
+User-agent: *
+Allow: /
+
+Sitemap: https://ascasso.github.io/amico2000/sitemap.xml

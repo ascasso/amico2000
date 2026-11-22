@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `robots.txt` and `sitemap.xml` at the site root, so search engines are
+  told plainly that the page may be crawled and where its two pages are
+  (`index.html`'s address and `guide.html`). Nothing on the site blocked
+  crawlers before; the files make that explicit and give Google Search Console
+  a sitemap to take. They reach the live site only when `master` does.
 - Added a section to the guide, The four LEDs in your own program, with two
   short programs to key in: one lights any of D4 to D7, the other counts in
   binary on them. The manual gives the four LEDs to the cassette, but on its
