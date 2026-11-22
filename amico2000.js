@@ -655,9 +655,49 @@ class Amico2000 {
     }
 
     /**
-     * Export a previously imported or saved tape record as a browser-downloadable binary image.
+     * Put a program on the mock cassette for a later LOAD through the IC10
+     * trap, as loadTape() does for an .amtape image. This is the way in for a
+     * record that did not come from one, such as a block decoded from a sound
+     * recording of a tape (#20).
+     *
+     * The record is checked here rather than trusted, because a LOAD copies it
+     * into memory without looking at it again: the block has to lie inside the
+     * 16-bit address space, and it has to fit the 16-bit byte count of the
+     * .amtape format, or it could be loaded but never exported.
+     *
+     * @param {{id: number, start: number, data: Uint8Array|number[]}} record
+     * @returns {object} The stored record, in the form the traps use
      */
-    exportTape(id = null) {
+    addTapeRecord({ id, start, data }) {
+        const bytes = Uint8Array.from(data);
+        if (!Number.isInteger(id) || id < 0 || id > 0xFF) {
+            throw new Error(`Tape program identifier must be a byte, not ${id}`);
+        }
+        if (bytes.length < 1 || bytes.length > 0xFFFF) {
+            throw new Error(`A tape record holds 1 to 65535 bytes, not ${bytes.length}`);
+        }
+        if (!Number.isInteger(start) || start < 0 || start + bytes.length > this.cpu.memory.length) {
+            throw new Error('Tape record does not fit in the address space');
+        }
+
+        const record = {
+            id,
+            start,
+            end: start + bytes.length - 1,
+            checksum: bytes.reduce((sum, value) => (sum + value) & 0xFF, id),
+            data: bytes
+        };
+        this.cassette.tapes = this.cassette.tapes.filter(existing => existing.id !== id);
+        this.cassette.tapes.push(record);
+        return record;
+    }
+
+    /**
+     * The record an export should use: the one with this identifier, or with
+     * no identifier the most recent SAVE, or failing that the tape imported
+     * last.
+     */
+    findTape(id = null) {
         const record = id === null
             ? (this.cassette.lastSavedTape || this.cassette.tapes[this.cassette.tapes.length - 1])
             : this.cassette.tapes.find(tape => tape.id === (id & 0xFF));
@@ -666,7 +706,14 @@ class Amico2000 {
             throw new Error('No matching tape record is available');
         }
 
-        return this._makeTapeImage(record);
+        return record;
+    }
+
+    /**
+     * Export a previously imported or saved tape record as a browser-downloadable binary image.
+     */
+    exportTape(id = null) {
+        return this._makeTapeImage(this.findTape(id));
     }
 
     /**

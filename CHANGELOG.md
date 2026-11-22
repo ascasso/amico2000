@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hiss, wow, wrong tape speed, dropouts and cut recordings. Those are guesses
   at what a deck does; the first real recording may still call for tuning.
   This entry adds the codec only; the page does not use it yet.
+- Added `amico.addTapeRecord()` and `amico.findTape()` (#20). The mock
+  cassette could be filled only by a SAVE or by an `.amtape` image; a program
+  decoded from a sound recording is neither. `addTapeRecord()` takes a program
+  identifier, a start address and the bytes, checks that the block fits the
+  address space and the `.amtape` byte count, and puts it where the trapped
+  LOAD will find it. `findTape()` returns the record an export should use,
+  by the rule `exportTape()` already followed. `exportTape()` itself is
+  unchanged.
 - Added a choice of how the six displays are drawn, under Bench controls:
   **Readable**, now the default, keeps each segment solid with only a narrow
   glow and dims the unlit segments, so digits read easily at the size a page
