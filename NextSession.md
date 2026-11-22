@@ -46,19 +46,17 @@ below, each marked as coming from it.
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
-  merged on request. Pull request 51,
-  `https://github.com/ascasso/amico2000/pull/51`, took the guide's section on
-  the LEDs into `master` on 2026-11-22, the phone layout having gone in
-  earlier that day with pull request 50, so both and everything before them
-  are live. What was committed after it, the rule in `AGENTS.md` against
-  publishing a session link and this file's plan for the shelf of programs,
-  changes nothing on the site; it is on `develop` and goes in with the next
-  pull request.
+  merged on request. Pull request 52,
+  `https://github.com/ascasso/amico2000/pull/52`, took everything up to the
+  page's search tags into `master` on 2026-11-22, so that much is live.
+  **The Italian is not live.** It was committed to `develop` later the same
+  day, with the review's additions to this file, and reaches the site with
+  the next pull request.
 - **Attribution:** no link to an agent's session in a commit message, a pull
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 198
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 227
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -68,6 +66,11 @@ below, each marked as coming from it.
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
   PROM (IC10).
 - **Phones:** held upright, the page uses a handheld layout; see item 2.
+- **Languages:** English and Italian. A browser set to Italian opens the home
+  page in Italian, a link in its top corner changes language without a
+  reload, and the guide is two pages, `guide.html` and `guida.html`. Read Two
+  Languages in `AGENTS.md` before adding any text: every sentence the public
+  reads goes in twice. See item 3 for what is left.
 - **Programs:** the site offers none to load. The guide prints a few short
   ones to key in. See item 1.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
@@ -87,7 +90,8 @@ below, each marked as coming from it.
 
 ## Outstanding
 
-In rough priority order. None of it is started.
+In rough priority order. None of it is started, apart from item 3, which is
+done but for the ends listed there.
 
 1. **Give the machine its software: a shelf of programs and a guide on
    screen.** Agreed with the owner on 2026-11-22 as the next piece of work.
@@ -235,12 +239,40 @@ In rough priority order. None of it is started.
      with the real displays and LEDs.
    - Tablets in portrait wider than 640 px keep the board as drawn, at about
      the size a desktop window shows it.
-3. **The site in Italian.** Asked for by the owner on 2026-11-22, as the one
-   thing to do at once: a large part of the audience is Italians who worked
-   on these boards around 1980, and many do not read English. What the public
-   sees is to be in Italian as well as English: the home page, the guide, and
-   what the page says while it is used. The changelog, the logs and the other
-   documents stay in English. Started the same day.
+3. **The site in Italian: done, with these ends loose.** The owner asked for
+   it on 2026-11-22 and it was built that day: the home page, the guide, and
+   what the page says while it is used, down to the reasons the machine
+   gives for a refusal (`AGENTS.md`, Two Languages). The changelog, the logs
+   and the other documents stay in English, as the owner said. What is left:
+   - **The owner has not read the Italian.** Nobody has but the sessions that
+     wrote it. It follows the manual's vocabulary and addresses the reader
+     as "voi"; whether it sounds right to someone who read *Sperimentare* is
+     for the owner to say. The words most worth a look are the labels:
+     "Comandi dell'emulatore" for Bench controls, "Reset a freddo", "Passo",
+     "Display: Leggibili / Autentici", "Cassetta: Immediata / Tempo reale",
+     and "in esecuzione", "fermo", "bloccato" beside the run lamp. Changing
+     a label means changing it in `index.html` and where `guida.html` quotes
+     it; `tests/languages.test.js` names the ones it holds together.
+   - **It is not live** until a pull request takes `develop` to `master`.
+   - **The home page has no Italian address.** One address serves both
+     languages, so Google and a link pasted into a forum or a chat show the
+     English title and description, whatever the reader's language. The
+     Italian guide has its own address and Italian head, and links to the
+     emulator with `?lang=it`. A home page at an address of its own would
+     need the board drawing twice, kept in step by hand. A small page that
+     only carries an Italian title and description and passes the visitor on
+     to `index.html?lang=it` would give a link to share, but how each search
+     engine and preview treats such a page was not looked into.
+   - **Only Chrome has shown it.** The language link was tried in headless
+     Chrome, on the desktop and in the handheld layout by emulation. Safari,
+     Firefox and a real phone have not, and neither has a screen reader.
+   - **The guide is out of date in two places, in both languages:** it tells
+     a reader on a narrow screen to scroll the board sideways, which is no
+     longer true of a phone held upright; and it sends someone who wants to
+     keep a tape to the console (item 5).
+   - **The README is in English.** It is a document, and the owner's rule
+     leaves documents in English, but it is also what a visitor to the
+     repository reads first. It now says the site has an Italian version.
 4. **Ask the people who had one.** From the review of 2026-11-22. The first
    audience is also where the missing evidence is. Nothing here has been
    compared with a real board or a real tape: no recording has been through
@@ -370,7 +402,9 @@ In rough priority order. None of it is started.
   DevTools protocol in real time checks the page as served: scripts evaluated
   through the protocol are not subject to the page's CSP, and
   `requestAnimationFrame` runs at 60 Hz. Avoid `--virtual-time-budget`, which
-  stops `requestAnimationFrame` and so the emulator. The page also runs from
+  stops `requestAnimationFrame` and so the emulator. To see the page as an
+  Italian browser does, give `Emulation.setUserAgentOverride` an
+  `acceptLanguage` of `it-IT` before loading it; `?lang=it` forces it. The page also runs from
   `file://`. The cassette in real time has to be watched in real time: a
   SAVE and a LOAD are over twenty seconds between them.
 - A pull request gets an automated review when it is opened. Its findings

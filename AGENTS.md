@@ -11,6 +11,12 @@ This file provides repository guidance for agents working in this repository.
   Preserve unrelated worktree changes and keep edits narrowly scoped.
 - For implementation work, update `CHANGELOG.md` under `[Unreleased]` and add
   a concise entry to the dated engineering log in `docs/logs/`.
+- What the public reads on the site is written in English and in Italian:
+  the home page, the two guides, and whatever the page says while it is
+  used. Add or change the two together; see Two Languages under Important
+  Implementation Notes for where each kind of text lives and which words the
+  Italian uses. The changelog, the logs, this file and the other documents
+  stay in English, and so does the browser console.
 - Fully document every change, including its purpose, scope, and verification;
   commit the complete change and push it before handoff.
 - Keep the home page's `build-date` stamp in sync with the committer's calendar
@@ -114,9 +120,10 @@ python3 -m http.server 8000
 
 ## Code Architecture
 
-The project consists of five modular JavaScript files, and `index.html`, which
+The project consists of six modular JavaScript files, and `index.html`, which
 besides loading them draws the board; see Board Artwork under Important
-Implementation Notes.
+Implementation Notes. The guide is two more pages with no script,
+`guide.html` in English and `guida.html` in Italian.
 
 ### 1. cpu6502.js (~1100 lines)
 Complete 6502 CPU interpreter implementing:
@@ -194,9 +201,13 @@ SVG-based seven-segment display renderer:
 
 **Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second. The geometry is in the single `DISPLAY_LAYOUT` object at the top of the file, measured on a photograph of a real board. `tests/display-renderer.test.js` pins the bit-to-segment mapping, the left-to-right order of the digits, and where each named segment is actually drawn; keep it passing when changing how the display is drawn.
 
-### 4. main.js (~800 lines)
+### 4. main.js (~1100 lines)
 Application initialization and UI:
 - Contains the Monitor ROM data (MONITOR_ROM constant at top of file)
+- Puts no words of its own on the page: the Run button's word, the switch's
+  tooltip, the tape's status line and the alerts all come from `lang.js`
+  through `AmicoLang.t()`, and a reason given by the machine goes through
+  `AmicoLang.message()`. What it logs to the console is English, always
 - Keyboard event handling (both physical keyboard and on-screen buttons)
 - ROM, program and tape loading via file input, including `.wav` recordings
   of a cassette, which it hands to `tape-audio.js`
@@ -242,6 +253,19 @@ detector, `detectPulses()`, is the one part that rests on guesses, about what
 a cassette deck does to the signal; expect to adjust it, and its simulated
 faults in the test, when a real recording turns up. See Cassette Sound Format
 below.
+
+### 6. lang.js (~420 lines)
+The home page's two languages, exposed as the single global `AmicoLang`.
+- Loaded in `<head>`, before the body is read, unlike the other five: it sets
+  `<html lang>` before anything is drawn
+- `choose()` decides the language; `set()` changes it where the page stands;
+  `onChange()` tells `main.js`
+- `STRINGS` holds what scripts say on the page, in both languages, and `t()`
+  fills in a string's values
+- `MESSAGES_IT` holds the Italian for what `amico2000.js` and `tape-audio.js`
+  say when they refuse something, and `message()` finds it
+- It knows nothing about the machine, and neither machine file knows about
+  it. See Two Languages
 
 ## Important Implementation Notes
 
@@ -824,7 +848,10 @@ also finds the four parts it moves as direct children of `.pcb`:
 `.part.keyfield.hex`. Keep those when redrawing. A pressed key is styled through the
 inline `translateY` that `main.js` sets on its button, for mouse, touch and
 keyboard alike, so the keyboard handling does not need to know about the
-artwork.
+artwork. `main.js` also finds the drawing of the displays as `#display svg`,
+to give it its label in the page's language. `lang.js` finds every element
+with a `data-set-lang`, a `data-it-title`, a `data-it-aria-label`, a
+`data-it-content` or a `data-it-text`; see Two Languages.
 
 **Lettering.** The page's CSP allows no downloaded font and no `data:` URI,
 so every legend uses a stack of system faces. Each legend's `textLength` pins
@@ -894,7 +921,9 @@ on such a screen, and only there, the page rearranges itself.
   stand for to keep the parts in proportion to the larger keys. Key pitch is
   `min(19.5cqw, 9svh)`: four keys across the panel, and short enough that the
   title, displays and every key fit on the first screen with the browser's
-  toolbars showing.
+  toolbars showing. The block also holds the language link's two-letter form
+  (see Two Languages), which sits in the corner the title leaves free and
+  adds nothing to the height of the first screen.
 - **The desktop is untouched**, and was checked to be: screenshots of the
   page at 1400, 1024, 800, 700 and 600 px wide, the last two in portrait,
   were identical pixel for pixel before and after the change.
@@ -908,6 +937,128 @@ on such a screen, and only there, the page rearranges itself.
   was opened in Safari on an iPhone 17 Pro held upright and looked right,
   with everything working. No other phone or browser has been tried on a
   real device.
+
+### Two Languages
+
+The site is in English and in Italian. The owner asked for it on 2026-11-22:
+a large part of the people who would come to it worked on these boards
+around 1980, and many of them do not read English. The rule is in the Agent
+Operating Contract: what the public reads is in both, and the documents are
+in English only.
+
+**Which language a visitor gets.** `AmicoLang.choose()`, in this order: the
+one the address asks for, `?lang=it` or `?lang=en`; the one chosen before,
+kept in `localStorage` under `amico2000.lang`; the first of the browser's
+languages that the page has; English. So an Italian browser opens the page in
+Italian with nothing to press. A language that came only from the browser is
+not stored. One that came from the address is, because someone sent a link
+that names a language wants it next time too.
+
+**Where the words are.** Five places, and a new piece of text belongs in
+exactly one:
+
+- **Text of the home page**: in `index.html`, twice. An element marked
+  `data-lang="en"` and, straight after it, the same thing marked
+  `data-lang="it" lang="it"`. One style rule, under "Two languages", hides
+  whichever is not the language of `<html lang>`. Nothing is swapped by
+  script, so the page never draws in one language and then the other. A
+  short label is two `<span>`s inside its element; a paragraph is two `<p>`s.
+- **Tooltips and labels for a screen reader**: attributes cannot be doubled,
+  so the English is the attribute and the Italian is beside it as
+  `data-it-title`, `data-it-aria-label` or, on a `<meta>`, `data-it-content`.
+  `lang.js` puts the right one in place and keeps the English as
+  `data-en-...` so that it can come back. `data-it-text` does the same for an
+  element's whole text, which is how `<title>` is done.
+- **What a script says on the page**: `STRINGS` in `lang.js`, both languages
+  in one entry, `{name}` for a value. `main.js` asks with `AmicoLang.t()`.
+  Something that stays on the page, such as the tape's status line, is kept
+  as a function and worded when it is read, so a change of language changes
+  it too.
+- **What the machine says when it refuses something**: `amico2000.js` and
+  `tape-audio.js` make these in English, in an `Error`'s message or in a
+  decoded recording's `problems` and `note`, and their tests pin the words.
+  They are not given a language. `MESSAGES_IT` in `lang.js` has, for each, a
+  pattern that matches it whole and a function to the Italian, and
+  `AmicoLang.message()` applies it. A message it does not know is shown in
+  English. When adding or rewording a message in either machine file, add or
+  change its entry, and make the message in `machineMessages()` in
+  `tests/languages.test.js`.
+- **The guide**: two files, `guide.html` and `guida.html`, with the same
+  sections, the same ids and the same listings. Change them together.
+
+**Changing language reloads nothing**, because a reload would clear the
+machine's memory. `AmicoLang.set()` changes `<html lang>`, swaps the
+attributes and calls the listeners; `main.js` listens to reword the Run
+button, the switch's tooltip and the displays' label.
+
+**The link** is `.lang-switch`, one word in the page's top right corner, in
+the language it leads to. It is positioned against the page and takes no
+room. In the handheld layout it is two letters, `IT` or `EN`, from its
+`data-code`, because the title leaves no room for a word; that rule is in the
+handheld block. The guides link to each other with an ordinary link, and the
+Italian guide's links back to the emulator carry `?lang=it`.
+
+**The Italian.** It uses the words of the Sperimentare supplement where the
+supplement has them. Look a term up in
+`docs/manual-extraction/sperimentare-1980-05-supplemento-text.md` before
+choosing one of your own:
+
+| English | Italian | Where the manual has it |
+| --- | --- | --- |
+| board | scheda | also "piastra" |
+| key, hex keys, function keys | tasto, tasti esadecimali, tasti funzionali | Tabella 6 |
+| the displays; the address digits | i display; display indirizzi | Tabella 6; "display dati" for the other two is ours, by analogy |
+| memory location | locazione di memoria | throughout |
+| single step | passo singolo | 'in "Single Step" o passo singolo' |
+| interrupt | interruzione | "genera una interruzione a livello CPU" |
+| cassette recorder; tape | registratore a cassette; nastro | Chapter V |
+| leader; text | coda; testo | Fig. 27, and "i LED relativi alla coda" |
+| LOAD; SAVE | lettura; registrazione | "lettura del nastro", "registrazione sul nastro" |
+| identifier; load address | identificatore; indirizzo di caricamento | Fig. 27 |
+| checksum | checksum | "parola di controllo (checksum)" |
+| microcomputer | microelaboratore | throughout |
+
+Key names stay as printed on the caps, and LOAD and SAVE stay as names. The
+reader is "voi", as in the manual ("spegnete il registratore"), never "tu" or
+"Lei"; a button's own label is the usual imperative ("Avvia", "Carica"). The
+emulator's controls are "pulsanti", so that "tasto" stays a key of the board,
+and the panel that holds them is "Comandi dell'emulatore". The Italian guide
+quotes the page's labels and status words; `tests/languages.test.js` holds
+the ones it quotes to what the page says.
+
+**Not translated, on purpose:** the masthead, which is the machine's name;
+the legends on the board and on the keys; register names; and everything in
+the browser console.
+
+**Two things to watch when adding text.**
+
+- Italian is longer. "in esecuzione" for "running" ran into the program
+  counter beside it, and the CPU line has two columns in Italian for that
+  reason. Look at a new label in both languages.
+- A paragraph and its twin are siblings, so `:first-child`, `:last-child`
+  and `p + p` no longer mean the first, last or next paragraph a reader
+  sees. The last English paragraph of About this board is the one before
+  the last child; a rule beside `.about p:last-child` says so. The English
+  page grew 13 px before that rule was added.
+
+**One address serves both languages.** A search engine and a link preview
+read the page as written, which is English; `lang.js` changes the title and
+the description for a visitor, not for them. The Italian guide has its own
+address and its own Italian head. A home page in Italian at an address of
+its own would need a second copy of the board drawing, kept in step by hand,
+and was not done.
+
+**Checking it.** `tests/languages.test.js` fails if a sentence, a tooltip,
+a script's string or a machine's message exists in one language only, and
+runs `lang.js` against a stand-in for the page. `tests/guide-languages.test.js`
+holds the two guides to one skeleton. Neither can tell whether the Italian
+says what the English says; that has to be read. In headless Chrome,
+`Emulation.setUserAgentOverride` with an `acceptLanguage` of `it-IT` makes a
+browser Italian. When a change touches the page's layout, compare the English
+page with the page before the change: same boxes, same height.
+
+The Italian was written on 2026-11-22 and has been read by the sessions that
+wrote it. No other Italian reader had read it when this was written.
 
 ## Development Guidelines
 
@@ -993,6 +1144,13 @@ When implementing changes based on a GitHub issue:
    pans sideways, as before. The drawing has been looked at in Chrome only,
    and the handheld layout in emulation and in Safari on one iPhone 17 Pro,
    held upright. See Board Artwork
+8. **Languages**: the site is in English and Italian and no other. The home
+   page has one address for both, so a search engine or a link preview shows
+   its English; only the guide has an Italian address. The Italian of a
+   machine's refusal is found by the shape of the English message, so a
+   message nobody listed is shown in English. The browser console is English
+   only. The Italian has not been read by anyone but the sessions that wrote
+   it, and the language link has been tried in Chrome only. See Two Languages
 
 ## Keyboard Mappings
 
