@@ -127,6 +127,10 @@ Machine emulation layer that connects CPU to hardware:
   - $FD02 (Port C): Expansion port (unused)
   - $FD03: Control register. Bit 4 of a mode word is Port A's direction,
     which only the phase LEDs depend on
+- What is taken from the 8255's data sheet and not from the board, and the
+  three places the emulator knowingly differs from the chip, are in
+  `docs/8255-data-sheet.md`, with the links. Use the Intel scan named there;
+  a retyped copy that turns up first in a search has the sheet wrong
 - The cassette interface circuit (#20) is under Cassette Interface Circuit in
   the file: `_settleTapeLatch()`, `_driveTapeOut()`, `_phaseLEDsNow()`, and
   `connectRecorder()` for whatever is on the other end. It keeps time by
@@ -553,8 +557,9 @@ connected, nothing stands in for the PROM:
   is not on the tape waits until RES, and the last byte of a block one byte
   longer than whole pages is lost.
 - A real 8255A clears its output latches when a mode word is written,
-  according to its data sheet. The emulator does not. Nothing in either ROM
-  depends on it: each writes the ports afresh after every mode word.
+  according to its data sheet (`docs/8255-data-sheet.md`). The emulator does
+  not. Nothing in either ROM depends on it: each writes the ports afresh
+  after every mode word.
 
 Covered by `tests/tape-audio.test.js`, `tests/cassette-tape-records.test.js`,
 `tests/cassette-interface.test.js` and `tests/tape-recorder.test.js`.

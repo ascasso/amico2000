@@ -18,7 +18,9 @@ hardware over convenience abstractions. Priority order:
 ## Where Things Stand (2026-11-21)
 
 - **Publishing:** GitHub Pages builds from `master`; work on `develop` reaches
-  the live site only through a merged pull request.
+  the live site only through a merged pull request. Pull request 47,
+  `https://github.com/ascasso/amico2000/pull/47`, carries the cassette work of
+  2026-11-21 and was open when this was written.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
   regression check for each earlier fix (`#17`). `node --test tests/` runs 159
   checks offline with no dependencies.
@@ -133,6 +135,9 @@ In rough priority order. None of it is started.
   - A mode word does not clear the 8255's output latches, which the data
     sheet says it does. Nothing in the ROMs depends on it. A user program
     that set its ports before its mode word would behave differently here.
+    `docs/8255-data-sheet.md` has the sheet's words, the link to Intel's own
+    copy, and two smaller differences: the control register reads back, and
+    reading Port A ignores its direction.
   - There is no button for saving a tape, as sound or as `.amtape`; both are
     console commands.
 - The real routines lose the last byte of a block one byte longer than a
