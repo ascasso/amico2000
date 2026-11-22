@@ -121,13 +121,22 @@ program:
   PROM dump in chip order, so its first half appears at $FC00 and its second
   half at $FB00)
 - **.amtape** - Mock cassette tape image for the IC10 LOAD routine
+- **.wav** - A sound recording of an AMICO 2000 cassette; every program found
+  in it is imported for the IC10 LOAD routine
 - Other `.bin` files - Loaded as programs at $0000
 
 The cassette ROM is fitted at startup, and its entry points are intercepted
-at $FBBC (SAVE) and $FC54 (LOAD). This provides file-backed cassette behavior without emulating the
-original analog tape waveform. As on the original, control then returns to the
+at $FBBC (SAVE) and $FC54 (LOAD). This provides file-backed cassette behavior without running the
+original routines against a tape signal. As on the original, control then returns to the
 monitor at $FE22 rather than through an `RTS`. Use `debug.saveTape()` after running the cassette
 SAVE routine to download the most recent mock tape image.
+
+Tapes can also be read and written as sound. Loading a `.wav` recording of a
+cassette imports the programs on it, and `debug.saveTapeAudio()` downloads the
+most recent save as the sound the board would have sent to the recorder. The
+format was worked out from the cassette ROM and the schematic and is checked
+against the ROM's own routines running in the emulator; it has not yet been
+tried on a recording of a real tape or played to a real board.
 
 The original Sperimentare supplement documents the cassette workflow in
 Chapter V, "L'uso del registratore a cassette":

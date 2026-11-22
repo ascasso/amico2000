@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   LOAD will find it. `findTape()` returns the record an export should use,
   by the rule `exportTape()` already followed. `exportTape()` itself is
   unchanged.
+- Added reading and writing of cassette tapes as sound on the page (#20).
+  **Load ROM or tape** now takes a `.wav` recording of an AMICO 2000 cassette
+  and imports every program it finds, ready for LOAD at `$FC54`; the message
+  lists each program's identifier, addresses and place in the recording, and
+  names any that could not be read and why. `debug.saveTapeAudio()` in the
+  browser console downloads the most recent SAVE, or a program chosen by
+  identifier, as the sound the board would have sent to the recorder. The
+  recording must be uncompressed WAV and at most 64 MB. The user guide has a
+  new section, Tapes as sound. The format has not yet been tried on a
+  recording of a real tape or played to a real board; see the codec's entry
+  above. The trapped LOAD and SAVE are unchanged and still instant.
 - Added a choice of how the six displays are drawn, under Bench controls:
   **Readable**, now the default, keeps each segment solid with only a narrow
   glow and dims the unlit segments, so digits read easily at the size a page

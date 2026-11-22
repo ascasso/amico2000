@@ -136,7 +136,7 @@
             for example with a modified monitor.</p>
         <p>Choose <strong>Load ROM or tape</strong> on the home page. The picker
             offers <code>.bin</code>, <code>.rom</code>, <code>.ic9</code>,
-            <code>.ic10</code>, and <code>.amtape</code> files.</p>
+            <code>.ic10</code>, <code>.amtape</code>, and <code>.wav</code> files.</p>
         <p><strong>ROM and program files are raw binary bytes</strong>, without
             a header or an embedded load address. A text file containing
             <code>A9 42</code>, an assembly listing, or an Intel HEX file must
@@ -144,6 +144,10 @@
         <table>
             <thead><tr><th scope="col">File</th><th scope="col">How the loader handles it</th></tr></thead>
             <tbody>
+                <tr><td><code>.wav</code></td><td>Reads it as a sound recording of an
+                    AMICO 2000 cassette and imports every program it finds, for a later
+                    LOAD. It does not immediately copy a program into RAM. See
+                    <a href="#tape-sound">Tapes as sound</a>.</td></tr>
                 <tr><td><code>.amtape</code></td><td>Imports an emulator cassette record
                     for a later LOAD. It does not immediately copy the program into RAM.</td></tr>
                 <tr><td>Name contains <code>ic9</code> or <code>monitor</code></td>
@@ -164,7 +168,7 @@
         </table>
         <p>Names are matched without regard to case, in the order above.
             A name containing <code>tape</code> is also treated as a tape image
-            before any ROM or size checks. Use names such as
+            before any ROM or size checks, unless it ends in <code>.wav</code>. Use names such as
             <code>prom.ic9</code>, <code>prom.ic10</code>, or <code>program.bin</code>
             to avoid accidental classification. Short ROM files are accepted as
             partial writes, so use a complete 512-byte dump to replace a PROM.</p>
@@ -190,18 +194,21 @@ amico.start();</code></pre>
         <h2>Cassette LOAD and SAVE</h2>
         <p>An <code>.amtape</code> is the emulator's binary cassette format,
             containing a program identifier, recorded address range, program bytes,
-            and checksum. It is produced by this emulator; it is not a WAV/MP3
-            recording or a raw ROM dump. Audio recordings need a separate decoding
-            step before they can be used here.</p>
+            and checksum. It is produced by this emulator; it is not a sound
+            recording or a raw ROM dump. A sound recording of a tape is a
+            <code>.wav</code> file, and the emulator reads and writes those too:
+            see <a href="#tape-sound">Tapes as sound</a>.</p>
         <p>The cassette PROM is fitted when the page opens, so <code>$FBBC</code>
             and <code>$FC54</code> hold the original routines, as on a board built
             with the cassette interface. When you RUN from either address, the
-            emulator intercepts it and reads or writes an <code>.amtape</code>
-            file instead of sound. Either way it returns to the monitor
-            afterwards.</p>
+            emulator intercepts it and reads or writes its own store of tape
+            records, instantly, instead of running the routine against a
+            recorder for the half minute or so the real thing takes. Either
+            way it returns to the monitor afterwards.</p>
         <h3>LOAD an imported tape</h3>
         <ol>
-            <li>Choose the <code>.amtape</code> with <strong>Load ROM or tape</strong>.
+            <li>Choose the <code>.amtape</code> file, or a <code>.wav</code>
+                recording, with <strong>Load ROM or tape</strong>.
                 Its identifier and recorded addresses are logged in the browser console.</li>
             <li>Enter its identifier at <code>$0000</code>. For the recorded load
                 address, put <code>00</code> at <code>$0001</code> and <code>FF</code>
@@ -247,6 +254,38 @@ amico.writeMemory(0x0004, 0x01);
 amico.cpu.PC = 0xFBBC;
 amico.start();</code></pre>
         <p>Then run <code>debug.saveTape()</code> to download the result.</p>
+        <h3 id="tape-sound">Tapes as sound</h3>
+        <p>The real machine kept programs on audio cassettes. The emulator can
+            read a recording of such a cassette, and write a program out as the
+            sound the board would have sent to the recorder.</p>
+        <p><strong>To read a recording</strong>, choose the <code>.wav</code>
+            file with <strong>Load ROM or tape</strong>. Every program found in
+            it is imported, and the message lists each one's identifier,
+            addresses and where in the recording it starts. Then LOAD the one
+            you want as above. A program whose checksum does not match, or
+            whose recording breaks off, is listed as not read; the others are
+            still imported.</p>
+        <p>The file must be an uncompressed WAV, of any usual sample rate
+            from 11 kHz up, mono or stereo, and no larger than 64 MB. Convert
+            an MP3 or FLAC first, cut a long recording into pieces, and leave
+            noise reduction and other processing off. Include the steady
+            ticking before each program: that is the leader, which the reader
+            needs.</p>
+        <p><strong>To write one</strong>, SAVE the program as above and then run
+            <code>debug.saveTapeAudio()</code> in the browser console. It
+            downloads a <code>.wav</code> file about thirteen seconds long plus
+            a second for every 41 bytes. <code>debug.saveTapeAudio(0x13)</code>
+            picks a program by its identifier.</p>
+        <p class="callout">The sound format was worked out from the cassette
+            ROM and the circuit diagram, and checked against the ROM's own
+            routines running in the emulator. It has not yet been tried on a
+            recording of a real tape, or played to a real AMICO 2000.</p>
+        <p>One oddity comes with the format. The board's own routines do not
+            record the last byte of a block that is one byte longer than a
+            whole number of 256-byte pages, such as <code>$0200-$0300</code>.
+            A sound file made here behaves the same way, so that it is what
+            the board would have written; an <code>.amtape</code> file keeps
+            every byte.</p>
     </section>
 
     <section id="troubleshooting">
@@ -259,7 +298,8 @@ amico.start();</code></pre>
                 fails, Cold reset restores its RAM setup and clears your program.</li>
             <li><strong>A file does not load:</strong> read the error alert and check
                 its name, byte count, and format. A 512-byte program uses the ROM
-                fallback; a renamed audio or text file is not a binary tape or ROM.</li>
+                fallback; a renamed audio or text file is not a binary tape or ROM.
+                A sound recording must be an uncompressed <code>.wav</code>.</li>
             <li><strong>Need to inspect memory:</strong> in the browser console, use
                 <code>debug.mem(0x0200, 16)</code> or <code>debug.state()</code>.</li>
             <li><strong>Work disappeared after a reload:</strong> RAM and imported

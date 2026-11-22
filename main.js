@@ -339,6 +339,49 @@ function setupControls() {
 // a loader would accept.
 const MAX_LOAD_BYTES = 2 * 0x10000;
 
+// A sound recording of a tape is far larger than what it holds: a 1KB program
+// is about 37 seconds, some 3 MB as 16-bit mono at 44.1 kHz. This allows about
+// twelve minutes of that, or six in stereo. The decoder works on the whole
+// recording in memory, at a few times the file's size, so a whole cassette
+// side is refused here and has to be cut into pieces first.
+const MAX_RECORDING_BYTES = 64 * 1024 * 1024;
+
+const hexByte = (value) => value.toString(16).padStart(2, '0').toUpperCase();
+const hexWord = (value) => value.toString(16).padStart(4, '0').toUpperCase();
+
+/**
+ * Put the programs decoded from a sound recording on the mock cassette and
+ * say what was found, in the words the load alert shows (#20).
+ *
+ * A recording with nothing readable on it is an error. One with some programs
+ * read and others damaged is not: the good ones are kept and the damage is
+ * listed under them.
+ */
+function importTapeRecording(name, result) {
+    const length = `${result.duration.toFixed(1)} s at ${result.sampleRate} Hz`;
+    if (result.records.length === 0) {
+        throw new Error(
+            `No AMICO 2000 program could be read from ${name} (${length}).` +
+            (result.problems.length ? '\n' + result.problems.join('\n') : '')
+        );
+    }
+
+    const lines = result.records.map((decoded) => {
+        const record = amico.addTapeRecord(decoded);
+        return `  ${hexByte(record.id)}: $${hexWord(record.start)}-$${hexWord(record.end)}, ` +
+            `${record.data.length} bytes, at ${decoded.time.toFixed(1)} s` +
+            (decoded.note ? `\n      (${decoded.note})` : '');
+    });
+    const count = result.records.length;
+    let summary = `Read ${count} program${count === 1 ? '' : 's'} from ${name} (${length}):\n` +
+        lines.join('\n') +
+        '\nTo load one, put its number in $0000 and run from $FC54.';
+    if (result.problems.length) {
+        summary += '\n\nNot read:\n' + result.problems.map((problem) => '  ' + problem).join('\n');
+    }
+    return summary;
+}
+
 function setupFileLoader() {
     document.getElementById('rom-file').addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -349,7 +392,18 @@ function setupFileLoader() {
             // oversized file anyway, but only after FileReader had pulled all
             // of it into memory, and a multi-gigabyte file picked by mistake
             // could stall the tab first.
-            if (file.size > MAX_LOAD_BYTES) {
+            const lowerName = file.name.toLowerCase();
+            // A sound recording is told by its extension alone, and first, so
+            // that a file called tape.wav is not taken for an .amtape image.
+            const isRecording = lowerName.endsWith('.wav');
+            if (isRecording && file.size > MAX_RECORDING_BYTES) {
+                throw new Error(
+                    `${file.name} is ${Math.round(file.size / (1024 * 1024))} MB; the largest ` +
+                    `recording that can be read is ${MAX_RECORDING_BYTES / (1024 * 1024)} MB. ` +
+                    'Cut it into shorter pieces, or save it as mono.'
+                );
+            }
+            if (!isRecording && file.size > MAX_LOAD_BYTES) {
                 throw new Error(
                     `${file.name} is ${file.size} bytes; the largest file the ` +
                     `AMICO 2000 can load is ${MAX_LOAD_BYTES} bytes`
@@ -358,11 +412,13 @@ function setupFileLoader() {
 
             const data = await readFileAsArrayBuffer(file);
             const rom = new Uint8Array(data);
-            
-            // Determine ROM type based on size and name
-            const lowerName = file.name.toLowerCase();
+            let summary = `Loaded: ${file.name} (${rom.length} bytes)`;
 
-            if (lowerName.endsWith('.amtape') || lowerName.includes('tape')) {
+            // Determine ROM type based on size and name
+            if (isRecording) {
+                summary = importTapeRecording(file.name, AmicoTapeAudio.decodeWav(rom));
+                console.log(summary);
+            } else if (lowerName.endsWith('.amtape') || lowerName.includes('tape')) {
                 const record = amico.loadTape(rom);
                 console.log(`Tape image loaded: ${file.name} (program ${record.id}, $${record.start.toString(16).padStart(4, '0').toUpperCase()}-$${record.end.toString(16).padStart(4, '0').toUpperCase()})`);
             } else if (lowerName.includes('ic9') ||
@@ -390,7 +446,7 @@ function setupFileLoader() {
                 console.log('Program loaded at $0000:', file.name);
             }
 
-            alert(`Loaded: ${file.name} (${rom.length} bytes)`);
+            alert(summary);
         } catch (err) {
             console.error('Error loading file:', err);
             alert('Error loading file: ' + err.message);
@@ -593,5 +649,26 @@ window.debug = {
         const suffix = id === null ? 'last' : id.toString(16).padStart(2, '0').toUpperCase();
         downloadBytes(`amico-${suffix}.amtape`, bytes);
         console.log(`Exported tape image (${bytes.length} bytes)`);
+    },
+
+    // Export a tape record as the sound the board would put on tape for it: a
+    // WAV file a recorder could play back to a real AMICO 2000 (#20).
+    saveTapeAudio: (id = null) => {
+        const record = amico.findTape(id);
+        const bytes = AmicoTapeAudio.encodeWav(record);
+        // The board's own SAVE routine drops the last byte of some blocks, and
+        // the sound is what that routine would send. Say so, because the
+        // .amtape export of the same record keeps every byte.
+        const kept = AmicoTapeAudio.bytesKept(record.data.length);
+        if (kept < record.data.length) {
+            console.warn(
+                `This block is ${record.data.length} bytes, 1 more than a whole number of ` +
+                'pages. The AMICO 2000 SAVE routine does not record the last byte of such ' +
+                `a block, so the recording holds ${kept} of them.`
+            );
+        }
+        downloadBytes(`amico-${hexByte(record.id)}.wav`, bytes, 'audio/wav');
+        const seconds = (bytes.length - 44) / 2 / 44100;
+        console.log(`Exported program ${hexByte(record.id)} as sound (${seconds.toFixed(1)} s, ${bytes.length} bytes)`);
     }
 };

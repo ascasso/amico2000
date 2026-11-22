@@ -1357,7 +1357,8 @@
             </div>
             <p class="load-help" id="load-help">
                 Raw binary ROMs/programs (<code>.bin</code>, <code>.rom</code>,
-                <code>.ic9</code>, <code>.ic10</code>) or <code>.amtape</code> tape images.
+                <code>.ic9</code>, <code>.ic10</code>), <code>.amtape</code> tape images,
+                or a <code>.wav</code> recording of an AMICO 2000 cassette.
                 <!-- Help opens separately so reading it does not discard the current RAM. -->
                 <a href="guide.html#file-formats" target="_blank" rel="noopener">File formats</a>
                 &middot; <a href="guide.html" target="_blank" rel="noopener">How to use the AMICO 2000</a>
@@ -1425,12 +1426,13 @@
     </main>
 
     <!-- Hidden file input for ROM, program, and mock cassette tape loading -->
-    <input type="file" id="rom-file" accept=".bin,.rom,.ic9,.ic10,.amtape" style="display: none">
+    <input type="file" id="rom-file" accept=".bin,.rom,.ic9,.ic10,.amtape,.wav" style="display: none">
 
     <!-- Scripts -->
     <script src="cpu6502.js"></script>
     <script src="amico2000.js"></script>
     <script src="display.js"></script>
+    <script src="tape-audio.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
