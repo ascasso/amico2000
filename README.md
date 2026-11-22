@@ -120,7 +120,8 @@ program:
 - **prom.ic10** - Cassette ROM (replaces the one fitted at $FB00-$FCFF; a
   PROM dump in chip order, so its first half appears at $FC00 and its second
   half at $FB00)
-- **.amtape** - Mock cassette tape image for the IC10 LOAD routine
+- **.amtape** - Mock cassette tape image for the IC10 LOAD routine; the file
+  format is described in [docs/amtape-format.md](docs/amtape-format.md)
 - **.wav** - A sound recording of an AMICO 2000 cassette; every program found
   in it is imported for the IC10 LOAD routine
 - Other `.bin` files - Loaded as programs at $0000

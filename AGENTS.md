@@ -441,7 +441,9 @@ writes its own store of tape records at once. Clear, the page's **Real
 time**, the routines themselves run, against the interface circuit and a
 recorder, in the time the board takes; see Cassette Sound Format below. Both
 work on the same store, `amico.cassette.tapes`, and a record enters or leaves
-it as an `.amtape` image or as sound.
+it as an `.amtape` image or as sound. `docs/amtape-format.md` is the
+reference for the `.amtape` file (#19), and `tests/amtape-format-doc.test.js`
+holds its example and its table to the code; change the two together.
 
 Return convention (issue #24): the IC10 routines do not end in `RTS`. They exit
 with `JMP $FE22`, the monitor's reset entry and the `$FFFC` vector target, whose

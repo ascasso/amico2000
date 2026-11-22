@@ -20,7 +20,7 @@ hardware over convenience abstractions. Priority order:
 - **Publishing:** GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 156
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 159
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -34,7 +34,7 @@ hardware over convenience abstractions. Priority order:
   are trapped at `$FC54` and `$FBBC` and instant. With **Cassette: Real
   time** the PROM's own routines run against an emulated recorder, with the
   phase LEDs lit (`#20`, closed).
-- **Open issues:** `#19`, `#41`.
+- **Open issues:** `#41`.
 - **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-21.
 
 ## Outstanding
@@ -105,10 +105,12 @@ In rough priority order. None of it is started.
 
 ## Cassette Work (Secondary)
 
-- `#19`, document the `.amtape` format: a 9-byte `AMICOTAPE` magic, version
-  `1`, identifier, start, end, checksum and length, then the bytes. The parser
-  does not check that start, end and length agree. `.amtape` is the
-  emulator's container, not the tape record, whose layout is in `AGENTS.md`.
+- `#19`, document the `.amtape` format, is closed: `docs/amtape-format.md`.
+  Writing it down showed two things the parser lets through, which the
+  reference states and nothing has changed: an end address that disagrees
+  with the start and the length, and a length of zero. Tightening either
+  would refuse files the present reader accepts, so it is a decision, not a
+  tidy-up.
 - `#20`, analog fidelity, is closed. `AGENTS.md` has it under Cassette Sound
   Format. What it did not settle:
   - **No real recording has been through the decoder.** The owner is asking

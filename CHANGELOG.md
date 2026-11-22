@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   D4 and D6 again, and LOAD flashes D4 and D7, then D5 and D7, as the manual
   describes. Nothing on the page uses this yet, and with the traps on, which
   is the default, LOAD and SAVE behave as before.
+- Added `docs/amtape-format.md`, a reference for the `.amtape` file the
+  emulator saves programs in (#19): the magic, the version byte, the
+  identifier, the start and end addresses, the checksum and what it covers,
+  the length, the data, a worked example, what a reader refuses and what it
+  lets through, the limits, and what a future version must keep. Until now
+  the format was defined only by the code that reads and writes it.
+  `tests/amtape-format-doc.test.js` reads the document and checks its example
+  and its table against what the emulator writes. The README links to it.
 - Added a **Cassette** setting under Bench controls: **Instant**, the
   default, is LOAD and SAVE as they have always been here, done at once by
   the emulator; **Real time** runs the board's own routines from the cassette
