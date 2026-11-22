@@ -17,8 +17,10 @@ hardware over convenience abstractions. Priority order:
 
 ## Where Things Stand (2026-11-21)
 
-- **Publishing:** GitHub Pages builds from `master`; work on `develop` reaches
-  the live site only through a merged pull request. Pull request 47,
+- **Publishing:** agents push `develop` when their commits are done
+  (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
+  the live site only through a merged pull request, which is still opened and
+  merged on request. Pull request 47,
   `https://github.com/ascasso/amico2000/pull/47`, carries the cassette work of
   2026-11-21 and was open when this was written.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a

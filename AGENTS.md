@@ -12,7 +12,7 @@ This file provides repository guidance for agents working in this repository.
 - For implementation work, update `CHANGELOG.md` under `[Unreleased]` and add
   a concise entry to the dated engineering log in `docs/logs/`.
 - Fully document every change, including its purpose, scope, and verification;
-  commit the complete change before handoff.
+  commit the complete change and push it before handoff.
 - Keep the home page's `build-date` stamp in sync with the committer's calendar
   date of the commit being created: `YYYYMMDD` text and `YYYY-MM-DD` in its
   `datetime` attribute. `git show -s --format=%cs HEAD` shows the existing
@@ -49,11 +49,24 @@ This file provides repository guidance for agents working in this repository.
   affected files and the targeted Node test when applicable.
 - Do not add a build system or test framework for a small fix. Prefer the
   existing browser workflow and dependency-free Node checks.
-- Do not push, publish, or alter external GitHub state unless explicitly asked.
-  The one exception is closing an issue: Claude on an Opus or Fable model, and
-  Codex on an Astra or Sol model, may close an issue without being asked. Any
-  other agent or model still needs an explicit request, and so does every
-  other change to GitHub state.
+- Push when the work is committed. After any commit, or the series of commits
+  that makes up a piece of work, the final step is `git push` of the branch to
+  the remote branch it tracks. Work is not handed off while it exists only as
+  commits on one machine, and nobody should have to ask for the push.
+  - Push the finished series, once its checks pass, not each commit as it is
+    made.
+  - Never force a push. If a push is rejected, report what the remote has and
+    leave the branch as it is.
+  - A push is not a release. The live site builds from `master`, and work on
+    `develop` reaches it only through a merged pull request; see the next
+    rule.
+- Do not otherwise publish or alter external GitHub state unless explicitly
+  asked: opening, editing or merging a pull request, commenting, and anything
+  else beyond the push above. The one further exception is closing an issue:
+  Claude on an Opus or Fable model, and Codex on an Astra or Sol model, may
+  close an issue without being asked. Any other agent or model still needs an
+  explicit request to close one, and so does every other change to GitHub
+  state.
 - Report browser/manual-test limitations clearly when a check cannot be
   automated.
 

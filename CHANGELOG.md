@@ -238,6 +238,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Changed the `AGENTS.md` guidance on pushing. An agent used to need an
+  explicit request before every `git push`, so finished work sat as commits
+  on one machine until somebody asked. The final step after any commit, or
+  the series of commits that makes up a piece of work, is now a push of the
+  branch to the remote branch it tracks. Forcing a push is ruled out, and a
+  rejected one is reported. Opening or merging a pull request, and every
+  other change to GitHub state except closing an issue, still needs a request.
 - Changed what an instant cassette LOAD or SAVE leaves in memory, to match
   the real routines in the cassette PROM (#41). SAVE no longer writes
   anything: it used to clear the start address at `$0000/$0001` when it
