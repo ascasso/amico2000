@@ -13,6 +13,7 @@
 // signal means; all the decoding is done by the PROM.
 
 const { CASSETTE_ROM, MONITOR_RESET, bootedMachine } = require('./machine');
+const { AmicoTapeAudio } = require('../../tape-audio');
 
 const SAVE_ENTRY = 0xFBBC;
 const LOAD_ENTRY = 0xFC54;
@@ -127,4 +128,45 @@ function realLoad(fire, { id, at = null, filler = 0xEE, watch = null }) {
     return { done: cpu.PC === MONITOR_RESET, status: cpu.memory[0x0000], memory: cpu.memory };
 }
 
-module.exports = { machineWithCassettePROM, realSave, realLoad, tapeLevel };
+/**
+ * A board set up as the page's Cassette: Real time has it: the cassette PROM
+ * fitted, a recorder from tape-audio.js connected, and the traps off, so that
+ * LOAD and SAVE are the PROM's own routines working on the recorder's tape.
+ * `recorded` collects what the board reports after each recording.
+ */
+function realTimeMachine() {
+    const amico = machineWithCassettePROM();
+    const recorder = amico.connectRecorder(AmicoTapeAudio.createRecorder());
+    const recorded = [];
+    amico.onTapeRecorded = (result) => recorded.push(result);
+    return { amico, recorder, recorded };
+}
+
+/**
+ * Run from an entry point until the routine hands back to the monitor, or for
+ * `limit` seconds of board time, whichever comes first. Works the same with
+ * the traps on, when the routine is over in one step. Returns how long it
+ * took, in seconds of board time.
+ */
+function runRoutine(amico, entry, limit = 120) {
+    const cpu = amico.cpu;
+    cpu.PC = entry;
+    const from = cpu.cycles;
+    cpu.step();
+    while (cpu.PC !== MONITOR_RESET && !cpu.halted && cpu.cycles - from < limit * 1e6) cpu.step();
+    const seconds = (cpu.cycles - from) / 1e6;
+    // The monitor's first instruction, at which the board stops the tape.
+    if (cpu.PC === MONITOR_RESET) cpu.step();
+    return seconds;
+}
+
+module.exports = {
+    SAVE_ENTRY,
+    LOAD_ENTRY,
+    machineWithCassettePROM,
+    realSave,
+    realLoad,
+    tapeLevel,
+    realTimeMachine,
+    runRoutine
+};

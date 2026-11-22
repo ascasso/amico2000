@@ -147,6 +147,11 @@ class Amico2000 {
         // routine has been read back (see _stopRecorder).
         this.onPhaseLEDs = null;
         this.onTapeRecorded = null;
+        // Called with the outcome of a trapped LOAD or SAVE, as
+        // {operation, record, address} or {operation, error}. This is how a
+        // refused SAVE is made known, since the routine it stands in for has
+        // no status to leave in memory (#41).
+        this.onCassetteTrap = null;
         // Called with the new value whenever `running` changes, from whichever
         // caller changed it. The bench controls are not the only way to start
         // or stop the machine: the user guide's console examples call start()
@@ -242,19 +247,29 @@ class Amico2000 {
         // routines with `JMP $FE22` rather than RTS, so an unconditional pull would
         // corrupt the stack on the JMP path. Covered by
         // tests/cassette-trap-stack.test.js.
+        //
+        // Issue #41: what a trap leaves in page zero is what the routine it
+        // stands in for leaves there, which for SAVE is nothing at all. The
+        // real SAVE has no status to give, not even for a range it will not
+        // save, so an outcome is reported to the page through onCassetteTrap
+        // and never written into the machine's memory. See
+        // saveTapeFromMonitorParams() and loadTapeFromMonitorParams().
         if (pc === 0xFBBC) {
+            let outcome;
             try {
                 this.saveTapeFromMonitorParams();
+                outcome = { operation: 'save', record: this.cassette.lastSavedTape };
             } catch (err) {
-                console.warn('Cassette save failed:', err.message);
-                this.cpu.memory[0x0000] = 0xFF;
+                outcome = { operation: 'save', error: err.message };
             }
+            if (this.onCassetteTrap) this.onCassetteTrap(outcome);
             this.cpu.PC = 0xFE22;
             return 6;
         }
 
         if (pc === 0xFC54) {
-            this.loadTapeFromMonitorParams();
+            const outcome = { operation: 'load', ...this._loadFromCassette() };
+            if (this.onCassetteTrap) this.onCassetteTrap(outcome);
             this.cpu.PC = 0xFE22;
             return 6;
         }
@@ -971,6 +986,18 @@ class Amico2000 {
     /**
      * Save RAM using IC10 cassette ROM parameters:
      * $0000/$0001 = start, $0002/$0003 = end, $0004 = program id.
+     *
+     * Issue #41: like the routine at $FBBC, this writes nothing to the
+     * machine's memory. The real SAVE never stores into page zero, so its
+     * parameters are still there afterwards and a second SAVE needs nothing
+     * keyed again. This used to clear $0000/$0001 on success and put $FF in
+     * $0000 on failure, a status the real routine does not have: given an end
+     * address before the start it simply returns to the monitor. A range that
+     * cannot be saved is therefore reported by throwing, for the trap to pass
+     * on to the page, and the parameters are left as they were either way.
+     *
+     * @returns {Uint8Array} The saved record as an .amtape image
+     * @throws {Error} If the range cannot be saved
      */
     saveTapeFromMonitorParams() {
         const start = this._readWord(0x0000);
@@ -978,8 +1005,7 @@ class Amico2000 {
         const id = this.cpu.memory[0x0004] & 0xFF;
 
         if (end < start) {
-            this.cpu.memory[0x0000] = 0xFF;
-            throw new Error('Cassette save end address is before start address');
+            throw new Error('the end address is before the start address');
         }
 
         // The .amtape header holds the byte count in 16 bits, so the one range
@@ -988,11 +1014,13 @@ class Amico2000 {
         // never be loaded back. That range also covers the ROMs and the PIA,
         // which no program on a 2KB board needs, so refuse it like an inverted
         // range rather than change the file format and break existing tapes.
+        // The real routine does not refuse it; it has a fault of its own that
+        // ends such a block after one page. See blockOffsets() in
+        // tape-audio.js.
         const length = end - start + 1;
         if (length > 0xFFFF) {
-            this.cpu.memory[0x0000] = 0xFF;
             throw new Error(
-                `Cassette save of ${length} bytes exceeds the tape image limit of 65535`
+                `${length} bytes is more than a tape image can hold, which is 65535`
             );
         }
 
@@ -1003,8 +1031,6 @@ class Amico2000 {
         this.cassette.tapes.push(record);
         this.cassette.lastSavedTape = record;
 
-        // The original routine returns to the monitor with 0000 on success.
-        this._writeWord(0x0000, 0x0000);
         return this._makeTapeImage(record);
     }
 
@@ -1013,19 +1039,44 @@ class Amico2000 {
      * $0000 = program id, $0001/$0002 = override start, high byte $FF = use recorded start.
      */
     loadTapeFromMonitorParams() {
+        return !this._loadFromCassette().error;
+    }
+
+    /**
+     * The work of a trapped LOAD. Returns `{record, address}` for a program
+     * loaded at `address`, or `{error}` saying why none was.
+     *
+     * Issue #41: a successful LOAD writes the program and nothing else. The
+     * routine at $FC54 leaves $0000-$0002 alone, so the identifier and the
+     * address the user asked for are still there afterwards. This used to
+     * overwrite $0001/$0002 with the address it had loaded at.
+     *
+     * A LOAD that cannot be done puts $FF in $0000, as before. That one is
+     * the emulator's convention and is kept on purpose. $FF there is the only
+     * status either real routine ever writes, when a checksum does not match,
+     * and the manual shows it as the sign that a read went wrong. The real
+     * LOAD has no other failure to report: asked for a program that is not on
+     * the tape it goes on searching until RES, and a trap, which has no tape
+     * running, has to come back with something. Cassette: Real time gives the
+     * real routine's behaviour.
+     */
+    _loadFromCassette() {
         const id = this.cpu.memory[0x0000] & 0xFF;
         const override = this._readWord(0x0001);
         const record = this.cassette.tapes.find(tape => tape.id === id);
+        const hex = (value, digits) => value.toString(16).toUpperCase().padStart(digits, '0');
+        const refuse = (error) => {
+            this.cpu.memory[0x0000] = 0xFF;
+            return { error };
+        };
 
         if (!record) {
-            this.cpu.memory[0x0000] = 0xFF;
-            return false;
+            return refuse(`program ${hex(id, 2)} is not on the cassette`);
         }
 
         const loadAddress = this.cpu.memory[0x0002] === 0xFF ? record.start : override;
         if (loadAddress + record.data.length > this.cpu.memory.length) {
-            this.cpu.memory[0x0000] = 0xFF;
-            return false;
+            return refuse(`program ${hex(id, 2)} would run past $FFFF from $${hex(loadAddress, 4)}`);
         }
 
         // Fix for #31: the destination comes from guest RAM ($0001/$0002) or
@@ -1034,15 +1085,13 @@ class Amico2000 {
         // Refuse it with the routine's own error convention ($0000 = $FF)
         // rather than throwing: this runs inside the trapped IC10 entry point,
         // where the monitor expects a status byte back, not an exception.
-        if (this._findROMOverlap(loadAddress, record.data.length)) {
-            this.cpu.memory[0x0000] = 0xFF;
-            return false;
+        const rom = this._findROMOverlap(loadAddress, record.data.length);
+        if (rom) {
+            return refuse(`program ${hex(id, 2)} at $${hex(loadAddress, 4)} would overlap the ${rom.name}`);
         }
 
         this.cpu.memory.set(record.data, loadAddress);
-        this.cpu.memory[0x0000] = record.id;
-        this._writeWord(0x0001, loadAddress);
-        return true;
+        return { record, address: loadAddress };
     }
     
     // =========================================================================

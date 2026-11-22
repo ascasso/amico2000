@@ -238,6 +238,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Changed what an instant cassette LOAD or SAVE leaves in memory, to match
+  the real routines in the cassette PROM (#41). SAVE no longer writes
+  anything: it used to clear the start address at `$0000/$0001` when it
+  worked and put `$FF` in `$0000` when it did not, and the real routine does
+  neither. The addresses and identifier you keyed are still there afterwards,
+  so a program can be changed and saved again without keying them a second
+  time. A range that cannot be saved, an end address before the start or the
+  whole `$0000-$FFFF`, now returns to the monitor with memory untouched, as
+  the real routine does for the first of those. LOAD no longer overwrites
+  `$0001/$0002` with the address it loaded at. What happened is shown beside
+  the **Cassette** buttons and in the browser console instead: "Saved
+  program 13", "Loaded program 13 at $0200", or "Not saved" and why.
+  A LOAD that cannot be done still answers at once with `$FF` in `$0000`;
+  that is the emulator's own convention and is kept, since the real routine
+  would search for the program until RES. `amico.onCassetteTrap` is the hook
+  the page uses. Anything that read `$FF` at `$0000` after a refused SAVE
+  will no longer find it.
 - The home page's "board photographs on ComputerHistory.it" link points at
   the live article again, `https://computerhistory.it/computer/asel/amico-2000`,
   instead of a Wayback Machine snapshot taken while the site was down.

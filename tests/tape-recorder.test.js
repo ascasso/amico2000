@@ -12,42 +12,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { bootedMachine, CASSETTE_ROM, MONITOR_RESET } = require('./helpers/machine');
+const { SAVE_ENTRY, LOAD_ENTRY, realTimeMachine, runRoutine: run } = require('./helpers/cassette-signal');
 const { AmicoTapeAudio } = require('../tape-audio');
 
-const SAVE_ENTRY = 0xFBBC;
-const LOAD_ENTRY = 0xFC54;
 const { TIMING } = AmicoTapeAudio;
 // One program on tape: half a second of blank, then 512 bytes of leader and
 // trailer, the start byte, five of header, the text and the checksum.
 const secondsOnTape = (bytes) => 0.5 + (512 + 7 + bytes) * (8 * TIMING.bitCell + TIMING.byteGap);
-
-/** A board with the cassette PROM, a recorder, and the traps off: the page's Real time setting. */
-function realTimeMachine() {
-    const amico = bootedMachine();
-    amico.loadCassetteROM(CASSETTE_ROM);
-    amico.cassette.interceptROM = false;
-    const recorder = amico.connectRecorder(AmicoTapeAudio.createRecorder());
-    const recorded = [];
-    amico.onTapeRecorded = (result) => recorded.push(result);
-    return { amico, recorder, recorded };
-}
-
-/**
- * Run from an entry point until the routine hands back to the monitor, or for
- * `limit` seconds of board time. Returns how long it took, in seconds.
- */
-function run(amico, entry, limit = 120) {
-    const cpu = amico.cpu;
-    cpu.PC = entry;
-    const from = cpu.cycles;
-    cpu.step();
-    while (cpu.PC !== MONITOR_RESET && !cpu.halted && cpu.cycles - from < limit * 1e6) cpu.step();
-    const seconds = (cpu.cycles - from) / 1e6;
-    // The monitor's first instruction, at which the board stops the tape.
-    if (cpu.PC === MONITOR_RESET) cpu.step();
-    return seconds;
-}
 
 function save(amico, start, end, id) {
     amico.cpu.memory.set([start & 0xFF, start >> 8, end & 0xFF, end >> 8, id], 0x0000);
@@ -81,7 +52,7 @@ test('the real SAVE routine records a program onto the cassette (#20)', () => {
     assert.equal(saved.end, 0x0227);
     assert.deepEqual(bytes(saved.data), bytes(program));
     assert.deepEqual(bytes(amico.cpu.memory.slice(0x0000, 0x0005)), [0x00, 0x02, 0x27, 0x02, 0x13],
-        'and, unlike the trap, the routine leaves its parameters as they were');
+        'and the routine leaves its parameters as they were');
 });
 
 test('the real LOAD routine reads a program off the cassette, passing over the one before it (#20)', () => {

@@ -90,6 +90,6 @@ test('a program goes from one machine to another as sound (#20)', () => {
     const second = bootedMachine();
     records.forEach((record) => second.addTapeRecord(record));
     load(second, 0x01);
-    assert.equal(second.cpu.memory[0x0000], 0x01, 'LOAD reports the program it loaded');
+    assert.equal(second.cpu.memory[0x0000], 0x01, 'the identifier is still there, and not the $FF of a failed LOAD');
     assert.deepEqual(Array.from(second.cpu.memory.slice(0x0200, 0x0207)), program);
 });

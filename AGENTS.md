@@ -457,6 +457,29 @@ it as an `.amtape` image or as sound. `docs/amtape-format.md` is the
 reference for the `.amtape` file (#19), and `tests/amtape-format-doc.test.js`
 holds its example and its table to the code; change the two together.
 
+What the traps leave behind (issue #41): what the routines leave behind. The
+real SAVE never writes to page zero and has no error status, so a trapped
+SAVE writes nothing to the machine's memory either, whether it saves or not;
+its parameters at `$0000-$0004` survive, and a second SAVE needs nothing keyed
+again. A trapped LOAD that works writes the program and leaves `$0000-$0002`
+alone. The outcome of either goes to the page through `amico.onCassetteTrap`,
+which is how a refused SAVE is made known.
+`tests/cassette-trap-parity.test.js` runs the same keys through a trap and
+through the real routine and compares the two boards. It also pins the
+differences that remain, each on purpose:
+
+- A trapped LOAD that cannot be done returns at once with `$FF` in `$0000`.
+  That is the emulator's convention. `$FF` there is the only status either
+  real routine writes, for a checksum that does not match; asked for a
+  program that is not on the tape, the real LOAD searches until RES, and a
+  trap has no tape running.
+- A trapped LOAD refuses a destination that overlaps a ROM (#31). The real
+  one stores every byte, the ROM takes none, and nothing is reported.
+- A trapped SAVE keeps the last byte of a block the PROM's fault loses, and
+  refuses the whole `$0000-$FFFF` range (#23), of which the real routine
+  saves the first page. See Cassette Sound Format.
+- The traps do not touch the routines' workspace at `$E7-$F1`.
+
 Return convention (issue #24): the IC10 routines do not end in `RTS`. They exit
 with `JMP $FE22`, the monitor's reset entry and the `$FFFC` vector target, whose
 preamble runs `LDX #$FF / TXS` at `$FE28-$FE2A` and reinitialises `SP` to `$FF`.
@@ -516,9 +539,10 @@ stores it one page too low: `DEC $E9` at `$FC36`, and at `$FCD6`, undoes an
 `INC $E9` that on this path never happened. A 257-byte block sends its first
 byte twice and its last never. A 1-byte block sends the byte 256 below it.
 The checksum agrees on both sides, so nothing reports it. Confirmed by
-running the routines. A second fault is read from the listing only, since no
-block on a 2KB board can reach it: `DEC $EB` / `BMI` at `$FC2C` ends a block
-of more than `$8100` bytes after its first page.
+running the routines. A second fault: `DEC $EB` / `BMI` at `$FC2C` ends a
+block of more than `$8100` bytes after its first page. No block on a 2KB
+board is that long, but the routine can be asked: run for real, a SAVE of
+`$0000-$FFFF` records `$0000-$00FF` and nothing more.
 
 How the emulator treats that:
 
@@ -527,8 +551,9 @@ How the emulator treats that:
   `note` on the record. `encodeWav()` writes what the real SAVE routine would
   send, and refuses a 1-byte block, whose byte on tape is not in the record.
 - The traps do not. A trapped SAVE and LOAD keep every byte, and so does an
-  `.amtape` file. That is one more way the traps differ from the real
-  routines, beside those issue `#41` lists.
+  `.amtape` file. It is one of the differences between the traps and the
+  real routines that were kept on purpose; the list is under Cassette
+  Interface Reference.
 
 What the page does with it: **Load ROM or tape** reads a `.wav` recording,
 uncompressed and at most 64 MB, and `debug.saveTapeAudio()` writes one. The
@@ -553,8 +578,8 @@ connected, nothing stands in for the PROM:
   both routines end and RES leads, stops. That is an emulator convenience.
   Every LOAD therefore starts at the beginning of the tape.
 - Run this way the emulator has the PROM's behaviour where the traps differ:
-  the parameters in `$0000-$0004` are left alone, a LOAD for a program that
-  is not on the tape waits until RES, and the last byte of a block one byte
+  a LOAD for a program that is not on the tape waits until RES, a LOAD over a
+  ROM loses bytes without a word, and the last byte of a block one byte
   longer than whole pages is lost.
 - A real 8255A clears its output latches when a mode word is written,
   according to its data sheet (`docs/8255-data-sheet.md`). The emulator does
@@ -694,9 +719,10 @@ When implementing changes based on a GitHub issue:
    Tapes can be read from and written to `.wav` sound files, but that format
    is taken from the PROM and the schematic and has never been tried on a
    recording of a real tape or on a real board; the part most likely to need
-   adjusting is the pulse detector. Only uncompressed WAV is read. The traps also differ from the real routines in
-   what they leave in `$0000-$0004`, which issue `#41` lists, and in keeping
-   the last byte of a block the real routines lose; see Cassette Sound Format
+   adjusting is the pulse detector. Only uncompressed WAV is read. The traps
+   leave in `$0000-$0004` what the real routines leave (#41) but still differ
+   from them in four ways, each kept on purpose and listed under Cassette
+   Interface Reference
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
 4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate;
    sufficient for the monitor ROM and simple programs. The functional suite the

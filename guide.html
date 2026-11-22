@@ -234,8 +234,10 @@ amico.writeMemory(0x0002, 0xFF);
 amico.cpu.PC = 0xFC54;
 amico.start();</code></pre>
         <p>A missing identifier or a destination overlapping ROM causes LOAD to
-            fail with <code>FF</code> at <code>$0000</code>. Inspect the destination
-            bytes before starting the program.</p>
+            fail with <code>FF</code> at <code>$0000</code>, and the line beside the
+            Cassette buttons says why. A LOAD that works leaves <code>$0000-$0002</code>
+            as you keyed them and says where the program went. Inspect the
+            destination bytes before starting the program.</p>
         <h3>SAVE and download a tape</h3>
         <p>Enter the start address's low/high bytes at <code>$0000/$0001</code>,
             the inclusive end address's low/high bytes at <code>$0002/$0003</code>,
@@ -246,9 +248,16 @@ amico.start();</code></pre>
             <code>debug.saveTape()</code> in the browser console to download an
             <code>.amtape</code> file. SAVE alone keeps the record only in the
             current page session; download it before closing or reloading the page.</p>
+        <p>SAVE leaves the addresses and the identifier at
+            <code>$0000-$0004</code> as you keyed them, as the real routine
+            does, so you can change the program and SAVE it again without
+            keying them a second time.</p>
         <p>An end address before the start address, or the whole
             <code>$0000-$FFFF</code> range, which is more than a tape image can
-            hold, causes SAVE to fail with <code>FF</code> at <code>$0000</code>.</p>
+            hold, is not saved. The real routine has no way to say so and
+            neither has this one: it returns to the monitor with nothing
+            changed. The line beside the Cassette buttons, and the browser
+            console, say that nothing was saved and why.</p>
         <p>To save the example program through the console, after loading it at
             <code>$0200</code>:</p>
         <pre><code>amico.stop();
@@ -290,15 +299,17 @@ amico.start();</code></pre>
             <li>LOAD for a program that is not on the tape never gives up. It
                 waits for more tape, as the real machine does, and the status
                 line says <em>End of tape</em>. Press RES.</li>
-            <li>SAVE leaves the addresses and identifier at
-                <code>$0000-$0004</code> as you keyed them. An end address
-                before the start address returns to the monitor at once with
-                no error.</li>
             <li>The only error status is <code>FF</code> at <code>$0000</code>
                 after a LOAD whose checksum did not match.</li>
+            <li>A LOAD aimed at a ROM stores what RAM will take and loses the
+                rest, with no error. The instant LOAD refuses it.</li>
             <li>A block one byte longer than a whole number of 256-byte pages
-                loses its last byte; see the end of this section.</li>
+                loses its last byte; see the end of this section. A SAVE of
+                the whole <code>$0000-$FFFF</code> range saves only its first
+                256 bytes.</li>
         </ul>
+        <p>In everything else the two agree, including what they leave at
+            <code>$0000-$0004</code>.</p>
         <p>RES during a SAVE abandons it: nothing is put on the tape.</p>
         <h3 id="tape-sound">Tapes as sound</h3>
         <p>The real machine kept programs on audio cassettes. The emulator can

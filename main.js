@@ -182,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     recorder = amico.connectRecorder(AmicoTapeAudio.createRecorder());
     amico.onPhaseLEDs = updatePhaseLEDs;
     amico.onTapeRecorded = reportRecording;
+    amico.onCassetteTrap = reportTrap;
     setupCassetteMode();
 
     // The machine owns its run state; the bench controls only reflect it, so
@@ -431,6 +432,28 @@ function reportRecording(result) {
         tapeStatusNote = 'Saved program ' + result.records.map((record) => hexByte(record.id)).join(', ');
     } else {
         tapeStatusNote = 'Nothing was saved';
+    }
+}
+
+// An instant LOAD or SAVE has been done, or could not be. The routines these
+// stand in for leave nothing in memory to say how a SAVE went, and the traps
+// now do the same (#41), so this line and the console are where a user finds
+// out that a range was not saved, and why.
+function reportTrap(outcome) {
+    const done = outcome.operation === 'save' ? 'saved' : 'loaded';
+    if (outcome.error) {
+        tapeStatusNote = `Not ${done}: ${outcome.error}`;
+        console.warn(tapeStatusNote);
+        return;
+    }
+    const record = outcome.record;
+    const size = `${record.data.length} byte${record.data.length === 1 ? '' : 's'}`;
+    if (outcome.operation === 'save') {
+        tapeStatusNote = `Saved program ${hexByte(record.id)}`;
+        console.log(`${tapeStatusNote}: $${hexWord(record.start)}-$${hexWord(record.end)}, ${size}`);
+    } else {
+        tapeStatusNote = `Loaded program ${hexByte(record.id)} at $${hexWord(outcome.address)}`;
+        console.log(`${tapeStatusNote}, ${size}`);
     }
 }
 

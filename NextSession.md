@@ -22,7 +22,7 @@ hardware over convenience abstractions. Priority order:
   `https://github.com/ascasso/amico2000/pull/47`, carries the cassette work of
   2026-11-21 and was open when this was written.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 159
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 171
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -36,7 +36,7 @@ hardware over convenience abstractions. Priority order:
   are trapped at `$FC54` and `$FBBC` and instant. With **Cassette: Real
   time** the PROM's own routines run against an emulated recorder, with the
   phase LEDs lit (`#20`, closed).
-- **Open issues:** `#41`.
+- **Open issues:** none.
 - **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-21.
 
 ## Outstanding
@@ -53,23 +53,16 @@ In rough priority order. None of it is started.
    the interrupted PC (which REG then recalls) and is reachable only through
    those RAM vectors, so HLT with a vector to `$FE00`, then REG and RUN, may be
    the intended halt-and-resume.
-2. **Machine-layer checks** for display multiplexing (how Port A and Port B
-   writes become the six-pattern buffer) and the `$FD00-$FDFF` partial
-   decoding. `tests/keyboard-matrix.test.js` shows the pattern: run the real
-   monitor in Node and assert on RAM or PIA state.
-3. **`#41`: the cassette traps differ from the real routines** in what they
-   leave in `$0000-$0004`: SAVE writes a status the real routine never writes,
-   LOAD overwrites `$0001/$0002`, and LOAD of a missing identifier returns
-   `$FF` where the real routine keeps searching until RES. Decide which to
-   bring into line; the issue lists the cases and the tests that assert them.
-4. **The phase LEDs D4-D7 are drawn but never lit.** The wiring is settled
-   (`AGENTS.md`, Cassette Interface Reference): an LED is lit while Port B
-   bit 7 and its own Port A bit are both high, and the monitor never sets
-   bit 7. Lighting them needs a per-frame duty model in the machine layer,
-   because LOAD only pulses them. Before building it, confirm the recollection
-   that an 8255 clears its outputs when a mode word is written (`_writePIA`
-   does not). Unexplained: unit A's photograph shows D7 lit at idle.
-5. **Board drawing, unverified ends.**
+2. **Machine-layer checks** for display multiplexing, pattern by pattern (how
+   Port A and Port B writes become the six-pattern buffer; when digits go
+   dark is covered), and the `$FD00-$FDFF` partial decoding.
+   `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
+   Node and assert on RAM or PIA state.
+3. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
+   wires them and light when the real cassette routines run. By that wiring
+   all four are dark while the monitor idles, yet unit A's photograph shows
+   D7 lit at idle. Nothing accounts for it.
+4. **Board drawing, unverified ends.**
    - Only Chrome has been used. Safari, Firefox, touch and screen readers
      have not been tried, nor the key legends on systems without the macOS
      DIN faces.
@@ -78,9 +71,9 @@ In rough priority order. None of it is started.
    - The measurement table and the browser-check scripts live with the
      private photographs, outside the repository. Whether they belong in it
      is the owner's call.
-6. **Archive links:** in `docs/computerhistory-amico2000.md`, every link other
+5. **Archive links:** in `docs/computerhistory-amico2000.md`, every link other
    than the four PROM images is untested.
-7. **Speed multiplier, requested by the owner, not started.** Three settings:
+6. **Speed multiplier, requested by the owner, not started.** Three settings:
    **1x**, the default, which is today's behaviour and stays as close to the
    real board as the emulator can manage; **10x**; and **Max**, as fast as
    the browser can run it.
@@ -102,7 +95,7 @@ In rough priority order. None of it is started.
      speed. The real-time cassette keeps time by CPU cycles, so it would run
      faster with the processor, which is probably what a user wants from it. The display is still drawn once per frame, so a program that
      animates the digits shows only some of its steps.
-8. **Ideas, not started:** a pass on wear and physical irregularity, sound,
+7. **Ideas, not started:** a pass on wear and physical irregularity, sound,
    and a desk scene around the board.
 
 ## Cassette Work (Secondary)
@@ -140,11 +133,16 @@ In rough priority order. None of it is started.
     reading Port A ignores its direction.
   - There is no button for saving a tape, as sound or as `.amtape`; both are
     console commands.
-- The real routines lose the last byte of a block one byte longer than a
-  whole number of pages (Cassette Sound Format in `AGENTS.md`). The traps do
-  not. It is not on issue `#41`'s list of trap differences, and belongs
-  there. With Cassette: Real time the real routines can now be seen doing
-  each thing `#41` lists, which may make its decisions easier.
+- `#41`, the traps against the real routines, is closed. The traps now leave
+  in `$0000-$0004` what the routines leave, and SAVE has no status byte.
+  Four differences were kept on purpose and are listed in `AGENTS.md` under
+  Cassette Interface Reference, each pinned by
+  `tests/cassette-trap-parity.test.js`. The one a later session might
+  revisit is the last byte of a block one byte longer than whole pages,
+  which the PROM loses and an instant SAVE keeps: making Instant lose it too
+  would be truer to the board and would lose a user's byte by default. It
+  needs `blockOffsets()`, which lives in `tape-audio.js`, on the machine's
+  side of the line.
 
 ## How to Verify
 
