@@ -127,8 +127,11 @@ test('the power-on reset still clears RAM, which is the difference from RES (#30
         amico.cpu.memory.slice(0x0000, 0x03FC).every((byte) => byte === 0x00),
         'all of RAM below the vectors must be cleared'
     );
-    // $03FC-$03FF are the monitor's RAM-resident IRQ/NMI vectors, seeded to $FE30.
-    assert.deepEqual(Array.from(amico.cpu.memory.slice(0x03FC, 0x0400)), [0x30, 0xFE, 0x30, 0xFE]);
+    // $03FC-$03FF are the monitor's RAM-resident NMI and IRQ vectors. The
+    // emulator seeds NMI with $FE00, the monitor's own interrupt routine and
+    // the address the manual has the user store there, so that HLT halts a
+    // program; IRQ, where a BRK goes, with $FE30, the main loop. See reset().
+    assert.deepEqual(Array.from(amico.cpu.memory.slice(0x03FC, 0x0400)), [0x00, 0xFE, 0x30, 0xFE]);
     assert.equal(amico.cpu.PC, MONITOR_RESET, 'cold start must also enter the monitor');
 });
 

@@ -333,9 +333,10 @@ arrestare l'esecuzione di un programma utente in qualsiasi momento passando il
 controllo del sistema al monitor". The 8255's RESET pin is on the same line, so
 `res()` also clears the PIA and blanks the display.
 
-`Amico2000.reset()` is the power-on reset and keeps exactly the behavior it
-always had: clear all 2KB of RAM, seed the monitor's RAM-resident IRQ/NMI
-vectors at `$03FC-$03FF` to `$FE30`, then call `res()`. It is what `main.js`
+`Amico2000.reset()` is the power-on reset: clear all 2KB of RAM, seed the
+monitor's RAM-resident NMI and IRQ vectors at `$03FC-$03FF`, then call
+`res()`. The seed is the emulator's own, since the board's RAM powers up with
+anything: `$FE00` for NMI and `$FE30` for IRQ; see HLT and the NMI Line. It is what `main.js`
 runs at startup and what the bench **Cold reset** control invokes.
 
 **RES preserves RAM.** This is a deliberate fidelity decision, not an
@@ -356,6 +357,71 @@ Escape and Backspace are listed in `Amico2000.resetKeys`, checked by
 can still call `preventDefault()` for them. They previously sat at shared
 matrix positions, so Escape also typed AD and Backspace also typed 5. Covered
 by `tests/res-reset.test.js`.
+
+### HLT and the NMI Line
+
+The HLT key drives the 6502's NMI line, and that is all it does.
+`Amico2000.hlt()` calls `cpu.nmi()`, once for each press.
+
+The evidence, since the key's own description in the manual says only that it
+"genera una interruzione a livello CPU":
+
+- The chapter on interrupts, supplement page 85: "il tasto di HALT (HLT)
+  quando è premuto genera su NMI (piedino 6) un fronte di discesa di
+  tensione".
+- The CPU schematic, page 25. The HALT key closes to ground against R3, with
+  C4 across it for the bounce, and goes through an inverter of IC3, a 74LS14,
+  and one gate of IC4, a 74LS38 with open-collector outputs, onto the NMI
+  line, which R4 pulls up. Pressed, the line falls.
+- The monitor. Its NMI vector at `$FFFA` is `$FE1C`, where there is one
+  instruction, `JMP ($03FC)`. IRQ and BRK go the same way through `$FE1F`,
+  `JMP ($03FE)`. The ROM never writes those four bytes of RAM; the two jumps
+  are its only mention of them.
+
+So where an NMI lands is the user's business, and the manual shows two uses:
+
+- **A program's own routine.** Store its address at `$03FC/$03FD` and end it
+  with `RTI`. The manual's example on page 85 lights every digit with an 8
+  for about sixteen seconds each time HLT is pressed;
+  `tests/hlt-nmi.test.js` runs it as printed.
+- **The monitor's routine at `$FE00`**, for which the manual has the user key
+  "00 e FE rispettivamente alle locazioni 03FC e 03FD". It saves the
+  registers where page 86 lists them, `$F3` A, `$F4` Y, `$F5` X, `$F6/$F7`
+  the program counter, `$FD` the status and `$FE` the stack pointer, copies
+  the program counter to the address display and joins the main loop. RUN
+  then restores all of them and returns with `RTI`, so a halted program
+  resumes exactly where it stopped. REG brings the saved address back to the
+  display if the user has moved away from it.
+
+**The power-on seed is the emulator's choice.** On the board `$03FC-$03FF`
+hold whatever the RAM came up with, and HLT on a machine nobody has prepared
+jumps to nowhere in particular. `reset()` seeds the NMI vector with `$FE00`,
+the address the manual gives, so that HLT halts a program without the user
+keying the vector first. It was `$FE30`, the monitor's main loop, chosen
+before HLT did anything; that returned to the monitor and saved nothing. The
+IRQ vector is still `$FE30`, so a program that runs into a `BRK` lands in the
+monitor as before. Whether it should be `$FE00` too, which would make `BRK` a
+breakpoint that shows where it was, has not been decided. RES preserves all
+four bytes, as it preserves the rest of RAM.
+
+One press is one interrupt: the line gives one falling edge however long the
+key is held, and `haltKeyDown` keeps a repeating keyboard key from giving
+more. NMI is taken at the next instruction boundary, also when interrupts
+are disabled.
+
+**Single step is the same line and is not emulated.** The schematic has a
+second gate of IC4 on NMI, through the NOR/SS slide switch: a NAND of the
+6502's SYNC output, high while an opcode is fetched, and `CS4`, the monitor
+PROM's chip select, low only for `$FE00-$FFFF`. With the switch at SS, every
+instruction fetched from outside the monitor pulls NMI low, so the CPU
+executes that one instruction and takes the interrupt. With `$FE00` in the
+vector the monitor then shows the address of the next instruction, which is
+what the manual describes on page 85: RUN, and "sul display appare
+l'indirizzo della seconda istruzione del programma". Each RUN after that
+executes one more. Building it needs the switch on the page made to move and
+an NMI raised before each instruction whose address is below `$FE00`.
+
+Covered by `tests/hlt-nmi.test.js`.
 
 ### Keyboard Scanning
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
@@ -751,8 +817,8 @@ When implementing changes based on a GitHub issue:
    which beyond the keypad, resets, ROM protection, PROM image order and
    cassette traps is covered only by browser testing. See
    `docs/6502-conformance.md`
-6. **HLT**: the HLT key is not emulated. On the board it raises a CPU
-   interrupt, but the manual does not say which line; see Keyboard Mappings
+6. **Single step**: the NOR/SS slide switch is not emulated. How it works is
+   known, and written under HLT and the NMI Line; nothing drives it yet
 7. **Board drawing**: the NOR/SS slide switch is drawn but does nothing, and
    the LEDs D4-D7 light only with **Cassette: Real time**. The displays do
    not show the 31 ms blink a real board gives when a key is pressed. At window widths under about
@@ -771,13 +837,10 @@ When implementing changes based on a GitHub issue:
 | ↑ (increment) | + or = |
 | RUN       | Enter or G |
 | RES       | Escape or Backspace |
-| HLT       | none (not emulated) |
+| HLT       | H |
 
-RES is not a matrix key; see Reset Semantics above. Neither is HLT: the manual
-says it "genera una interruzione a livello CPU" but not which line, so it is not
-emulated, and its on-screen key does nothing. Implementing it means settling
-NMI versus IRQ from evidence, and what the RAM vectors at `$03FC-$03FF` should
-hold when it fires.
+RES is not a matrix key; see Reset Semantics above. Neither is HLT, which is
+the NMI line; see HLT and the NMI Line.
 
 The on-screen keys carry the legends of the original board, printed in white on
 the caps themselves, as photographs of two surviving boards show. An earlier
@@ -842,8 +905,9 @@ None are open at the moment.
   not covered at all.
   `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
   Node and assert on RAM or PIA state.
-- HLT is not emulated (see Keyboard Mappings). `NextSession.md` records what
-  has to be established first and a lead from the ROM.
+- The NOR/SS single-step switch is not emulated. Its circuit is read and
+  written down under HLT and the NMI Line, and `NextSession.md` says what
+  building it would take.
 - Running a known 6502 functional suite is **done** (#18): the core passes Klaus
   Dormann's functional test, pinned in `tests/fixtures/6502-functional/`. Of the
   four areas that motivated it, stack behavior and BCD arithmetic with valid

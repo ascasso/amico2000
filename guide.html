@@ -52,6 +52,7 @@
     <nav aria-label="Guide contents">
         <a href="#getting-started">Getting started</a>
         <a href="#keypad">Keypad and memory</a>
+        <a href="#hlt">HLT and interrupts</a>
         <a href="#file-formats">File formats</a>
         <a href="#cassette">Cassette LOAD/SAVE</a>
         <a href="#troubleshooting">Troubleshooting</a>
@@ -98,8 +99,8 @@
                 <tr><td>Increment (up-arrow legend)</td><td><kbd>+</kbd> or <kbd>=</kbd></td></tr>
                 <tr><td>RUN</td><td>Enter or <kbd>G</kbd></td></tr>
                 <tr><td>REG (recall the saved program counter)</td><td><kbd>R</kbd></td></tr>
-                <tr><td>HLT</td><td>Not emulated. On the board it raises a CPU
-                    interrupt, and the manual does not say which one.</td></tr>
+                <tr><td>HLT (interrupt the processor; see
+                    <a href="#hlt">HLT and interrupts</a>)</td><td><kbd>H</kbd></td></tr>
                 <tr><td>RES</td><td>Escape or Backspace</td></tr>
             </tbody>
         </table>
@@ -126,6 +127,61 @@
             <code>$0020</code> with AD to see the result.</p>
         <p>To load and run a program without typing it, use the console example
             below. RES recovers from a program that does not return.</p>
+    </section>
+
+    <section id="hlt">
+        <h2>HLT and interrupts</h2>
+        <p>The HLT key does one thing: it interrupts the processor. On the
+            board it is wired to the 6502's NMI line, the interrupt that
+            cannot be switched off. What the interrupt then does is up to two
+            bytes of RAM, <code>$03FC</code> and <code>$03FD</code>, which hold
+            the address the monitor jumps to when it arrives.</p>
+        <h3>Halt a program and look at it</h3>
+        <p>With those two bytes as the emulator starts them, HLT stops a
+            running program without losing it:</p>
+        <ol>
+            <li>While the program runs, press <strong>HLT</strong>. The
+                displays come back on showing the address of the instruction
+                it was about to execute, and the byte there.</li>
+            <li>Look around. The registers were saved when it stopped, and you
+                can read or change them like any other memory:
+                <code>$00F3</code> accumulator, <code>$00F4</code> Y,
+                <code>$00F5</code> X, <code>$00F6/$00F7</code> program
+                counter, <code>$00FD</code> status, <code>$00FE</code> stack
+                pointer.</li>
+            <li>To carry on, press <strong>RUN</strong>. If you have moved to
+                another address in the meantime, press <strong>REG</strong>
+                first, which brings back the address it stopped at.</li>
+        </ol>
+        <p>RES also stops a program, but it resets the processor: the
+            registers are gone and there is nothing to resume. HLT keeps
+            everything.</p>
+        <p class="callout">On the real machine those two bytes hold whatever
+            the memory powered up with, and the manual has you key them in
+            yourself before using this: <code>00</code> at <code>$03FC</code>
+            and <code>FE</code> at <code>$03FD</code>, the address of the
+            monitor's own routine. The emulator starts with them already
+            there, so HLT works at once. RES leaves them alone; Cold reset
+            puts them back.</p>
+        <h3>Use HLT in your own program</h3>
+        <p>A program can take the interrupt for itself by storing the address
+            of its own routine in <code>$03FC/$03FD</code> and ending that
+            routine with <code>RTI</code> (<code>40</code>). The manual's
+            example does this. Key it in, then run from <code>$0200</code>:</p>
+        <pre><code>0200: A9 00 8D FC 03 A9 03 8D FD 03 18 90 FD
+0300: A9 88 85 FB 85 FA 85 F9 A9 10 85 00 A9 00 85 01
+0310: 20 0C FF C6 01 D0 F9 C6 00 D0 F5 40</code></pre>
+        <p>The program at <code>$0200</code> points the interrupt at
+            <code>$0300</code> and then goes round in a loop with the displays
+            dark. Each time you press <strong>HLT</strong> every digit shows
+            <code>8</code> for about sixteen seconds, and then the displays go
+            dark again. Press RES to stop. Afterwards the two bytes still
+            point at <code>$0300</code>; key <code>00</code> and
+            <code>FE</code> back, or use Cold reset, to have HLT halt programs
+            again.</p>
+        <p>The slide switch marked NOR/SS on the board, which steps a program
+            one instruction at a time through the same interrupt, is not
+            emulated yet.</p>
     </section>
 
     <section id="file-formats">

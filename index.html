@@ -1328,7 +1328,7 @@
             <div class="keycell"><button class="key key-func" data-key="da" aria-label="DA" title="DA — enter data (Arrow Down)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="45" lengthAdjust="spacingAndGlyphs">DA</text></svg></button></div>
 
             <div class="keycell"><button class="key key-func" data-key="res" aria-label="RES" title="RES — stop whatever is running and return to the monitor, keeping RAM (Escape or Backspace)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.8" lengthAdjust="spacingAndGlyphs">RES</text></svg></button></div>
-            <div class="keycell"><button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — not emulated: on the board it raises a CPU interrupt"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.4" lengthAdjust="spacingAndGlyphs">HLT</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — interrupt the processor: a running program stops and the monitor shows where; RUN takes it up again (H)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.4" lengthAdjust="spacingAndGlyphs">HLT</text></svg></button></div>
             <div class="keycell"><button class="key key-func" data-key="reg" aria-label="REG" title="REG — recall the saved program counter (R)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="61" lengthAdjust="spacingAndGlyphs">REG</text></svg></button></div>
             <div class="keycell"><button class="key key-func" data-key="ad" aria-label="AD" title="AD — enter address (Arrow Up)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="41.1" lengthAdjust="spacingAndGlyphs">AD</text></svg></button></div>
         </div>
@@ -1406,7 +1406,7 @@
                 <tr><td>Increment</td><td>+ or =</td></tr>
                 <tr><td>RUN</td><td>Enter</td></tr>
                 <tr><td>REG</td><td>R</td></tr>
-                <tr><td>HLT</td><td>not emulated</td></tr>
+                <tr><td>HLT</td><td>H</td></tr>
                 <tr><td>RES</td><td>Escape or Backspace</td></tr>
             </table>
             <p>
@@ -1416,6 +1416,11 @@
                 what you typed into RAM alone. <em>Cold reset</em> under Bench
                 controls is the harder one: it clears RAM as switching the machine
                 off and on does.
+            </p>
+            <p>
+                HLT interrupts the processor without resetting anything. A running
+                program stops where it is and the monitor shows the address it had
+                reached, with the registers kept; RUN takes it up again from there.
             </p>
         </section>
 

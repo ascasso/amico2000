@@ -43,13 +43,15 @@ amico2000/
 | RUN       | Enter or G |
 | REG       | R |
 | RES       | Escape or Backspace |
-| HLT       | not emulated |
+| HLT       | H |
 
 Each key reaches the monitor as the code its ROM expects: the emulator's key
 matrix follows the monitor's own decode routine, and
 `tests/keyboard-matrix.test.js` checks every key against it. HLT is not part
-of that matrix: on the board it raises a CPU interrupt, and the manual does not
-say which one, so it is not emulated.
+of that matrix. On the board it is wired to the processor's NMI line, and so
+it is here: it interrupts a running program, the monitor shows the address it
+had reached with the registers saved, and RUN takes it up again. A program
+can also take the interrupt for itself; the user guide has both.
 
 RES is wired the way it is on the real board: it drives the processor's reset
 line rather than sitting in the scanned key matrix (#30). So it stops whatever

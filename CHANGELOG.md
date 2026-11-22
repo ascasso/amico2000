@@ -24,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   D4 and D6 again, and LOAD flashes D4 and D7, then D5 and D7, as the manual
   describes. Nothing on the page uses this yet, and with the traps on, which
   is the default, LOAD and SAVE behave as before.
+- Added the HLT key. It did nothing here, because its description in the
+  manual says only that it raises an interrupt and not which. The manual's
+  chapter on interrupts and the CPU schematic settle it: HLT puts a falling
+  edge on the 6502's NMI line, and the monitor sends an NMI wherever the two
+  bytes of RAM at `$03FC/$03FD` point. The key now does that, on the board
+  drawing and as **H** on the keyboard. With the vector the emulator starts
+  with, a running program stops, the monitor shows the address it had
+  reached with the registers saved at `$F3-$FE`, and RUN takes it up again.
+  A program can also store its own routine's address there and take the
+  interrupt for itself; the manual's example of that, which lights every
+  digit with an 8 for about sixteen seconds at each press, runs as printed.
+  The user guide has a new section, HLT and interrupts.
 - Added `tests/build-stamp.test.js`, which checks the home page's build date
   against the date of the latest commit as git records it, in the time zone
   the commit was made in (review of PR #47). The rule was written down in
@@ -238,6 +250,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Changed the NMI vector the emulator starts with, at `$03FC/$03FD`, from
+  `$FE30` to `$FE00`. On the board those bytes hold whatever the RAM powered
+  up with, the monitor never writes them, and the manual has the user key in
+  `00` and `FE` to use the monitor's own interrupt routine; the emulator now
+  starts with that, so that HLT halts a program without the step. `$FE30`,
+  the monitor's main loop, was chosen before anything could raise an NMI and
+  saved nothing of the program it interrupted. The IRQ vector, where a `BRK`
+  goes, is unchanged at `$FE30`. RES leaves both alone, as before.
 - Changed the links to ComputerHistory.it from Wayback Machine snapshots to
   the live site, which is back. The README's credit now links the site's
   main page on the machine,

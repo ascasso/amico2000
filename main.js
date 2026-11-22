@@ -230,7 +230,8 @@ function setupKeyboard() {
 
         // Fix for #30: RES is no longer in keyMap, so it needs naming here or
         // Backspace falls through to the browser's own history navigation.
-        if (amico.isResetKey(normalizedKey) ||
+        // HLT is not in keyMap either: it is the NMI line, not a matrix key.
+        if (amico.isResetKey(normalizedKey) || amico.isHaltKey(normalizedKey) ||
             amico.keyMap[normalizedKey] || amico.altKeyMap[normalizedKey] ||
             (key >= '0' && key <= '9') ||
             (key >= 'a' && key <= 'f') ||
@@ -666,7 +667,10 @@ const BUTTON_FOR_KEY = {
     'backspace': 'res',
     '=': '+',
     'r': 'reg',
-    'g': 'go'
+    'g': 'go',
+    // HLT. The button's data-key is still 'pc', from when it was labelled
+    // after an emulator function and not after the key on the board.
+    'h': 'pc'
 };
 
 function keyButton(key) {
