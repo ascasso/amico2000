@@ -238,6 +238,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Changed the links to ComputerHistory.it from Wayback Machine snapshots to
+  the live site, which is back. The README's credit now links the site's
+  main page on the machine,
+  `https://computerhistory.it/computer/asel/amico-2000`, and its account of
+  rebuilding one,
+  `https://computerhistory.it/retrocomputing/retro-ricostruzioni/amico-2000`.
+  `docs/computerhistory-amico2000.md` names both, and each of its 73 links
+  was checked: the 39 that still answer are given as they are, 26 that do
+  not are given as the Wayback Machine's real capture of them instead of a
+  link built from one snapshot's date, and two that are gone with no copy
+  say so. Most of the magazine scans on other sites are among the 26.
 - Changed the `AGENTS.md` guidance on pushing. An agent used to need an
   explicit request before every `git push`, so finished work sat as commits
   on one machine until somebody asked. The final step after any commit, or

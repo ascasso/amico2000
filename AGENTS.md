@@ -300,7 +300,8 @@ Before the fix the image was copied in file order from `$FB00`, which left
 both documented entry points in the middle of instructions. The issue read
 that as a damaged transcription. It was not: `CASSETTE_ROM` in `main.js` is
 byte-identical to `amico2000_replica_PROM_IC10.bin` as ComputerHistory.it
-publishes it, and a test pins its hash. Do not reorder the array, and do not
+publishes it (`docs/computerhistory-amico2000.md` has the address), and a
+test pins its hash. Do not reorder the array, and do not
 rearrange a `prom.ic10` file into address order before loading it.
 
 The evidence does not rest on the loader:
@@ -794,6 +795,21 @@ The AMICO 2000 was published in "Sperimentare" magazine starting December 1978, 
 - 512 bytes Monitor ROM
 - 6 seven-segment LED displays
 - Hexadecimal keypad (23 keys)
+
+ComputerHistory.it has two pages on the machine, and they are not the same
+thing:
+
+- `https://computerhistory.it/computer/asel/amico-2000` is its main page on
+  the AMICO 2000: history, advertisements, manuals. The home page's footer
+  links to it.
+- `https://computerhistory.it/retrocomputing/retro-ricostruzioni/amico-2000`
+  is the account of rebuilding one, with the board drawings, the parts and
+  the four PROM images. `docs/computerhistory-amico2000.md` summarises this
+  one and lists its links, each checked on 2026-11-21.
+
+Link to the live pages. The site was down for a time and the project pointed
+at Wayback Machine snapshots instead; it is back, and a snapshot is now only
+for something that no longer answers at its own address.
 
 ## Pending Source-Level Cleanups
 

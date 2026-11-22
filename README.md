@@ -280,7 +280,11 @@ Scans on the Internet Archive:
 
 - **Original Design**: ASEL Milano, 1978
 - **Documentation**: Sperimentare magazine
-- **Preservation**: [ComputerHistory.it](https://web.archive.org/web/20260113032804/https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117) (via Wayback Machine)
+- **Preservation**: ComputerHistory.it, for its
+  [page on the AMICO 2000](https://computerhistory.it/computer/asel/amico-2000)
+  and its account of
+  [rebuilding one](https://computerhistory.it/retrocomputing/retro-ricostruzioni/amico-2000),
+  which is where the PROM images come from
 - **Emulator**: Andrea Scasso, 2025
 
 ## 📄 License

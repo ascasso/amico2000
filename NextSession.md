@@ -73,9 +73,7 @@ In rough priority order. None of it is started.
    - The measurement table and the browser-check scripts live with the
      private photographs, outside the repository. Whether they belong in it
      is the owner's call.
-5. **Archive links:** in `docs/computerhistory-amico2000.md`, every link other
-   than the four PROM images is untested.
-6. **Speed multiplier, requested by the owner, not started.** Three settings:
+5. **Speed multiplier, requested by the owner, not started.** Three settings:
    **1x**, the default, which is today's behaviour and stays as close to the
    real board as the emulator can manage; **10x**; and **Max**, as fast as
    the browser can run it.
@@ -97,7 +95,7 @@ In rough priority order. None of it is started.
      speed. The real-time cassette keeps time by CPU cycles, so it would run
      faster with the processor, which is probably what a user wants from it. The display is still drawn once per frame, so a program that
      animates the digits shows only some of its steps.
-7. **Ideas, not started:** a pass on wear and physical irregularity, sound,
+6. **Ideas, not started:** a pass on wear and physical irregularity, sound,
    and a desk scene around the board.
 
 ## Cassette Work (Secondary)
