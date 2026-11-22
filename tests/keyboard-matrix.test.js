@@ -131,7 +131,11 @@ test('REG then RUN restarts the program whose address is at $00F6/$00F7', () => 
 });
 
 test('the HLT button does not touch the key matrix', () => {
+    // HLT is the NMI line, not a matrix key; tests/hlt-nmi.test.js has what
+    // it does. Here only that the monitor's scan never sees it.
     const amico = bootedMachine();
     amico.pressKey('pc');
+    assert.ok(amico.keyMatrix.every((row) => row.every((cell) => !cell)));
+    amico.keyDown('h');
     assert.ok(amico.keyMatrix.every((row) => row.every((cell) => !cell)));
 });

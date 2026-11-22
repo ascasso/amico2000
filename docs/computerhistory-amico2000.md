@@ -1,10 +1,22 @@
 # ComputerHistory.it Amico 2000 Preservation Notes
 
-Source: [ComputerHistory.it - Amico 2000](https://web.archive.org/web/20260113032804/https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117)
+Source: [ComputerHistory.it - Amico 2000, the reconstruction](https://computerhistory.it/retrocomputing/retro-ricostruzioni/amico-2000)
 
-Original URL: `https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117`
+The same site's main page about the machine, with its history, advertisements
+and manuals: [ComputerHistory.it - Amico 2000](https://computerhistory.it/computer/asel/amico-2000)
 
-Wayback snapshot: `2026-01-13 03:28:04`
+This file summarises the first of those two, the article on rebuilding the
+machine. It was written while the site was unavailable, from a Wayback Machine
+snapshot of the article taken on 2026-01-13 at its address of the time,
+`https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117`,
+which still answers and shows the same article.
+
+Links: every link below was checked on 2026-11-21. One that still answers is
+given as it is. One that does not is given as the Wayback Machine's own
+capture of it, where there is one, and the capture's date is the date in its
+address. The few with neither say so. Every file hosted on ComputerHistory.it
+answers, but for one download that has moved; most of the magazine scans
+hosted elsewhere do not.
 
 Article metadata:
 - Title: `Amico 2000`
@@ -37,19 +49,19 @@ Key PCB facts:
 - The article includes a comparison between an original AMICO 2000 and the replica; the original-machine photo was supplied by Francesco Messano.
 
 PCB-related images from the page:
-- Advertisement photo, October 1979: `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/computer/asel/asel_amico2000_s.jpg`
-- CAD power/trace image: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000pw.jpg`
-- CAD PCB image: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000pcb.jpg`
-- Manufactured PCB photo: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_real_pcb.jpg`
-- First working build photo: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000build1.jpg`
-- Original-vs-replica comparison: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/a2000_confronto.jpg`
+- Advertisement photo, October 1979: `https://computerhistory.it/images/stories/computer/asel/asel_amico2000_s.jpg`
+- CAD power/trace image: `https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000pw.jpg`
+- CAD PCB image: `https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000pcb.jpg`
+- Manufactured PCB photo: `https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_real_pcb.jpg`
+- First working build photo: `https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000build1.jpg`
+- Original-vs-replica comparison: `https://computerhistory.it/images/stories/retrocomputing/amico2000/a2000_confronto.jpg`
 
 ## Component Availability Notes
 
 The article frames component availability as a major issue for historical-machine reconstruction. It says the reported component information was gathered from recovered datasheets, eBay, surplus boards, and distributor listings, and should be treated as information to verify rather than guaranteed current sourcing data.
 
 Bill of materials reference:
-- Component list PDF: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/lista_componenti_amico2000.pdf`
+- Component list PDF: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/lista_componenti_amico2000.pdf`
 
 ### CPU
 
@@ -131,9 +143,9 @@ Practical warnings from the article:
 - A later variant grounded unused address pins; the shown example was for `2732`, and was expected to work with `2716` too.
 
 Adapter images:
-- `2716` adapter diagram: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/2716_to_rom.jpg`
-- `2716` adapter photo: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/2716_to_rom_foto.jpg`
-- `2732` adapter diagram: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/2732_to_rom.jpg`
+- `2716` adapter diagram: `https://computerhistory.it/images/stories/retrocomputing/amico2000/2716_to_rom.jpg`
+- `2716` adapter photo: `https://computerhistory.it/images/stories/retrocomputing/amico2000/2716_to_rom_foto.jpg`
+- `2732` adapter diagram: `https://computerhistory.it/images/stories/retrocomputing/amico2000/2732_to_rom.jpg`
 
 ## Address-Decoding PROMs
 
@@ -164,8 +176,8 @@ Reported compatible or likely compatible decoding PROMs:
 The article emphasizes that compatible-looking PROMs may need different programming algorithms. It reports an unsuccessful attempt to program TESLA `74S287` devices as National `74S287`, likely because of a different programming algorithm. The article says ELNEC programmers appeared to support those rare TESLA devices.
 
 PROM programmer references mentioned:
-- `http://geocities.com/SiliconValley/5857/prom.htm`, archived at `https://web.archive.org/web/20260113032804/http://geocities.com/SiliconValley/5857/prom.htm`
-- `http://www.worldofspectrum.org/BackToThePlus3/prommer.html`, archived at `https://web.archive.org/web/20260113032804/http://www.worldofspectrum.org/BackToThePlus3/prommer.html`
+- `http://geocities.com/SiliconValley/5857/prom.htm`, archived at `https://web.archive.org/web/20091020164615/http://geocities.com/SiliconValley/5857/prom.htm`
+- `http://www.worldofspectrum.org/BackToThePlus3/prommer.html`, archived at `https://web.archive.org/web/20180829021818/http://www.worldofspectrum.org/BackToThePlus3/prommer.html`
 - An Elektor PROM programmer article, believed by the page author to have appeared in the original August 1980 edition, but not located.
 
 The article also describes `512 x 4` PROMs such as MMI `63S241` as usable substitutes. In that configuration pin `14`, which is an inverted enable pin on `256 x 4` devices, becomes address `A8`. On the AMICO 2000 PCB pins `13` and `14` are both tied to ground, so the code should be placed in the lower 256 locations.
@@ -186,11 +198,11 @@ The article mentions modern alternatives such as EEPROMs, PALs, or GALs, but say
 
 Other replacement references:
 - eBay seller `*rfguys*` sold a kit for replacing Motorola radio channel PROMs `82S129` / `82S131` using an SMD EEPROM on a DIL adapter plus a programmer.
-- A `28C16` EEPROM-based adapter was described at `http://www.brinkleyelectronics.com/adp/adp_fr.htm`, archived at `https://web.archive.org/web/20260113032804/http://www.brinkleyelectronics.com/adp/adp_fr.htm`
+- A `28C16` EEPROM-based adapter was described at `http://www.brinkleyelectronics.com/adp/adp_fr.htm`, archived at `https://web.archive.org/web/20090212123845/http://www.brinkleyelectronics.com/adp/adp_fr.htm`
 - The article warns that EEPROM access time may be too slow; the example `28C16` access time is reported as `100-200 ns`.
 
 Decoding PROM image:
-- `74S287`: `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/74s287.jpg`
+- `74S287`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/74s287.jpg`
 
 ## Other Component Notes
 
@@ -220,7 +232,7 @@ Other display compatibility notes:
 - Kingbright `SA03-12HDB` was listed as an alternative, Farnell code `1318269`, reported at `1.02 EUR`.
 
 Display image:
-- `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/display.jpg`
+- `https://computerhistory.it/images/stories/retrocomputing/amico2000/display.jpg`
 
 ### Crystal
 
@@ -240,7 +252,7 @@ Reported sourcing detail:
 - Not available at Farnell or RS at the time.
 
 Crystal image:
-- `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/hc33.jpg`
+- `https://computerhistory.it/images/stories/retrocomputing/amico2000/hc33.jpg`
 
 ### Keys
 
@@ -264,15 +276,17 @@ Reported sourcing details:
 The article notes that the key pinout is unusual, making alternative parts from other manufacturers difficult to identify.
 
 Key-related references:
-- Digi-Key: `https://web.archive.org/web/20260113032804/http://www.digikey.com/`
-- Cedelettronica: `https://web.archive.org/web/20260113032804/http://www.cedelettronica.com/`
-- Ready Components: `https://web.archive.org/web/20260113032804/http://www.readycomponents.com/`
-- Grazia Componenti catalog: `https://web.archive.org/web/20260113032804/http://www.graziacomponenti.it/catalogo/244.pdf`
+- Digi-Key: `http://www.digikey.com/`
+- Cedelettronica: `http://www.cedelettronica.com/`
+- Ready Components: `http://www.readycomponents.com/`
+- Grazia Componenti catalog: `http://www.graziacomponenti.it/catalogo/244.pdf` (no longer answers, and the Wayback Machine has no copy)
+
+Digi-Key and Ready Components refused the automated check, which says nothing about whether they are there; they are given as the article gives them.
 
 Key images:
-- Key photo: `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/tasto.jpg`
-- Key layout image: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/layout_tasto.jpg`
-- Key without cap: `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/tasto_nocap.jpg`
+- Key photo: `https://computerhistory.it/images/stories/retrocomputing/amico2000/tasto.jpg`
+- Key layout image: `https://computerhistory.it/images/stories/retrocomputing/amico2000/layout_tasto.jpg`
+- Key without cap: `https://computerhistory.it/images/stories/retrocomputing/amico2000/tasto_nocap.jpg`
 
 ### Display Driver
 
@@ -303,11 +317,11 @@ Reported substitutes:
 - RS `115-6283`, reported at `6.95 EUR` for 5 pieces
 
 Switch images:
-- `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/200180f.jpg`
-- `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/200180z.jpg`
-- `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/202560f.jpg`
-- `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/202560z.jpg`
-- `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/1156283.jpg`
+- `https://computerhistory.it/images/stories/retrocomputing/amico2000/200180f.jpg`
+- `https://computerhistory.it/images/stories/retrocomputing/amico2000/200180z.jpg`
+- `https://computerhistory.it/images/stories/retrocomputing/amico2000/202560f.jpg`
+- `https://computerhistory.it/images/stories/retrocomputing/amico2000/202560z.jpg`
+- `https://computerhistory.it/images/stories/retrocomputing/amico2000/1156283.jpg`
 
 ### 40-Pin Connector
 
@@ -323,22 +337,22 @@ Reported sourcing details:
 - Not needed for the base board.
 
 Connector image:
-- `https://web.archive.org/web/20260113032804im_/https://computerhistory.it/images/stories/retrocomputing/amico2000/connettore.jpg`
+- `https://computerhistory.it/images/stories/retrocomputing/amico2000/connettore.jpg`
 
 ## Datasheets Linked From The Article
 
-- CPU `6502`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/r6502.pdf`
-- Fairchild PROM `93448`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/93448.pdf`
-- Signetics PROM `82S141`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/82s141.pdf`
-- National PROM `74S287`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/74s287.pdf`
-- Signetics PROM cross-reference: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/signetics_cross_reference.pdf`
-- EPROM `2716` / `2732`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/2716-32.pdf`
-- Texas Instruments `TMS4045`: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/tms4045.pdf`
-- Fairchild `MAN72` display: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/display_man72.pdf`
-- `8255` I/O interface: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/8255.pdf`
-- `ULN2003` display driver: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/uln2003.pdf`
-- ITT `MDP` key series: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/tasti_itt_mdp.pdf`
-- 3M 40-pin flat connector: `https://web.archive.org/web/20260113032804/https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/connettore_3m.pdf`
+- CPU `6502`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/r6502.pdf`
+- Fairchild PROM `93448`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/93448.pdf`
+- Signetics PROM `82S141`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/82s141.pdf`
+- National PROM `74S287`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/74s287.pdf`
+- Signetics PROM cross-reference: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/signetics_cross_reference.pdf`
+- EPROM `2716` / `2732`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/2716-32.pdf`
+- Texas Instruments `TMS4045`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/tms4045.pdf`
+- Fairchild `MAN72` display: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/display_man72.pdf`
+- `8255` I/O interface: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/8255.pdf`
+- `ULN2003` display driver: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/uln2003.pdf`
+- ITT `MDP` key series: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/tasti_itt_mdp.pdf`
+- 3M 40-pin flat connector: `https://computerhistory.it/images/stories/retrocomputing/amico2000/pdf/connettore_3m.pdf`
 
 ## PROM Contents And Memory Map
 
@@ -348,7 +362,7 @@ The article says the machine has four PROMs:
 
 Only two PROMs are needed for the base-board version.
 
-The four PROM image files linked below are not part of the 2026-01-13 snapshot this file was written from. The Wayback Machine held no copy of them, so links built from that snapshot's timestamp returned 404. They were captured from the live site on 2026-11-21, and the links below point at those captures.
+The four PROM image files are given below at their live addresses. Each also has an archived copy: the Wayback Machine held none of them until they were captured from the live site on 2026-11-21, and those captures are listed beside the live links. The table has what each file must be, whichever copy is used.
 
 | File | Bytes | SHA-256 |
 | --- | --- | --- |
@@ -364,14 +378,16 @@ The four PROM image files linked below are not part of the 2026-01-13 snapshot t
 The monitor ROM contents were published in the book `Costruiamo un vero microelaboratore elettronico`, and likely also in the magazine. Davide supplied a monitor ROM file that he had manually copied from the magazine.
 
 Download:
-- `amico2000_replica_PROM_IC9.bin`: `https://web.archive.org/web/20261121165217/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC9.bin`
+- `amico2000_replica_PROM_IC9.bin`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC9.bin`
+- Archived copy: `https://web.archive.org/web/20261121165217/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC9.bin`
 
 ### Cassette Software ROM IC10
 
 The second software ROM contained cassette-recorder management code. The article says the contents were not known to have been published. Mario, who owned an original AMICO 2000, read and supplied the ROM contents. The cassette ROM is not required for base-machine operation.
 
 Download:
-- `amico2000_replica_PROM_IC10.bin`: `https://web.archive.org/web/20261121165202/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC10.bin`
+- `amico2000_replica_PROM_IC10.bin`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC10.bin`
+- Archived copy: `https://web.archive.org/web/20261121165202/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC10.bin`
 
 ### Address-Decoding PROMs IC6 / IC7
 
@@ -429,7 +445,8 @@ The article says the following 4-bit output patterns define the standard `IC6` d
 | `FE-FF` | Monitor ROM | `1110 = E` |
 
 Download:
-- `amico2000_replica_PROM_IC6.bin`: `https://web.archive.org/web/20261121165223/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC6.bin`
+- `amico2000_replica_PROM_IC6.bin`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC6.bin`
+- Archived copy: `https://web.archive.org/web/20261121165223/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC6.bin`
 
 ### IC7 PROM Patterns
 
@@ -440,47 +457,48 @@ The article says `IC7` can be generated analogously.
 | `FB-FC` | Cassette ROM | `1110 = E` |
 
 Download:
-- `amico2000_replica_PROM_IC7.bin`: `https://web.archive.org/web/20261121165506/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC7.bin`
+- `amico2000_replica_PROM_IC7.bin`: `https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC7.bin`
+- Archived copy: `https://web.archive.org/web/20261121165506/https://computerhistory.it/images/stories/retrocomputing/amico2000/amico2000_replica_PROM_IC7.bin`
 
 ## Documentation Links Listed In The Article
 
 ### Book
 
-- `Costruiamo un vero elaboratore elettronico`: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Costruiamo_un_vero_elaboratore_elettronico.pdf`
+- `Costruiamo un vero elaboratore elettronico`: `https://web.archive.org/web/20240517174501/http://www.hp64000.net/scansioni/Amico2000/Costruiamo_un_vero_elaboratore_elettronico.pdf`
 
 ### Sperimentare Articles
 
-- Part I, `Sperimentare`, December 1978: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte1.pdf`
-- Part II, `Sperimentare`, January 1979: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte2.pdf`
-- Part III, `Sperimentare`, March 1979, HTML scan: `https://web.archive.org/web/20260113032804/http://www.webalice.it/mrlncrl/sperimentare/sperimentare_MAR79.html`
-- Part III, `Sperimentare`, March 1979, PDF scan: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte3.pdf`
-- Part IV, `Sperimentare`, May 1979, Webalice scan: `https://web.archive.org/web/20260113032804/http://www.webalice.it/mrlncrl/sperimentare/amico2000-4-mag79.pdf`
-- Part IV, `Sperimentare`, May 1979, HP64000 scan: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte4.pdf`
-- Part V, `Sperimentare`, June 1979: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte5.pdf`
-- Part VI, `Sperimentare`, July/August 1979: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte6.pdf`
-- Part VII, `Sperimentare`, September 1979: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte7.pdf`
-- Part IIX, `Sperimentare`, October 1979: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte8.pdf`
-- Part IX, `Sperimentare`, November 1979: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte9.pdf`
-- Part X, `Sperimentare`, issue/date unknown on the source page: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte10.pdf`
-- Part XI, `Sperimentare`, March 1980: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte11.pdf`
-- Part XII, `Sperimentare`, June 1980: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte12.pdf`
-- Part XIII, `Sperimentare`, July/August 1980, ElettroSurplus scan: `https://web.archive.org/web/20260113032804/http://www.elettrosurplus.com/files/AA2000-Sperimentare-7-8.pdf`
-- Part XIII, `Sperimentare`, July/August 1980, HP64000 scan: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte13.pdf`
-- Part XIV, `Sperimentare`, September 1980: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte14.pdf`
-- Part XV, `Sperimentare`, October 1980: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte15.pdf`
-- Part XVI, `Sperimentare`, December 1980, ElettroSurplus scan: `https://web.archive.org/web/20260113032804/http://www.elettrosurplus.com/files/AA2000-Sperimentare-12.pdf`
-- Part XVI, `Sperimentare`, December 1980, HP64000 scan: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte16.pdf`
-- Part XVII, `Sperimentare`, January 1981, Webalice scan: `https://web.archive.org/web/20260113032804/http://www.webalice.it/mrlncrl/sperimentare/amico2000-17-gen81.pdf`
-- Part XVII, `Sperimentare`, January 1981, HP64000 scan: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte17.pdf`
-- Part XVIII, `Sperimentare`, June 1981: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte18-1.pdf`
-- Unnumbered or continuation article, `Sperimentare`, July/August 1982: `https://web.archive.org/web/20260113032804/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte18-2.pdf`
+- Part I, `Sperimentare`, December 1978: `https://web.archive.org/web/20250620214936/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte1.pdf`
+- Part II, `Sperimentare`, January 1979: `https://web.archive.org/web/20250620215326/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte2.pdf`
+- Part III, `Sperimentare`, March 1979, HTML scan: `https://web.archive.org/web/20180106030058/http://www.webalice.it/mrlncrl/sperimentare/sperimentare_MAR79.html`
+- Part III, `Sperimentare`, March 1979, PDF scan: `https://web.archive.org/web/20250620220140/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte3.pdf`
+- Part IV, `Sperimentare`, May 1979, Webalice scan: `https://web.archive.org/web/20161109074554/http://www.webalice.it/mrlncrl/sperimentare/amico2000-4-mag79.pdf`
+- Part IV, `Sperimentare`, May 1979, HP64000 scan: `https://web.archive.org/web/20250717115718/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte4.pdf`
+- Part V, `Sperimentare`, June 1979: `https://web.archive.org/web/20250620222040/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte5.pdf`
+- Part VI, `Sperimentare`, July/August 1979: `https://web.archive.org/web/20240528091145/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte6.pdf`
+- Part VII, `Sperimentare`, September 1979: `https://web.archive.org/web/20250620223424/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte7.pdf`
+- Part IIX, `Sperimentare`, October 1979: `https://web.archive.org/web/20240528152229/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte8.pdf`
+- Part IX, `Sperimentare`, November 1979: `https://web.archive.org/web/20250620224801/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte9.pdf`
+- Part X, `Sperimentare`, issue/date unknown on the source page: `https://web.archive.org/web/20250717115541/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte10.pdf`
+- Part XI, `Sperimentare`, March 1980: `https://web.archive.org/web/20250620221142/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte11.pdf`
+- Part XII, `Sperimentare`, June 1980: `https://web.archive.org/web/20250620221704/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte12.pdf`
+- Part XIII, `Sperimentare`, July/August 1980, ElettroSurplus scan: `http://www.elettrosurplus.com/files/AA2000-Sperimentare-7-8.pdf`
+- Part XIII, `Sperimentare`, July/August 1980, HP64000 scan: `https://web.archive.org/web/20250717120625/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte13.pdf`
+- Part XIV, `Sperimentare`, September 1980: `https://web.archive.org/web/20250620222215/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte14.pdf`
+- Part XV, `Sperimentare`, October 1980: `https://web.archive.org/web/20250518065019/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte15.pdf`
+- Part XVI, `Sperimentare`, December 1980, ElettroSurplus scan: `http://www.elettrosurplus.com/files/AA2000-Sperimentare-12.pdf`
+- Part XVI, `Sperimentare`, December 1980, HP64000 scan: `https://web.archive.org/web/20240518133942/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte16.pdf`
+- Part XVII, `Sperimentare`, January 1981, Webalice scan: `http://www.webalice.it/mrlncrl/sperimentare/amico2000-17-gen81.pdf` (no longer answers, and the Wayback Machine has no copy; the HP64000 scan of the same part follows)
+- Part XVII, `Sperimentare`, January 1981, HP64000 scan: `https://web.archive.org/web/20240531082910/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte17.pdf`
+- Part XVIII, `Sperimentare`, June 1981: `https://web.archive.org/web/20250620214317/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte18-1.pdf`
+- Unnumbered or continuation article, `Sperimentare`, July/August 1982: `https://web.archive.org/web/20240803194626/http://www.hp64000.net/scansioni/Amico2000/Amico2000_Parte18-2.pdf`
 
 Note: the source page labels Part VIII as `IIX`; this file preserves that label as source data.
 
 ### Other Magazine Articles
 
-- `A.S.E.L. Amico 2000`, `M&P Computer 11`: `https://web.archive.org/web/20260113032804/http://www.elettrosurplus.com/files/A2000-mep-2.pdf`
-- `L'Amico 2000`, `Elettronica 2000`, hosted on ComputerHistory.it: `https://web.archive.org/web/20260113032804/https://computerhistory.it/index.php?option=com_docman&task=doc_download&gid=63&Itemid=96`
+- `A.S.E.L. Amico 2000`, `M&P Computer 11`: `http://www.elettrosurplus.com/files/A2000-mep-2.pdf`
+- `L'Amico 2000`, `Elettronica 2000`, hosted on ComputerHistory.it: `https://computerhistory.it/component/phocadownload/file/11-articolo-l-amico-2000-di-elettronica-2000`. This is the address the site's main Amico 2000 page uses. The reconstruction article's own link to it, `https://computerhistory.it/index.php?option=com_docman&task=doc_download&gid=63&Itemid=96`, no longer answers; an archived copy of the PDF it gave: `https://web.archive.org/web/20130512223700/https://computerhistory.it/index.php?option=com_docman&task=doc_download&gid=63&Itemid=96`
 
 ## Acknowledgements Listed In The Article
 

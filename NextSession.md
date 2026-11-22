@@ -21,10 +21,12 @@ hardware over convenience abstractions. Priority order:
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
   merged on request. Pull request 47,
-  `https://github.com/ascasso/amico2000/pull/47`, carries the cassette work of
-  2026-11-21 and was open when this was written.
+  `https://github.com/ascasso/amico2000/pull/47`, took the cassette work of
+  2026-11-21 into `master` that evening, so it is live. What was committed
+  after it, the ComputerHistory.it links and this file's own update, is on
+  `develop` and waits for the next pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 171
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 179
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -33,6 +35,8 @@ hardware over convenience abstractions. Priority order:
   go dark when nothing is scanning them, as on the board.
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
   PROM (IC10).
+- **Keys:** all 23 work. HLT is the NMI line and halts a running program,
+  which RUN then resumes.
 - **Cassette:** LOAD and SAVE work on the emulator's own tape records, which
   come and go as `.amtape` files or as `.wav` sound files. By default they
   are trapped at `$FC54` and `$FBBC` and instant. With **Cassette: Real
@@ -45,16 +49,20 @@ hardware over convenience abstractions. Priority order:
 
 In rough priority order. None of it is started.
 
-1. **HLT is not emulated.** The manual says only that HLT "genera una
-   interruzione a livello CPU". Establish which line it drives, NMI or IRQ,
-   and what the RAM vectors at `$03FC-$03FF` should hold when it fires; the
-   emulator's seed of `$FE30` is its own choice, not the ROM's. Lead: the
-   supplement's schematic, whose CPU block is on PDF page 25 (render it with
-   `pdftoppm -r 400 -f 25 -l 25 -png`; the PDF is too large for the Read tool).
-   A second lead, unverified: the routine at `$FE00` saves the registers and
-   the interrupted PC (which REG then recalls) and is reachable only through
-   those RAM vectors, so HLT with a vector to `$FE00`, then REG and RUN, may be
-   the intended halt-and-resume.
+1. **Single step is not emulated.** HLT now works (`AGENTS.md`, HLT and the
+   NMI Line), and the NOR/SS slide switch beside it is the same NMI line.
+   The circuit is read from the CPU schematic and written down in that
+   section: with the switch at SS, every instruction fetched from outside the
+   monitor PROM raises an NMI, so the CPU executes one instruction and the
+   monitor shows the address of the next. What building it takes: make the
+   switch on the page move, and in the machine layer raise an NMI before each
+   instruction whose address is below `$FE00` while the switch is at SS. The
+   manual's own walk-through on pages 85 and 86 of the supplement is the
+   test: RUN shows the second instruction's address, each further RUN one
+   more, and the registers are read at `$F3-$FE`.
+   Two decisions were made for HLT and are the owner's to overrule: the
+   power-on NMI vector is `$FE00` where the board has nothing in particular,
+   and the IRQ vector, where a `BRK` goes, was left at `$FE30`.
 2. **Machine-layer checks** for display multiplexing, pattern by pattern (how
    Port A and Port B writes become the six-pattern buffer; when digits go
    dark is covered), and the `$FD00-$FDFF` partial decoding.
@@ -72,10 +80,10 @@ In rough priority order. None of it is started.
      Reflowing it is an owner decision.
    - The measurement table and the browser-check scripts live with the
      private photographs, outside the repository. Whether they belong in it
-     is the owner's call.
-5. **Archive links:** in `docs/computerhistory-amico2000.md`, every link other
-   than the four PROM images is untested.
-6. **Speed multiplier, requested by the owner, not started.** Three settings:
+     is the owner's call. The three checks of the cassette written on
+     2026-11-21 are there too, as `cassette-files.mjs`, `cassette-realtime.mjs`
+     and `cassette-instant.mjs`; they hold nothing private.
+5. **Speed multiplier, requested by the owner, not started.** Three settings:
    **1x**, the default, which is today's behaviour and stays as close to the
    real board as the emulator can manage; **10x**; and **Max**, as fast as
    the browser can run it.
@@ -95,9 +103,10 @@ In rough priority order. None of it is started.
      scan loop, so Max keeps a processor core busy while the page is open.
    - Unaffected: the trapped cassette LOAD and SAVE, which are instant at any
      speed. The real-time cassette keeps time by CPU cycles, so it would run
-     faster with the processor, which is probably what a user wants from it. The display is still drawn once per frame, so a program that
-     animates the digits shows only some of its steps.
-7. **Ideas, not started:** a pass on wear and physical irregularity, sound,
+     faster with the processor, which is probably what a user wants from it.
+   - The display is still drawn once per frame, so a program that animates
+     the digits shows only some of its steps.
+6. **Ideas, not started:** a pass on wear and physical irregularity, sound,
    and a desk scene around the board.
 
 ## Cassette Work (Secondary)
@@ -155,6 +164,11 @@ In rough priority order. None of it is started.
   through the protocol are not subject to the page's CSP, and
   `requestAnimationFrame` runs at 60 Hz. Avoid `--virtual-time-budget`, which
   stops `requestAnimationFrame` and so the emulator. The page also runs from
-  `file://`.
+  `file://`. The cassette in real time has to be watched in real time: a
+  SAVE and a LOAD are over twenty seconds between them.
+- A pull request gets an automated review when it is opened. Its findings
+  are worth reading and are not always right: of the two on pull request 47,
+  one was a real bug and one misread a commit's date. `AGENTS.md` now has a
+  test for the date.
 - If behavior and documents disagree, trust the ROM, the manual and verified
   behavior, and fix the documents.

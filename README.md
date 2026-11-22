@@ -43,13 +43,15 @@ amico2000/
 | RUN       | Enter or G |
 | REG       | R |
 | RES       | Escape or Backspace |
-| HLT       | not emulated |
+| HLT       | H |
 
 Each key reaches the monitor as the code its ROM expects: the emulator's key
 matrix follows the monitor's own decode routine, and
 `tests/keyboard-matrix.test.js` checks every key against it. HLT is not part
-of that matrix: on the board it raises a CPU interrupt, and the manual does not
-say which one, so it is not emulated.
+of that matrix. On the board it is wired to the processor's NMI line, and so
+it is here: it interrupts a running program, the monitor shows the address it
+had reached with the registers saved, and RUN takes it up again. A program
+can also take the interrupt for itself; the user guide has both.
 
 RES is wired the way it is on the real board: it drives the processor's reset
 line rather than sitting in the scanned key matrix (#30). So it stops whatever
@@ -60,7 +62,9 @@ the monitor. Your program and anything you typed into RAM are left alone.
 The **Cold reset** button under Bench controls is the harder one: it clears all
 of RAM the way switching the board off and on does. Reach for it if a program
 has overwritten the monitor's RAM-resident interrupt vectors at $03FC-$03FF,
-which RES does not restore because on the real machine it cannot.
+which RES does not restore because on the real machine it cannot. HLT goes
+through the first of them, so that is also how to get HLT back after a
+program has pointed it somewhere of its own.
 
 ## 🎮 How to Use
 
@@ -280,7 +284,11 @@ Scans on the Internet Archive:
 
 - **Original Design**: ASEL Milano, 1978
 - **Documentation**: Sperimentare magazine
-- **Preservation**: [ComputerHistory.it](https://web.archive.org/web/20260113032804/https://computerhistory.it/index.php?option=com_content&view=article&id=85&Itemid=117) (via Wayback Machine)
+- **Preservation**: ComputerHistory.it, for its
+  [page on the AMICO 2000](https://computerhistory.it/computer/asel/amico-2000)
+  and its account of
+  [rebuilding one](https://computerhistory.it/retrocomputing/retro-ricostruzioni/amico-2000),
+  which is where the PROM images come from
 - **Emulator**: Andrea Scasso, 2025
 
 ## 📄 License

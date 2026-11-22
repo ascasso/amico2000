@@ -94,9 +94,7 @@ class Amico2000 {
         // key against the ROM decode.
         //
         // RES and HLT are not in the matrix. RES drives the reset line (see
-        // resetKeys). HLT, per the manual, "genera una interruzione a livello
-        // CPU"; which interrupt line it drives is not documented, so it is not
-        // emulated and has no keyboard shortcut.
+        // resetKeys) and HLT the NMI line (see haltKeys).
         this.keyMap = {
             '0': [0, 6], '1': [0, 5], '2': [0, 4], '3': [0, 3],
             '4': [0, 2], '5': [0, 1], '6': [0, 0], '7': [1, 6],
@@ -127,7 +125,14 @@ class Amico2000 {
         // They used to sit in the matrix at positions they shared with other
         // keys, so pressing Escape also typed AD and Backspace also typed 5.
         this.resetKeys = new Set(['Escape', 'Backspace']);
-        
+
+        // HLT is not a matrix key either. It drives the 6502's NMI line; see
+        // hlt(). `haltKeyDown` remembers that the key is held, because the
+        // line gives one falling edge for one press however long the key
+        // stays down, and a held keyboard key repeats its keydown events.
+        this.haltKeys = new Set(['h']);
+        this.haltKeyDown = false;
+
         // Single-step mode
         this.singleStep = false;
         
@@ -646,6 +651,15 @@ class Amico2000 {
             return;
         }
 
+        if (this.isHaltKey(key)) {
+            if (!this.haltKeyDown) {
+                this.haltKeyDown = true;
+                if (this._keyboardDebug()) console.log(`Key pressed: "${key}" -> HLT (NMI line)`);
+                this.hlt();
+            }
+            return;
+        }
+
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
             this.keyMatrix[pos[0]][pos[1]] = true;
@@ -673,6 +687,13 @@ class Amico2000 {
         // release and no way for it to leave a cell stuck down (#30).
         if (this.isResetKey(key)) return;
 
+        // Releasing HLT lets the NMI line rise again, which interrupts
+        // nothing; it only makes the next press a new edge.
+        if (this.isHaltKey(key)) {
+            this.haltKeyDown = false;
+            return;
+        }
+
         const pos = this.keyMap[key] || this.altKeyMap[key];
         if (pos) {
             if (this._keyboardDebug()) console.log(`Key released: "${key}" -> Row ${pos[0]}, Col ${pos[1]}`);
@@ -686,6 +707,38 @@ class Amico2000 {
      */
     isResetKey(key) {
         return this.resetKeys.has(key);
+    }
+
+    /** Is this key HLT? `main.js` asks, as it does for RES. */
+    isHaltKey(key) {
+        return this.haltKeys.has(key);
+    }
+
+    /**
+     * HLT: put a falling edge on the 6502's NMI line, which is all the board's
+     * HLT key does.
+     *
+     * The manual says so in as many words, in its chapter on interrupts
+     * (supplement page 85): "il tasto di HALT (HLT) quando è premuto genera su
+     * NMI (piedino 6) un fronte di discesa di tensione". The CPU schematic
+     * (page 25) shows how: the key closes to ground against R3, with C4 to
+     * take out the bounce, and goes through an inverter of IC3 and one
+     * open-collector gate of IC4 onto the NMI line, which R4 pulls up. The
+     * key's own description is only "genera una interruzione a livello CPU".
+     *
+     * What happens next is not the key's doing. The CPU finishes its
+     * instruction, pushes the program counter and the status, and goes
+     * through the vector at $FFFA to $FE1C in the monitor, which is one
+     * instruction: JMP ($03FC). So the NMI lands wherever the two bytes of
+     * RAM at $03FC/$03FD point. The monitor never writes them; a program
+     * that wants the interrupt stores its routine's address there first, as
+     * the manual's example does, and the monitor's own routine for the
+     * purpose is at $FE00. See the note on the power-on seed in reset().
+     *
+     * NMI is taken on the edge, so this is one interrupt for one press.
+     */
+    hlt() {
+        this.cpu.nmi();
     }
 
     /**
@@ -710,11 +763,12 @@ class Amico2000 {
             '8': '8', '9': '9', 'a': 'a', 'b': 'b',
             'c': 'c', 'd': 'd', 'e': 'e', 'f': 'f',
             'ad': 'ArrowUp', 'da': 'ArrowDown', 'reg': 'r',
-            '+': '+', 'go': 'Enter', 'res': 'Escape'
-            // 'pc' (the HLT button) is deliberately absent: HLT is an
-            // interrupt line, not a matrix key, and is not emulated.
+            '+': '+', 'go': 'Enter', 'res': 'Escape',
+            // The HLT button, whose data-key is still 'pc' from when it was
+            // labelled after an emulator function.
+            'pc': 'h'
         };
-        
+
         const key = nameToKey[keyName];
         if (!key) return;
 
@@ -724,6 +778,13 @@ class Amico2000 {
         // keyDown() has already done all of it. Scheduling a release would
         // only queue a timer that has nothing to clear.
         if (this.isResetKey(key)) return;
+
+        // HLT is an edge as well, already given. Its release is immediate, so
+        // that a second click is a second press whatever the timers do.
+        if (this.isHaltKey(key)) {
+            this.keyUp(key);
+            return;
+        }
 
         // Auto-release after 100ms (simulates key click)
         setTimeout(() => this.keyUp(key), 100);
@@ -1121,13 +1182,34 @@ class Amico2000 {
             this.cpu.memory[i] = 0x00;
         }
 
-        // Initialize ROM's IRQ/NMI vectors in RAM to point to main loop
-        // The ROM uses indirect jumps through these RAM locations:
+        // The monitor reaches its interrupt routines through two addresses
+        // kept in RAM:
         // $03FC/$03FD = NMI vector ($FFFA -> $FE1C: JMP ($03FC))
         // $03FE/$03FF = IRQ/BRK vector ($FFFE -> $FE1F: JMP ($03FE))
-        // Point both to $FE30 (main monitor loop) as safe default
-        this.cpu.memory[0x03FC] = 0x30;  // Low byte of $FE30
-        this.cpu.memory[0x03FD] = 0xFE;  // High byte of $FE30
+        //
+        // On the board these four bytes hold whatever the RAM powered up
+        // with. The monitor never writes them: its only mention of either
+        // address is the two indirect jumps. The manual has the user store a
+        // vector before using an interrupt, "00 e FE rispettivamente alle
+        // locazioni 03FC e 03FD" for the monitor's own routine (supplement
+        // page 85). An emulator has to put something there, and what it puts
+        // is its own choice, not the ROM's.
+        //
+        // NMI gets $FE00, the address the manual gives. That is the monitor's
+        // routine for the purpose: it saves A, X, Y, the status, the stack
+        // pointer and the interrupted program counter at $F3-$FE, shows that
+        // program counter on the displays and goes to the main loop, from
+        // where RUN picks the program up again. With it in place the HLT key
+        // halts a running program, as its name says, without the user keying
+        // the vector first. It used to be $FE30, the monitor's main loop,
+        // chosen before HLT did anything; an NMI sent there got back to the
+        // monitor but saved nothing of the program it had stopped.
+        //
+        // IRQ, which is also where a BRK goes, is still $FE30. No key on the
+        // board raises it, and a program that runs into a BRK lands in the
+        // monitor as it has always done here.
+        this.cpu.memory[0x03FC] = 0x00;  // Low byte of $FE00
+        this.cpu.memory[0x03FD] = 0xFE;  // High byte of $FE00
         this.cpu.memory[0x03FE] = 0x30;  // Low byte of $FE30
         this.cpu.memory[0x03FF] = 0xFE;  // High byte of $FE30
 
@@ -1167,6 +1249,9 @@ class Amico2000 {
         for (const row of this.keyMatrix) {
             row.fill(false);
         }
+        // Nor may HLT stay marked as held, or a release the page never saw
+        // would leave the key dead.
+        this.haltKeyDown = false;
 
         // Unhalt CPU if it was halted
         this.cpu.halted = false;
