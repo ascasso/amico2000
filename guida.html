@@ -177,7 +177,7 @@
             <code>$0020</code> con AD.</p>
         <p>Per caricare ed eseguire un programma senza batterlo sui tasti,
             usate l'esempio per la console più sotto. Se un programma non
-            ritorna al monitor, RES vi rimedia.</p>
+            ritorna al monitor, basta premere RES.</p>
     </section>
 
     <section id="hlt">
@@ -195,9 +195,10 @@
             <li>Mentre il programma gira, premete <strong>HLT</strong>. I
                 display si riaccendono e mostrano l'indirizzo dell'istruzione
                 che stava per essere eseguita e il byte che vi si trova.</li>
-            <li>Guardatevi intorno. All'arresto i registri sono stati
-                salvati, e potete leggerli o modificarli come qualsiasi altra
-                locazione di memoria:
+            <li>A questo punto potete esaminare il contenuto di qualsiasi
+                registro o locazione di memoria. All'arresto i registri sono
+                stati salvati, e si leggono o si modificano come qualsiasi
+                altra locazione:
                 <code>$00F3</code> accumulatore, <code>$00F4</code> Y,
                 <code>$00F5</code> X, <code>$00F6/$00F7</code> program
                 counter, <code>$00FD</code> registro di stato,
@@ -426,8 +427,8 @@ amico.start();</code></pre>
             scegliete voi, con i pulsanti <strong>Cassetta</strong> dei
             Comandi dell'emulatore:</p>
         <ul>
-            <li><strong>Immediata</strong>, la scelta iniziale: quando fate
-                partire con RUN l'uno o l'altro indirizzo, l'emulatore
+            <li><strong>Immediata</strong>, la scelta iniziale: quando
+                partite con RUN dall'uno o dall'altro indirizzo, l'emulatore
                 interviene e fa subito il lavoro del programma, leggendo o
                 scrivendo la propria raccolta di programmi.</li>
             <li><strong>Tempo reale</strong>: girano i programmi originali,
@@ -477,12 +478,12 @@ amico.start();</code></pre>
             <code>$0004</code>. Per <code>$0200-$0206</code> con
             identificatore <code>01</code> i cinque byte sono
             <code>00 02 06 02 01</code>.</p>
-        <p>Fate partire con RUN da <code>$FBBC</code> per eseguire il SAVE.
-            Tornati al monitor, eseguite <code>debug.saveTape()</code> nella
-            console del browser per scaricare un file <code>.amtape</code>.
-            Il solo SAVE conserva la registrazione soltanto finché la pagina
-            resta aperta: scaricatela prima di chiudere o ricaricare la
-            pagina.</p>
+        <p>Selezionate <code>$FBBC</code> con AD e premete RUN per eseguire
+            il SAVE. Tornati al monitor, eseguite
+            <code>debug.saveTape()</code> nella console del browser per
+            scaricare un file <code>.amtape</code>. Il solo SAVE conserva la
+            registrazione soltanto finché la pagina resta aperta: scaricatela
+            prima di chiudere o ricaricare la pagina.</p>
         <p>Il SAVE lascia gli indirizzi e l'identificatore in
             <code>$0000-$0004</code> come li avete introdotti, come fa il
             programma vero: potete così modificare il programma e
@@ -574,7 +575,7 @@ amico.start();</code></pre>
             frequenze di campionamento usuali da 11 kHz in su, mono o stereo,
             e non più grande di 64 MB. Convertite prima un MP3 o un FLAC,
             tagliate in pezzi una registrazione lunga, e lasciate disinseriti
-            la riduzione del rumore e ogni altra elaborazione. Comprendete il
+            la riduzione del rumore e ogni altra elaborazione. Conservate il
             ticchettio regolare che precede ogni programma: è la coda, di cui
             il programma di lettura ha bisogno.</p>
         <p><strong>Per scriverne una</strong> fate il SAVE del programma come
@@ -614,8 +615,9 @@ amico.start();</code></pre>
             <li><strong>HLT non fa nulla di utile, o manda tutto in
                 blocco:</strong> un programma ha cambiato i due byte in
                 <code>$03FC/$03FD</code>, che dicono dove va l'interruzione.
-                Premete RES, poi reintroducetevi <code>00</code> e
-                <code>FE</code>, oppure usate Reset a freddo.</li>
+                Premete RES, poi introducete di nuovo <code>00</code> e
+                <code>FE</code> in quelle due locazioni, oppure usate Reset a
+                freddo.</li>
             <li><strong>I display si sono spenti:</strong> sta girando un
                 programma che non li rinfresca. Il monitor accende le cifre
                 scandendole molte volte al secondo; quando il controllo passa

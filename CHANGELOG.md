@@ -649,6 +649,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - A WAV file without its data was said to "contain no sound", which reads
     as a silent recording. A silent recording is read like any other. The
     message now says the file has no audio data.
+- Reworded Italian that was correct in what it meant but did not read as
+  Italian, most of it English carried across word for word. Three passages
+  are the review's and four turned up when the rest was read again for the
+  same faults:
+  - The tooltips of the LEDs D4-D7 joined "si accende durante..." to "oppure
+    da un vostro programma", which Italian grammar does not allow. Each now
+    ends "può accenderlo anche un vostro programma".
+  - In the guide, "Guardatevi intorno" for "Look around" is now the manual's
+    own way of saying it, "A questo punto potete esaminare il contenuto di
+    qualsiasi registro o locazione di memoria"; and "Comprendete il
+    ticchettio", which reads first as "understand the ticking", is
+    "Conservate il ticchettio".
+  - Also in the guide: "RES vi rimedia" and "reintroducetevi", where "vi"
+    can be read as "you"; and two sentences that had the reader "start an
+    address" with RUN.
 - Corrected what the page and the documentation said about the LEDs D4-D7:
   that they light only with **Cassette: Real time**. They light for any
   program that drives them, at either setting. What is true is that the
