@@ -24,6 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   D4 and D6 again, and LOAD flashes D4 and D7, then D5 and D7, as the manual
   describes. Nothing on the page uses this yet, and with the traps on, which
   is the default, LOAD and SAVE behave as before.
+- Added single step: the NOR/SS slide switch on the board drawing now works.
+  It was drawn and did nothing. On the board it sits on the same NMI line as
+  HLT, through a gate that fires for every instruction fetched from outside
+  the monitor, so at SS the processor executes one instruction of a program
+  and hands back to the monitor. Click the switch across to SS and each RUN
+  executes one instruction and shows the address of the next, with the
+  registers at `$F3-$FE` to be read or changed; click it back to NOR and RUN
+  lets the program go. The monitor itself is never stepped. This is the
+  board's own single step, apart from the bench **Step** button, which is the
+  emulator's. The page always opens with the switch at NOR. The user guide
+  has the manual's procedure under Step through a program.
 - Added the HLT key. It did nothing here, because its description in the
   manual says only that it raises an interrupt and not which. The manual's
   chapter on interrupts and the CPU schematic settle it: HLT puts a falling

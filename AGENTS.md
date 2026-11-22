@@ -191,6 +191,8 @@ Application initialization and UI:
 - The **Cassette** setting, Instant or Real time, remembered in `localStorage`
   under `amico2000.cassetteMode`; the recorder it connects at startup; the
   phase LEDs, drawn from `amico.onPhaseLEDs`; and the recorder's status line
+- The NOR/SS slide switch, `#ss-switch`, which it moves on a click and passes
+  to `amico.setSingleStep()`; never remembered, so the page opens at NOR
 - Debug console commands exposed via global `debug` object
 
 **Memory Map:**
@@ -421,19 +423,40 @@ emulated recorder: pressed during a real cassette routine it brings the
 monitor back, as it would from any program, but the recorder is stopped only
 at `$FE22`, so the tape runs on until RES.
 
-**Single step is the same line and is not emulated.** The schematic has a
-second gate of IC4 on NMI, through the NOR/SS slide switch: a NAND of the
-6502's SYNC output, high while an opcode is fetched, and `CS4`, the monitor
-PROM's chip select, low only for `$FE00-$FFFF`. With the switch at SS, every
-instruction fetched from outside the monitor pulls NMI low, so the CPU
-executes that one instruction and takes the interrupt. With `$FE00` in the
-vector the monitor then shows the address of the next instruction, which is
-what the manual describes on page 85: RUN, and "sul display appare
-l'indirizzo della seconda istruzione del programma". Each RUN after that
-executes one more. Building it needs the switch on the page made to move and
-an NMI raised before each instruction whose address is below `$FE00`.
+**Single step is the same line.** The schematic has a second gate of IC4 on
+NMI, through the NOR/SS slide switch: a NAND of the 6502's SYNC output, high
+while an opcode is fetched, and `CS4`, the monitor PROM's chip select, low
+only for `$FE00-$FFFF`. With the switch at SS, every instruction fetched
+from outside the monitor pulls NMI low, so the CPU executes that one
+instruction and takes the interrupt. With `$FE00` in the vector the monitor
+then shows the address of the next instruction, which is what the manual
+describes on page 85: RUN, and "sul display appare l'indirizzo della seconda
+istruzione del programma". Each RUN after that executes one more.
 
-Covered by `tests/hlt-nmi.test.js`.
+`Amico2000.setSingleStep()` is the switch and `_beforeInstruction()` the
+gate: before each instruction whose address is below `$FE00` it calls
+`cpu.nmi()`, and the CPU core takes a pending NMI before it fetches the next
+one. Things that follow from the circuit and are kept:
+
+- The monitor is never stepped, or it could not run to show anything.
+- Everything else is, the cassette PROM included, since `CS4` is the monitor
+  PROM's select and no other's.
+- With some other routine in the vector, that routine is stepped too, each
+  of its instructions interrupting it again. The manual has the user store
+  `$FE00` first.
+- Moving the switch to SS under a running program stops it, as HLT does.
+
+One thing is the emulator's: a trapped cassette LOAD or SAVE is done before
+anything is fetched, so it is not stepped. And SS is not the bench **Step**
+button, which advances a paused CPU by one instruction of whatever is
+running, the monitor included.
+
+The page's switch is `#ss-switch`, a button with `role="switch"`; `main.js`
+puts the class `ss` on its cell, which moves it and the printed slot. The
+page always opens at NOR.
+
+Covered by `tests/hlt-nmi.test.js` and `tests/single-step.test.js`, the
+second of which follows the manual's walk-through on pages 85 and 86.
 
 ### Keyboard Scanning
 The ROM's TESTAS routine expects specific I/O patterns. The keyboard matrix scanning in amico2000.js matches port B values (1, 3, 5) that the ROM uses to scan rows.
@@ -730,9 +753,9 @@ unit A; the page follows unit B.
 
 **What the scripts depend on.** `main.js` looks up `btn-run`, `btn-step`,
 `btn-reset`, `btn-load`, `led-run`, `reg-pc`, `reg-a`, `reg-x`, `reg-y`,
-`reg-sp`, `reg-flags`, `rom-file`, `display`, `led-d4` to `led-d7` and
-`tape-status`, every `.key` by its `data-key`, and every `.look-btn` and
-`.tape-btn`. Keep those when redrawing. A pressed key is styled through the
+`reg-sp`, `reg-flags`, `rom-file`, `display`, `led-d4` to `led-d7`,
+`tape-status` and `ss-switch`, every `.key` by its `data-key`, and every
+`.look-btn` and `.tape-btn`. Keep those when redrawing. A pressed key is styled through the
 inline `translateY` that `main.js` sets on its button, for mouse, touch and
 keyboard alike, so the keyboard handling does not need to know about the
 artwork.
@@ -742,8 +765,9 @@ so every legend uses a stack of system faces. Each legend's `textLength` pins
 its width, so a substitute face fills the same space; letter shapes still
 vary between systems.
 
-**What is drawn but does nothing.** The NOR/SS switch is not wired to
-single-step. The four LEDs D4-D7 do work, but only while the real cassette
+**What is drawn but does nothing.** Of the things a person operates,
+nothing: the NOR/SS switch is single step (see HLT and the NMI Line). The
+four LEDs D4-D7 work, but only while the real cassette
 routines run, which is the **Cassette: Real time** setting. `main.js` gives
 an LED the class `on`, the lit look taken from unit A, or `on dim` for
 LOAD's quarter-time flashing, a look that is a guess, since no photograph
@@ -829,10 +853,13 @@ When implementing changes based on a GitHub issue:
    which beyond the keypad, resets, ROM protection, PROM image order and
    cassette traps is covered only by browser testing. See
    `docs/6502-conformance.md`
-6. **Single step**: the NOR/SS slide switch is not emulated. How it works is
-   known, and written under HLT and the NMI Line; nothing drives it yet
-7. **Board drawing**: the NOR/SS slide switch is drawn but does nothing, and
-   the LEDs D4-D7 light only with **Cassette: Real time**. The displays do
+6. **Interrupts**: nothing raises IRQ, which on the board comes only from
+   the expansion connector, and the vectors at `$03FC-$03FF` start with
+   values of the emulator's choosing where the board has none; see HLT and
+   the NMI Line
+7. **Board drawing**: the LEDs D4-D7 light only with **Cassette: Real time**,
+   and the NOR/SS switch was photographed only at NOR, so its SS position is
+   the same drawing moved across. The displays do
    not show the 31 ms blink a real board gives when a key is pressed. At window widths under about
    800 pixels the board keeps its size and pans sideways, so on a phone the
    keys and displays, at its right-hand end, are off screen until it is
@@ -917,9 +944,6 @@ None are open at the moment.
   not covered at all.
   `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
   Node and assert on RAM or PIA state.
-- The NOR/SS single-step switch is not emulated. Its circuit is read and
-  written down under HLT and the NMI Line, and `NextSession.md` says what
-  building it would take.
 - Running a known 6502 functional suite is **done** (#18): the core passes Klaus
   Dormann's functional test, pinned in `tests/fixtures/6502-functional/`. Of the
   four areas that motivated it, stack behavior and BCD arithmetic with valid

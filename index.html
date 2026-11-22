@@ -639,6 +639,12 @@
            fifths of its height. The switch body covers the left of the
            box; the rest of the box is the dark slot the slider travels
            into for SS.
+
+           It works: main.js moves it on a click and tells the machine,
+           which at SS interrupts a program after every instruction. The
+           cell gets the class "ss", the switch moves to the right of the
+           box and the slot shows on the left. Only NOR was photographed;
+           the SS position is the same drawing moved across.
            --------------------------------------------------------------- */
 
         .switch-silk {
@@ -664,21 +670,32 @@
         }
 
         .switch-silk .slot { fill: #0b1f17; stroke: none; }
+        .switch-silk .slot-ss { display: none; }
+        .switch-cell.ss .slot-ss { display: inline; }
+        .switch-cell.ss .slot-nor { display: none; }
 
         /* The switch itself: a white moulding with a pale blue slider,
            ribbed for the fingernail, pushed to the left, which is NOR, and
-           a small red mark at the slider's free end. It is not wired to
-           anything in the emulator. */
+           a small red mark at the slider's free end. It is a button, so
+           that it can be reached and worked from the keyboard, with a
+           button's own border and padding taken off. */
         .slide-switch {
             position: absolute;
             left: 1%;
             top: 34.7%;
             width: 58%;
             height: 43.5%;
+            margin: 0;
+            padding: 0;
+            border: 0;
             border-radius: 0.08cqw;
             background: linear-gradient(180deg, #f6f3ef 0%, #e2ded9 100%);
             box-shadow: 0.07cqw 0.11cqw 0.17cqw rgba(0, 0, 0, 0.55);
+            cursor: pointer;
+            transition: left 90ms ease-out;
         }
+
+        .switch-cell.ss .slide-switch { left: 41%; }
 
         .slide-switch::before {
             content: "";
@@ -1318,10 +1335,11 @@
                 <svg class="switch-silk" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
                     <text x="-13" y="19.5" textLength="44.4" lengthAdjust="spacingAndGlyphs">NOR</text>
                     <text x="71.6" y="19.5" textLength="27.5" lengthAdjust="spacingAndGlyphs">SS</text>
-                    <rect class="slot" x="60" y="33" width="38" height="51"/>
+                    <rect class="slot slot-nor" x="60" y="33" width="38" height="51"/>
+                    <rect class="slot slot-ss" x="2" y="33" width="38" height="51"/>
                     <rect x="-0.9" y="28.6" width="102.3" height="60.3"/>
                 </svg>
-                <div class="slide-switch" title="NOR / single-step switch (decorative)"></div>
+                <button type="button" class="slide-switch" id="ss-switch" role="switch" aria-checked="false" aria-label="Single step"></button>
             </div>
             <div class="keycell"><button class="key key-func" data-key="go" aria-label="RUN" title="RUN — start execution (Enter)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="62.6" lengthAdjust="spacingAndGlyphs">RUN</text></svg></button></div>
             <div class="keycell"><button class="key key-func" data-key="+" aria-label="Increment" title="Increment address (+)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><path class="legend-arrow" d="M50,33.5 L56.4,51.5 L51.8,59 V71.5 H48.2 V59 L43.6,51.5 Z"/></svg></button></div>
@@ -1422,6 +1440,11 @@
                 program stops where it is and the monitor shows the address it had
                 reached, with the registers kept; RUN takes it up again from there.
             </p>
+            <p>
+                The slide switch above RES is the board&rsquo;s single step. Click it
+                across to SS and each RUN executes one instruction of your program,
+                then shows the address of the next.
+            </p>
         </section>
 
         <section class="note about">
@@ -1437,8 +1460,8 @@
                 This page runs the original monitor ROM, so entering and executing 6502
                 machine code works the way it did on the real hardware. The layout,
                 silkscreen legends and keycap colours follow photographs of a finished
-                board; the regulator on its heatsink, the capacitors and the slide
-                switch are there for the look of the thing and do nothing.
+                board; the regulator on its heatsink and the capacitors are there
+                for the look of the thing and do nothing.
             </p>
         </section>
 

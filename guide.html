@@ -52,7 +52,7 @@
     <nav aria-label="Guide contents">
         <a href="#getting-started">Getting started</a>
         <a href="#keypad">Keypad and memory</a>
-        <a href="#hlt">HLT and interrupts</a>
+        <a href="#hlt">HLT, interrupts and single step</a>
         <a href="#file-formats">File formats</a>
         <a href="#cassette">Cassette LOAD/SAVE</a>
         <a href="#troubleshooting">Troubleshooting</a>
@@ -72,14 +72,16 @@
                 even from a stuck program, and keeps RAM.</li>
             <li><strong>HLT</strong> (<kbd>H</kbd>) stops a running program
                 without resetting it, so that RUN can take it up again. See
-                <a href="#hlt">HLT and interrupts</a>.</li>
+                <a href="#hlt">HLT, interrupts and single step</a>.</li>
             <li><strong>Cold reset</strong> clears the emulator's 2 KB of RAM.
                 Use it when you want to start over.</li>
             <li>The bench <strong>Stop/Run</strong> button pauses or resumes the
                 processor. Leave it running to use the keypad: the monitor must
                 execute to read your keys.</li>
             <li><strong>Step</strong> executes one CPU instruction while paused.
-                The Processor state panel shows the CPU's live registers.</li>
+                The Processor state panel shows the CPU's live registers. To
+                step through your own program, use the board's NOR/SS switch
+                instead; see <a href="#single-step">Step through a program</a>.</li>
             <li><strong>Displays: Readable / Authentic</strong> changes only how the
                 digits are drawn. Readable, the default, keeps each segment sharp;
                 Authentic adds the glow of a real powered board, which is truer to
@@ -103,7 +105,7 @@
                 <tr><td>RUN</td><td>Enter or <kbd>G</kbd></td></tr>
                 <tr><td>REG (recall the saved program counter)</td><td><kbd>R</kbd></td></tr>
                 <tr><td>HLT (interrupt the processor; see
-                    <a href="#hlt">HLT and interrupts</a>)</td><td><kbd>H</kbd></td></tr>
+                    <a href="#hlt">HLT, interrupts and single step</a>)</td><td><kbd>H</kbd></td></tr>
                 <tr><td>RES</td><td>Escape or Backspace</td></tr>
             </tbody>
         </table>
@@ -133,7 +135,7 @@
     </section>
 
     <section id="hlt">
-        <h2>HLT and interrupts</h2>
+        <h2>HLT, interrupts and single step</h2>
         <p>The HLT key does one thing: it interrupts the processor. On the
             board it is wired to the 6502's NMI line, the interrupt that
             cannot be switched off. What the interrupt then does is up to two
@@ -188,9 +190,38 @@
             point at <code>$0300</code>; key <code>00</code> and
             <code>FE</code> back, or use Cold reset, to have HLT halt programs
             again.</p>
-        <p>The slide switch marked NOR/SS on the board, which steps a program
-            one instruction at a time through the same interrupt, is not
-            emulated yet.</p>
+        <h3 id="single-step">Step through a program</h3>
+        <p>The slide switch above the RES key, marked NOR and SS, is the
+            board's single step. At SS the board raises the same interrupt as
+            HLT by itself, after every instruction of your program, so the
+            program advances one instruction at a time.</p>
+        <ol>
+            <li>Select the program's first address with <strong>AD</strong>,
+                for example <code>0 2 0 0</code>.</li>
+            <li>Click the switch across to <strong>SS</strong>.</li>
+            <li>Press <strong>RUN</strong>. One instruction is executed, and
+                the displays show the address of the next one and the byte
+                there.</li>
+            <li>Press <strong>RUN</strong> again for each further instruction.
+                Calls, returns and branches are followed as they happen.</li>
+            <li>At any stop you can read or change the registers, at the
+                addresses listed above. If you have moved to another address,
+                press <strong>REG</strong> before <strong>RUN</strong>.</li>
+            <li>To let the program run on, click the switch back to
+                <strong>NOR</strong> and press <strong>RUN</strong>.</li>
+        </ol>
+        <p>Moving the switch to SS while a program is running stops it there.
+            The monitor itself is never stepped, so the keypad works as
+            usual. Single step needs the same two bytes at
+            <code>$03FC/$03FD</code> as HLT does; a program that has changed
+            them cannot be stepped until they are put back. An instant
+            cassette LOAD or SAVE is not stepped either: it is over in one
+            step.</p>
+        <p>This is the board's own single step, and it is not the
+            <strong>Step</strong> button under Bench controls. That one
+            belongs to the emulator: it advances a paused processor by one
+            instruction of whatever is running, the monitor included, which
+            is rarely what you want to watch.</p>
     </section>
 
     <section id="file-formats">

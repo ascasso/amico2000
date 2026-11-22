@@ -53,6 +53,10 @@ it is here: it interrupts a running program, the monitor shows the address it
 had reached with the registers saved, and RUN takes it up again. A program
 can also take the interrupt for itself; the user guide has both.
 
+The NOR/SS slide switch above RES works too. Click it across to SS and each
+RUN executes one instruction of your program and comes back to the monitor
+showing the address of the next, with the registers there to be read.
+
 RES is wired the way it is on the real board: it drives the processor's reset
 line rather than sitting in the scanned key matrix (#30). So it stops whatever
 is running at any moment, even a program that never reads the keyboard, or one
