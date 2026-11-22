@@ -585,6 +585,12 @@ const AmicoTapeAudio = (() => {
                 continue;
             }
 
+            // Where to look again if this block turns out to be unreadable:
+            // just past its start byte, never past whatever it claimed to
+            // hold. A block is as long as its own count says, and a damaged
+            // count can claim thousands of bytes it does not have. Reading
+            // on to the end of such a block would swallow the sound programs
+            // that follow it and report them as part of the wreck.
             const afterStartByte = reader.index;
             const where = `at ${seconds(blockTime)}`;
             const header = [];
@@ -595,7 +601,7 @@ const AmicoTapeAudio = (() => {
             }
             if (header.length < 5) {
                 problems.push(`Block ${where}: the recording breaks off inside the header`);
-                from = Math.max(reader.index, afterStartByte);
+                from = afterStartByte;
                 continue;
             }
             const [id, addressLow, addressHigh, countLow, countHigh] = header;
@@ -614,7 +620,7 @@ const AmicoTapeAudio = (() => {
             const checksumOnTape = got === offsets.length ? readByte() : null;
             if (checksumOnTape === null) {
                 problems.push(`${name}: the recording breaks off after ${got} of ${offsets.length} bytes`);
-                from = Math.max(reader.index, afterStartByte);
+                from = afterStartByte;
                 continue;
             }
             let checksum = START_BYTE;
@@ -625,8 +631,6 @@ const AmicoTapeAudio = (() => {
                     `${name}: checksum mismatch, the tape says $${hex(checksumOnTape)} ` +
                     `and its bytes add up to $${hex(checksum)}`
                 );
-                // A slipped bit can spoil the length too, so where this block
-                // ends is not known. Start again just past its start byte.
                 from = afterStartByte;
                 continue;
             }

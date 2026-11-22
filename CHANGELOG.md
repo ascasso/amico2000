@@ -472,6 +472,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed the sound decoder returning nothing from a recording in which one
+  program's length was damaged (review of PR #47). A block is as long as its
+  own byte count says, and a spoiled count can claim thousands of bytes the
+  block does not have. The decoder read on through the programs that
+  followed, found the recording short, and then carried on searching from
+  where that had left it, which was the end. It now looks again from just
+  past the damaged block's start byte, as it already did after a checksum
+  mismatch, so the programs after the damage are still read.
 - Fixed the displays staying lit when nothing was refreshing them (#20). The
   board has no display latch: a digit is alight only while it is driven, and
   the monitor keeps all six visible by scanning them every few milliseconds.

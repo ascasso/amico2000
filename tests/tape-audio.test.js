@@ -455,6 +455,40 @@ test('a damaged block is reported and the next one is still read (#20)', () => {
     assert.match(result.problems[0], /^Program 2A at 6\.\d s: checksum mismatch, the tape says \$[0-9A-F]{2} and its bytes add up to \$[0-9A-F]{2}$/);
 });
 
+test('a damaged length cannot hide the programs that follow it (PR #47)', () => {
+    // A block is as long as its own count says. Spoil the count's high byte
+    // to $20 and a two-byte block claims 8194, which runs through its
+    // trailer, the next program's leader and the next program itself before
+    // the recording gives out. The decoder used to carry on from wherever
+    // that left it, at the end, and so returned nothing at all, though the
+    // second program reads perfectly well by itself. Found by review.
+    const first = AmicoTapeAudio.recordToTapeBytes({ id: 0x11, start: 0x0200, data: [1, 2] });
+    const second = AmicoTapeAudio.recordToTapeBytes({ id: 0x22, start: 0x0300, data: [3, 4] });
+    const countHigh = 256 + 1 + 4;
+    first[countHigh] = 0x20;
+
+    // Back to back, with no silence between them to break the reading off.
+    const tape = new Uint8Array(first.length + second.length);
+    tape.set(first, 0);
+    tape.set(second, first.length);
+    const { records, problems } = AmicoTapeAudio.decodePulses(AmicoTapeAudio.tapeBytesToPulseTimes(tape, 0.5));
+
+    assert.equal(problems.length, 1);
+    assert.match(problems[0], /^Program 11 at 6\.\d s: the recording breaks off after \d+ of 8194 bytes$/);
+    assert.deepEqual(records.map((record) => record.id), [0x22], 'the program after the damage is still read');
+    assert.equal(records[0].start, 0x0300);
+    sameBytes(records[0].data, [3, 4]);
+
+    // The same when the damage claims a length that does fit: the block then
+    // fails its checksum instead, and the search resumes from the same place.
+    first[countHigh] = 0x01;
+    tape.set(first, 0);
+    const again = AmicoTapeAudio.decodePulses(AmicoTapeAudio.tapeBytesToPulseTimes(tape, 0.5));
+    assert.equal(again.problems.length, 1);
+    assert.match(again.problems[0], /^Program 11 at 6\.\d s: checksum mismatch/);
+    assert.deepEqual(again.records.map((record) => record.id), [0x22]);
+});
+
 test('a recording that stops early, or holds no tape at all, is reported as such (#20)', () => {
     const cut = AmicoTapeAudio.decodeWav(wavFile([clean().subarray(0, Math.round(8.0 * RATE))], RATE));
     assert.deepEqual(cut.records, []);
