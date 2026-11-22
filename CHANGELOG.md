@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tape-audio.js`, a codec between tape records and the sound the
+  board's cassette interface puts on tape (#20). It writes a record as a WAV
+  file and reads the records back out of a WAV recording of a tape. No
+  recording of a real tape was available, so the format is taken from the
+  cassette PROM and the supplement's schematic of the interface, and
+  `tests/tape-audio.test.js` holds the codec to the PROM itself: the bytes and
+  pulse timing it writes are compared with the real SAVE routine running in
+  the emulator, the real LOAD routine has to load a WAV file it wrote, and it
+  has to read the signal the real SAVE routine produces. The decoder is also
+  run against simulated tape faults: inverted polarity, band-limiting, hum,
+  hiss, wow, wrong tape speed, dropouts and cut recordings. Those are guesses
+  at what a deck does; the first real recording may still call for tuning.
+  This entry adds the codec only; the page does not use it yet.
 - Added a choice of how the six displays are drawn, under Bench controls:
   **Readable**, now the default, keeps each segment solid with only a narrow
   glow and dims the unlit segments, so digits read easily at the size a page
