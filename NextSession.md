@@ -56,7 +56,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 230
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 231
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -255,14 +255,22 @@ done but for the ends listed there.
      "commutatore" here, and a loop is a "loop", not a "ciclo". All of it is
      put right (the log of that day). The owner asked then that the Italian
      keep the manual's style and tone, not only its words; how is under Two
-     Languages in `AGENTS.md`. One question that raises is still open: the
-     manual walks through its examples as "noi" ("premiamo quindi i tasti"),
-     and the guide only gives orders to "voi", which the manual does too.
-     Whether the guide should take up the "noi" is the owner's to say.
+     Languages in `AGENTS.md`.
+   - **The Italian now says "noi", as the manual does.** Asked whether it
+     should, the owner answered the same day: "I like the 'noi' of the
+     original guide. I want that here too." The whole of `guida.html`, the
+     notes under the board, the LEDs' tooltips and the how-to line of the
+     alert after a recording were rewritten in it: "premiamo", "non ci resta
+     altro che", "il nostro programma". "Voi" was kept on purpose in two
+     kinds of place, a prompt on the tape's status line ("Premete RES.") and
+     the advice in an error about a file of the reader's own, because the
+     manual keeps it there too. If the owner wants those in "noi" as well,
+     they are five strings in `lang.js`. A check fails if a "voi" comes back
+     into the guide or onto the home page.
    - **What the owner's own reading is still needed for.** The Italian
-     follows the manual's vocabulary and addresses the reader as "voi";
-     whether it sounds right to someone who read *Sperimentare* is for the
-     owner to say. The words most worth a look are the labels:
+     follows the manual's vocabulary and voice; whether it sounds right to
+     someone who read *Sperimentare* is for the owner to say. The words most
+     worth a look are the labels:
      "Comandi dell'emulatore" for Bench controls, "Reset a freddo", "Passo",
      "Display: Leggibili / Autentici", "Cassetta: Immediata / Tempo reale",
      and "in esecuzione", "fermo", "bloccato" beside the run lamp. Changing

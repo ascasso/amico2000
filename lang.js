@@ -52,8 +52,13 @@ const AmicoLang = (() => {
      * name. Each entry has both languages; tests/languages.test.js checks that
      * none is missing one and that the two take the same values.
      *
-     * The Italian addresses the reader as "voi", as the manual does, and uses
-     * the manual's words: "registrazione" for SAVE and "lettura" for LOAD.
+     * The Italian uses the manual's words, "registrazione" for SAVE and
+     * "lettura" for LOAD, and the manual's voice. Where it says how to do
+     * something it is "noi", as the manual walks through its examples:
+     * "scriviamo", "facciamo partire". A prompt at the moment something has
+     * to be done, "Premete RES", and the advice in an error about a file of
+     * the reader's own, stay the manual's direct "voi" ("spegnete il
+     * registratore"). See Two Languages in AGENTS.md.
      */
     const STRINGS = {
         // Bench controls
@@ -126,13 +131,14 @@ const AmicoLang = (() => {
         // $0001/$0002 unless $0002 holds FF, and after a cold reset those two
         // are zero: a program recorded at $0200 went to $0000, on top of the
         // number just keyed there. The Italian is the manual's own sentence
-        // for it: "scriviamo 04 nella locazione di memoria 0000 e FF [...]
-        // nella locazione di memoria 0002", to load "a partire dall'indirizzo
-        // registrato sul nastro", with $FC54 the "programma di lettura".
+        // for it, in its own "noi": "scriviamo 04 nella locazione di memoria
+        // 0000 e FF [...] nella locazione di memoria 0002", to load "a partire
+        // dall'indirizzo registrato sul nastro"; then "Facciamo partire il
+        // microelaboratore", with $FC54 the "programma di lettura".
         'recording.howToLoad': {
             en: 'To load one at its recorded address, put its number in $0000 and FF in $0002, then run from $FC54.',
-            it: 'Per caricarne uno a partire dall’indirizzo registrato sul nastro, scrivete il suo numero in $0000 ' +
-                'e FF in $0002, poi fate partire il programma di lettura da $FC54.'
+            it: 'Per caricarne uno a partire dall’indirizzo registrato sul nastro, scriviamo il suo numero in $0000 ' +
+                'e FF in $0002, poi facciamo partire il programma di lettura da $FC54.'
         },
         'recording.notRead': { en: 'Not read:', it: 'Non letti:' }
     };

@@ -114,6 +114,42 @@ test('the Italian calls the NOR/SS switch what the manual calls it', () => {
     assert.match(guida, /L'interruttore a slitta sopra il tasto RES/, 'and so does the guide');
 });
 
+test('where the Italian teaches, it speaks as the manual does, in "noi"', () => {
+    // The owner's decision of 2026-11-22. The guide, the notes under the
+    // board and the how-to line of the recording alert walk through things
+    // as the supplement does: "premiamo quindi i tasti", "il nostro
+    // programma". "Voi" is left to a prompt at the moment something has to
+    // be done, "Premete RES.", and to the advice in an error about a file of
+    // the reader's own.
+    //
+    // These are the forms the "voi" took before the change, so that a
+    // sentence added in the old voice is noticed. They prove nothing about a
+    // sentence written in neither.
+    const voi = /\b(voi|vostr[oaie]|potete|avete|volete|dovete|siete|premete|introducete|selezionate|scegliete|eseguite|usatel[oaie]|fatel[oaie])\b/i;
+    const text = (html) => html.replace(/<pre>[\s\S]*?<\/pre>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+    const guida = fs.readFileSync(path.join(ROOT, 'guida.html'), 'utf8');
+    const guide = text(guida.slice(guida.indexOf('<main>')));
+    assert.equal(voi.exec(guide), null, 'the Italian guide has no "voi"');
+    for (const turn of ['Premiamo', 'introduciamo', 'non ci resta altro che', 'A questo punto', 'Avvertiamo che', 'un nostro programma']) {
+        assert.ok(guide.includes(turn), `the guide has the manual's "${turn}"`);
+    }
+
+    // The home page: its notes and labels, then its tooltips.
+    const pieces = [...page.matchAll(/<(span|p) data-lang="it" lang="it">([\s\S]*?)<\/\1>/g)].map((match) => text(match[2]))
+        .concat([...page.matchAll(/data-it-(?:title|aria-label)="([^"]*)"/g)].map((match) => match[1]));
+    assert.ok(pieces.length > 50, `the home page's Italian was found (${pieces.length} pieces)`);
+    for (const piece of pieces) {
+        assert.equal(voi.exec(piece), null, `no "voi" on the home page: ${piece.slice(0, 60)}`);
+    }
+    assert.ok(pieces.some((piece) => piece.includes('quello che abbiamo scritto in RAM')), 'the notes under the board say "noi"');
+
+    // What scripts say: the how-to is "noi", the prompts keep their "voi".
+    assert.match(AmicoLang.t('recording.howToLoad', {}, 'it'), /scriviamo il suo numero .* facciamo partire il programma di lettura/);
+    assert.match(AmicoLang.t('tape.end', {}, 'it'), /Premete RES\.$/);
+    assert.match(AmicoLang.t('tape.empty', {}, 'it'), /Premete RES\.$/);
+});
+
 test('a number is written with the language\'s own decimal mark', () => {
     assert.equal(AmicoLang.decimal(12.34, 1, 'en'), '12.3');
     assert.equal(AmicoLang.decimal(12.34, 1, 'it'), '12,3');

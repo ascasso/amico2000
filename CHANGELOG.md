@@ -39,8 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   people who used this board around 1980, many of whom do not read English.
   It uses the manual's own words where the manual has them, "locazione",
   "passo singolo", "coda" for the leader, "lettura" and "registrazione" for
-  LOAD and SAVE, and speaks to the reader as "voi", as the manual does. Each
-  guide has a link to the other at its top and names it to search engines
+  LOAD and SAVE, and speaks in the manual's voice, its "noi" (at first it
+  gave orders to "voi"; see under Changed). Each guide has a link to the
+  other at its top and names it to search engines
   with `hreflang`, and `sitemap.xml` lists both. The Italian guide's links
   back to the emulator carry `?lang=it`. `tests/guide-languages.test.js`
   holds the two files to the same sections, anchors, listings and code, so
@@ -331,6 +332,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- The Italian now speaks as the manual does, in "noi". The supplement does
+  at the keys what it describes, together with its reader: "Premiamo quindi i
+  tasti", "non ci resta altro che indicare al nostro Amico 2000 l'indirizzo
+  nel quale inizia il programma". The site gave orders to "voi", which the
+  manual also does, but less. The owner asked for the "noi", and wherever
+  the site teaches or walks through something it is now that:
+  - All of `guida.html`: "Premiamo RES, poi AD e le quattro cifre
+    dell'indirizzo", "A questo punto possiamo esaminare il contenuto di
+    qualsiasi registro", "il nostro programma". Cautions are the author's
+    "Avvertiamo che", "Consigliamo", "Attenzione:" or an impersonal "va
+    lasciato", as in the manual. Five headings follow, among them
+    "Introduciamo un piccolo programma", after the manual's "Introduciamo
+    un primo programma". Every address, listing, key and link is where it
+    was; only the prose changed.
+  - On the home page, the notes under the board ("quello che abbiamo scritto
+    in RAM", "Portiamolo su SS con un clic") and the tooltips of the LEDs
+    ("può accenderlo anche un nostro programma").
+  - The line at the end of the alert after a recording is read: "scriviamo
+    il suo numero in $0000 e FF in $0002, poi facciamo partire il programma
+    di lettura da $FC54", which is the manual's own sentence.
+  - "Voi" stays in two kinds of place, as it does in the manual: a prompt at
+    the moment something has to be done, "Premete RES." on the tape's status
+    line, and the advice in an error about a file of the reader's own.
+  - The English is unchanged. `tests/languages.test.js` fails if a "voi"
+    comes back into the guide or onto the home page, and `AGENTS.md` has the
+    rule under Two Languages.
 - Wrote down in `AGENTS.md` how the Italian is to be written, after the owner
   asked that it keep the style and tone of the original documentation and
   not only its words: build each sentence on the manual's own sentence for

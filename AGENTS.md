@@ -1035,12 +1035,13 @@ choosing one of your own:
 | microcomputer | microelaboratore | throughout |
 
 Key names stay as printed on the caps, and LOAD and SAVE stay as names. The
-reader is "voi", as in the manual ("spegnete il registratore"), never "tu" or
-"Lei"; a button's own label is the usual imperative ("Avvia", "Carica"). The
-emulator's controls are "pulsanti", so that "tasto" stays a key of the board,
-and the panel that holds them is "Comandi dell'emulatore". The Italian guide
-quotes the page's labels and status words; `tests/languages.test.js` holds
-the ones it quotes to what the page says.
+voice is the manual's "noi", described below: "premiamo RES", "il nostro
+programma". Never "tu" or "Lei"; a button's own label is the usual
+imperative ("Avvia", "Carica"). The emulator's controls are "pulsanti", so
+that "tasto" stays a key of the board, and the panel that holds them is
+"Comandi dell'emulatore". The Italian guide quotes the page's labels and
+status words; `tests/languages.test.js` holds the ones it quotes to what the
+page says.
 
 **The manual's style and tone, not only its words.** The owner asked on
 2026-11-22 for the Italian to be "written in the same style and tone of the
@@ -1054,20 +1055,44 @@ people the Italian is for learned the machine from the supplement.
   it and build on it. The alert after a recording is read was made that way,
   from "scriviamo 04 nella locazione di memoria 0000 e FF [...] nella
   locazione di memoria 0002", and so was the step after HLT in the guide.
-- **How it sounds.** Plain and patient, a teacher beside the reader. Steps
-  are orders to "voi" ("premete", "introducete") or the impersonal "si" ("si
-  preme RUN", "si procede al solito modo"). Its turns of phrase are "A
-  questo punto", "basta premere", "per far partire il programma". It keeps
-  the English it already has, such as loop, routine, byte and Program
-  Counter, and adds none. Its examples it walks through as "noi" ("premiamo
-  quindi i tasti", "vediamo ora come si introducono i parametri"). The site
-  has only the orders so far; whether its guide should take up the "noi" as
-  well is the owner's to decide.
+- **How it sounds.** Plain and patient, a teacher beside the reader. Its
+  turns of phrase are "A questo punto", "basta premere", "per far partire il
+  programma". It keeps the English it already has, such as loop, routine,
+  byte and Program Counter, and adds none.
+- **It says "noi".** The manual does at the keys what it describes, with
+  its reader: "Premiamo quindi i tasti", "Per eseguire il programma non ci
+  resta altro che indicare al nostro Amico 2000 l'indirizzo nel quale
+  inizia" (page 29), "scriviamo 04 nella locazione di memoria 0000" (page
+  46). Asked whether the site should, the owner answered on 2026-11-22: "I
+  like the 'noi' of the original guide. I want that here too." So wherever
+  the site teaches or walks through something it is "noi": the whole of
+  `guida.html`, the notes under the board, the LEDs' tooltips, and the
+  how-to line of the alert after a recording is read. In practice:
+  - A step is "premiamo", "introduciamo", "selezioniamo"; what follows it
+    is "vediamo che", "appare", "apparirà"; the reader's program is "il
+    nostro programma", and the machine once or twice "il nostro AMICO 2000".
+  - A caution is the author's "noi" or no person at all, as in the manual:
+    "Avvertiamo che" ("Avvertiamo infine che se carichiamo un numero di
+    programma non previsto sul nastro..."), "Consigliamo", "Attenzione:",
+    "Si badi che", or "va lasciato", "non va fatto".
+  - The manual mixes in the impersonal "si" ("Si porta ora sul display
+    indirizzi la locazione di partenza") and so may the site.
+  - "Voi" is kept for the two places where the page turns to the reader at
+    the moment something has to be done: a prompt on the tape's status line
+    ("Premete RES.") and the advice in an error about a file of the
+    reader's own ("Tagliatela in pezzi più corti"). The manual does the
+    same about the reader's own recorder and cassettes: "spegnete il
+    registratore", "Cambiate ora cassetta mettendone una delle vostre".
+  - The English is "you" throughout and is not changed by this.
+
+  `tests/languages.test.js` fails if a "voi" comes back into the guide or
+  onto the home page.
 - **English carried across word for word** is what a review of 2026-11-22
   found, and each of these was on the site. A passive participle turned
   into "si" with its "da" left hanging: "si accende [...] da un vostro
-  programma". "Vi" for "there" or "to it", where the reader is "voi": "RES
-  vi rimedia". A verb whose first meaning is another: "comprendete" for
+  programma". "Vi" for "there" or "to it", in a text that then said "voi" to
+  its reader: "RES vi rimedia". A verb whose first meaning is another:
+  "comprendete" for
   "include". An idiom word for word: "Guardatevi intorno". A loose English
   made exact and false: "the phase LEDs lit" as "i quattro LED accesi".
   Read the Italian on its own, as a reader with no English beside it does.
