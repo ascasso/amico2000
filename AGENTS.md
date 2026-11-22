@@ -22,6 +22,14 @@ This file provides repository guidance for agents working in this repository.
   in a US time zone is already the next day in UTC, and an automated review
   that compares the stamp with UTC will report a false mismatch. The
   managed GitHub Pages/Jekyll build does not refresh this stamp automatically.
+  - To check the stamp, run `node --test tests/build-stamp.test.js`, which
+    compares it with `git log -1 --no-merges --format=%cs` and gives the same
+    answer in any time zone. Do not work the date out from a timestamp shown
+    by GitHub, in its API, its pages or a review tool's summary of them: those
+    are in UTC. The review of PR #47 did that, read a commit made at 21:36 on
+    21 November, UTC-8, as one of the 22nd, and asked for a stamp that the
+    test rejects.
+  - A reviewer who finds the test passing has no stamp finding to report.
 - Commit in small units. One commit is one unit of work — a single fix, a
   single new test file, a single documented decision, one vendored fixture.
   Prefer several small commits over one large one, and never batch unrelated

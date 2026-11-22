@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   D4 and D6 again, and LOAD flashes D4 and D7, then D5 and D7, as the manual
   describes. Nothing on the page uses this yet, and with the traps on, which
   is the default, LOAD and SAVE behave as before.
+- Added `tests/build-stamp.test.js`, which checks the home page's build date
+  against the date of the latest commit as git records it, in the time zone
+  the commit was made in (review of PR #47). The rule was written down in
+  `AGENTS.md` but could only be checked by hand, and checking it from a time
+  that GitHub shows, which is in UTC, gives the wrong day for an evening
+  commit made west of Greenwich.
 - Added `docs/amtape-format.md`, a reference for the `.amtape` file the
   emulator saves programs in (#19): the magic, the version byte, the
   identifier, the start and end addresses, the checksum and what it covers,
