@@ -8,6 +8,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added Italian to the home page. A browser set to Italian now opens the
+  page in Italian with nothing to press, and a word in the page's top right
+  corner, `Italiano` or `English`, changes it where it stands: nothing is
+  reloaded, so the machine and whatever is in its memory are left alone. The
+  choice is remembered in this browser, under `amico2000.lang`, and
+  `?lang=it` or `?lang=en` in the address sets it, which is how the Italian
+  guide links back. In Italian are the bench controls, every tooltip, the
+  three notes under the board, the tab's title, the word beside the run lamp,
+  the tape's status line and the messages after a file is loaded. The board
+  keeps its own legends, and the browser console stays in English.
+  - `index.html` carries its text twice, English and then Italian, and a
+    style rule shows one; a new script, `lang.js`, loaded in `<head>`,
+    chooses which before anything is drawn. `tests/languages.test.js` fails
+    if a sentence, a tooltip or a message is added in one language only.
+  - In the handheld layout the link is two letters, `IT` or `EN`, in the
+    corner the title leaves free. It takes no room: the first screen holds
+    what it held.
+  - The English page is laid out exactly as before, with the link added.
+  - The reasons the machine gives when it refuses a file, a LOAD or a SAVE
+    are in Italian as well: "Non registrato: l'indirizzo finale precede
+    quello iniziale". `amico2000.js` and `tape-audio.js` go on making them in
+    English and know nothing of the page; `lang.js` has the Italian for each,
+    found by its shape, and the test makes every one of them for real, 32
+    messages of 27 kinds, so a new or reworded one cannot reach an Italian
+    reader unnoticed.
+  - One address serves both languages, so a search engine or a link preview
+    reads the page's English. The Italian guide has an address of its own.
+- Added the guide in Italian, `guida.html`: all of `guide.html`, for the
+  people who used this board around 1980, many of whom do not read English.
+  It uses the manual's own words where the manual has them, "locazione",
+  "passo singolo", "coda" for the leader, "lettura" and "registrazione" for
+  LOAD and SAVE, and speaks to the reader as "voi", as the manual does. Each
+  guide has a link to the other at its top and names it to search engines
+  with `hreflang`, and `sitemap.xml` lists both. The Italian guide's links
+  back to the emulator carry `?lang=it`. `tests/guide-languages.test.js`
+  holds the two files to the same sections, anchors, listings and code, so
+  that one is not changed without the other.
 - Added a description, a canonical address and Open Graph and Twitter tags to
   `index.html` and `guide.html`, plus `SoftwareApplication` data on the home
   page, and gave the home page a longer title naming the 6502 and the 1978

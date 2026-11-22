@@ -16,15 +16,26 @@ The AMICO 2000 lives again. 🇮🇹💾✨
 See [How to use the AMICO 2000](guide.html) for a walkthrough of the controls,
 program entry, supported file formats, and cassette LOAD/SAVE.
 
+**In italiano.** Il sito è anche in italiano: un browser impostato sull'italiano
+apre la pagina in italiano, e in alto a destra c'è il collegamento per cambiare
+lingua. La guida è [Come si usa l'AMICO 2000](guida.html).
+
+The site is in English and Italian. A browser set to Italian opens the page in
+Italian, and a link in the top right corner switches. This README and the rest
+of the repository's documents are in English.
+
 ## 📁 Project Structure
 
 ```
 amico2000/
 ├── index.html          # Main page: the board, drawn from photographs of real ones, and the bench controls
 ├── guide.html          # User guide and file-format reference
+├── guida.html          # The same guide in Italian
 ├── cpu6502.js          # Complete 6502 CPU emulator
 ├── amico2000.js        # Amico 2000 machine emulation
 ├── display.js           # SVG 7-segment display renderer
+├── tape-audio.js        # The cassette as sound: WAV codec and emulated recorder
+├── lang.js              # The page's two languages, English and Italian
 ├── main.js              # Application initialization
 ├── tests/               # Dependency-free regression tests
 │   └── fixtures/        # Pinned third-party test suites

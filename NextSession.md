@@ -19,24 +19,44 @@ That list is about the board. On 2026-11-22, with every part of the board
 working as the documents describe it, the owner chose what comes next: the
 machine's software. See item 1 under Outstanding.
 
+**Who it is for**, named on 2026-11-22. Two kinds of visitor, and one machine
+for both:
+
+- **People who had one**, or a 6502 trainer like it, forty and more years
+  ago. They know the board on sight and have forgotten the key sequences.
+  They read *Sperimentare*, so they are Italian, and many of them do not read
+  English.
+- **People who program today** and have never worked a processor by hand.
+  They do not know what a monitor is, or that a program was once written on
+  paper and translated into bytes from a table.
+
+The test for anything meant to help either of them: it may make the machine
+easier to approach, and must not make the machine easier than it was. Putting
+a program's bytes in memory for a visitor passes that test. A button that
+runs the program does not, and neither would an assembler.
+
+The audiences and the test come from a product brief the owner brought on
+2026-11-22 and had reviewed against this file. The brief is not in the
+repository: most of it restated item 1, and a second statement of direction
+would compete with this one. What the review added is written into the items
+below, each marked as coming from it.
+
 ## Where Things Stand (2026-11-22)
 
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
-  merged on request. Pull request 51,
-  `https://github.com/ascasso/amico2000/pull/51`, took the guide's section on
-  the LEDs into `master` on 2026-11-22, the phone layout having gone in
-  earlier that day with pull request 50, so both and everything before them
-  are live. What was committed after it, the rule in `AGENTS.md` against
-  publishing a session link and this file's plan for the shelf of programs,
-  changes nothing on the site; it is on `develop` and goes in with the next
-  pull request.
+  merged on request. Pull request 52,
+  `https://github.com/ascasso/amico2000/pull/52`, took everything up to the
+  page's search tags into `master` on 2026-11-22, so that much is live.
+  **The Italian is not live.** It was committed to `develop` later the same
+  day, with the review's additions to this file, and reaches the site with
+  the next pull request.
 - **Attribution:** no link to an agent's session in a commit message, a pull
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 198
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 227
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -46,6 +66,11 @@ machine's software. See item 1 under Outstanding.
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
   PROM (IC10).
 - **Phones:** held upright, the page uses a handheld layout; see item 2.
+- **Languages:** English and Italian. A browser set to Italian opens the home
+  page in Italian, a link in its top corner changes language without a
+  reload, and the guide is two pages, `guide.html` and `guida.html`. Read Two
+  Languages in `AGENTS.md` before adding any text: every sentence the public
+  reads goes in twice. See item 3 for what is left.
 - **Programs:** the site offers none to load. The guide prints a few short
   ones to key in. See item 1.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
@@ -65,7 +90,8 @@ machine's software. See item 1 under Outstanding.
 
 ## Outstanding
 
-In rough priority order. None of it is started.
+In rough priority order. None of it is started, apart from item 3, which is
+done but for the ends listed there.
 
 1. **Give the machine its software: a shelf of programs and a guide on
    screen.** Agreed with the owner on 2026-11-22 as the next piece of work.
@@ -152,15 +178,57 @@ In rough priority order. None of it is started.
      that is running something (RES and then the bytes, leaving the rest of
      RAM alone, is the gentle choice), and where the one button goes on a
      phone's first screen without costing a key row.
-2. **Try the phone layout on a real phone.** It comes before the guide of
-   item 1 is built, which has to fit the same screen. The owner asked for the
-   page to work on a phone held upright, the way the owner uses one, and left
-   the choice of how to the agent. The handheld layout was built on 2026-11-22
-   (`AGENTS.md`, Handheld Layout): on an upright touch screen the displays,
-   LEDs, switch and keys move into one column above a picture of the board.
-   It was checked only in headless Chrome with touch emulation. Ask the owner
-   how it is on the owner's own phone, and fix what that shows. Known rough
-   edges, none of them blocking:
+   - **From the review of 2026-11-22**, six additions to the above. None is
+     decided beyond what it says.
+     - **Two depths of guide.** A step is a sentence and the keys to press.
+       Give each step an optional second text, the why: what the bytes are,
+       what the instruction does, what the monitor is doing. Someone who had
+       the board never opens it; someone new can. And the guide can be put
+       away altogether. The field costs nothing if a step has it from the
+       first program on, and a rewrite of every entry if it is added later.
+     - **Every sentence in two languages.** See item 3. A catalog entry's
+       name, its line of description and its steps are public text, so each
+       is written in English and in Italian from the start.
+     - **The first screen.** A visitor meets `0000 00` and no invitation. The
+       plan above puts the catalog's button under Bench controls, below the
+       board, which is a quiet place for the only thing that tells a newcomer
+       what to do. Nearer the board it would be found, and it would be the
+       first thing on the desktop page that is not the board or the bench.
+       The owner's call.
+     - **A reminder with no program chosen.** Someone who comes back to key
+       in a program of their own needs the sequences, not the shelf: AD and
+       four digits, DA and two, the increment key, RUN. The home page has the
+       table of computer keys and nothing on the sequences; they are in the
+       guide, on another page.
+     - **The course is already written.** Teaching a newcomer what a
+       processor, a register and an address are has no natural end, and the
+       project is a memorial before it is a school. The machine was sold
+       with its own course: the supplement's chapters I to IX run from
+       "Cosa è un microelaboratore" to the last addressing modes, with an
+       exercise at each step, and three of the early ones are already
+       transcribed (`somma-000a`, `somma-carry-0201`,
+       `clear-page-zero-range-0200` in `docs/manual-extraction/listings/`).
+       So the newcomer's path can be the 1980 course in its own order, each
+       program teaching what its chapter taught and no more. The instruments
+       for looking inside are the board's: the NOR/SS switch, REG and HLT.
+       The table for translating by hand is the manual's Appendix 1,
+       "Sommario istruzioni 6502", printed page 95.
+     - **What an old hand would recognise.** Appendix 2 has thirteen programs
+       a reader of the supplement may have keyed in, among them Asteroidi,
+       Atterraggio lunare, Labirinto and Slot machine
+       (`docs/manual-extraction/catalog.md`). Only 21 fiammiferi is
+       transcribed, as a candidate, and the order above reaches them last.
+       One of them early may matter more to that visitor than a program
+       written for this site. The cost is the checking: those listings are
+       the worst of the scan, and each byte has to be read off the page.
+2. **The phone layout on real phones.** The handheld layout was built on
+   2026-11-22 (`AGENTS.md`, Handheld Layout): on an upright touch screen the
+   displays, LEDs, switch and keys move into one column above a picture of
+   the board. The owner tried it the same day in Safari on an iPhone 17 Pro
+   held upright: it looked right and everything worked. No other phone or
+   browser has been tried on a real device. Whatever item 1 and item 3 add
+   has to fit the same first screen. Known rough edges, none of them
+   blocking:
    - On the smallest common screen, an iPhone SE with Safari's toolbars, the
      last key row ends 2 px from the bottom and the maker's mark is below it.
    - Turned to landscape, a phone gets the board as drawn, and the title
@@ -171,7 +239,62 @@ In rough priority order. None of it is started.
      with the real displays and LEDs.
    - Tablets in portrait wider than 640 px keep the board as drawn, at about
      the size a desktop window shows it.
-3. **Two interrupt decisions are the owner's to confirm.** HLT and the
+3. **The site in Italian: done, with these ends loose.** The owner asked for
+   it on 2026-11-22 and it was built that day: the home page, the guide, and
+   what the page says while it is used, down to the reasons the machine
+   gives for a refusal (`AGENTS.md`, Two Languages). The changelog, the logs
+   and the other documents stay in English, as the owner said. What is left:
+   - **The owner has not read the Italian.** Nobody has but the sessions that
+     wrote it. It follows the manual's vocabulary and addresses the reader
+     as "voi"; whether it sounds right to someone who read *Sperimentare* is
+     for the owner to say. The words most worth a look are the labels:
+     "Comandi dell'emulatore" for Bench controls, "Reset a freddo", "Passo",
+     "Display: Leggibili / Autentici", "Cassetta: Immediata / Tempo reale",
+     and "in esecuzione", "fermo", "bloccato" beside the run lamp. Changing
+     a label means changing it in `index.html` and where `guida.html` quotes
+     it; `tests/languages.test.js` names the ones it holds together.
+   - **It is not live** until a pull request takes `develop` to `master`.
+   - **The home page has no Italian address.** One address serves both
+     languages, so Google and a link pasted into a forum or a chat show the
+     English title and description, whatever the reader's language. The
+     Italian guide has its own address and Italian head, and links to the
+     emulator with `?lang=it`. A home page at an address of its own would
+     need the board drawing twice, kept in step by hand. A small page that
+     only carries an Italian title and description and passes the visitor on
+     to `index.html?lang=it` would give a link to share, but how each search
+     engine and preview treats such a page was not looked into.
+   - **Only Chrome has shown it.** The language link was tried in headless
+     Chrome, on the desktop and in the handheld layout by emulation. Safari,
+     Firefox and a real phone have not, and neither has a screen reader.
+   - **The guide is out of date in two places, in both languages:** it tells
+     a reader on a narrow screen to scroll the board sideways, which is no
+     longer true of a phone held upright; and it sends someone who wants to
+     keep a tape to the console (item 5).
+   - **The README is in English.** It is a document, and the owner's rule
+     leaves documents in English, but it is also what a visitor to the
+     repository reads first. It now says the site has an Italian version.
+4. **Ask the people who had one.** From the review of 2026-11-22. The first
+   audience is also where the missing evidence is. Nothing here has been
+   compared with a real board or a real tape: no recording has been through
+   the decoder, the look of an LED during LOAD is a guess, D7 lit at idle on
+   unit A is unexplained, and no program a user wrote survives. The page
+   links to GitHub and to ComputerHistory.it and never asks the visitor
+   anything. A few lines under About this board, in both languages, could:
+   did you have one, do you still have a tape, a listing, a photograph, a
+   memory of how it behaved. How they would write back is the owner's call,
+   since an address on the page is public. A tape or a photograph that
+   arrives belongs to its sender and goes into the repository only with
+   leave, as the two board photographs did not.
+5. **Keep an afternoon's work.** From the review of 2026-11-22. Someone who
+   keys in a program of their own loses it when the page is reloaded: RAM and
+   the cassette's records last for the page session, and getting a tape out
+   is `debug.saveTape()` in the browser console, which a phone does not have.
+   On the board the cassette was where work was kept, and it is the faithful
+   answer here too, not a snapshot of RAM: the cassette's records kept in
+   `localStorage`, so that the tape is still in the recorder at the next
+   visit, and buttons on the page for taking a tape out as a file and
+   putting one in. Cassette Work, below, already lists the missing button.
+6. **Two interrupt decisions are the owner's to confirm.** HLT and the
    NOR/SS single-step switch both work now (`AGENTS.md`, HLT and the NMI
    Line). Both go through the NMI vector at `$03FC/$03FD`, which the board
    leaves to the user and the emulator has to start with something in. It
@@ -180,17 +303,17 @@ In rough priority order. None of it is started.
    was left at `$FE30`. Making it `$FE00` too would turn a `BRK` into a
    breakpoint that shows where it was, and would change what programs that
    end in `BRK` do today.
-4. **Machine-layer checks** for display multiplexing, pattern by pattern (how
+7. **Machine-layer checks** for display multiplexing, pattern by pattern (how
    Port A and Port B writes become the six-pattern buffer; when digits go
    dark is covered), and the `$FD00-$FDFF` partial decoding.
    `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
    Node and assert on RAM or PIA state.
-5. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
+8. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
    wires them and light when the real cassette routines run or a program
    drives them. By that wiring
    all four are dark while the monitor idles, yet unit A's photograph shows
    D7 lit at idle. Nothing accounts for it.
-6. **Board drawing, unverified ends.**
+9. **Board drawing, unverified ends.**
    - Only Chrome has been used. Safari, Firefox, touch and screen readers
      have not been tried, nor the key legends on systems without the macOS
      DIN faces.
@@ -199,31 +322,31 @@ In rough priority order. None of it is started.
      is the owner's call. The three checks of the cassette written on
      2026-11-21 are there too, as `cassette-files.mjs`, `cassette-realtime.mjs`
      and `cassette-instant.mjs`; they hold nothing private.
-7. **Speed multiplier, requested by the owner, not started.** Three settings:
-   **1x**, the default, which is today's behaviour and stays as close to the
-   real board as the emulator can manage; **10x**; and **Max**, as fast as
-   the browser can run it.
-   - The speed is set in one place: `_runFrame()` in `amico2000.js` hands the
-     CPU `cyclesPerFrame` (16667) cycles for each 16.667 ms of real time, and
-     caps the catch-up at two frames' worth. 10x multiplies both. Max needs a
-     time budget in place of a cycle budget: run the CPU in chunks until most
-     of the frame is spent, then yield so the page can draw and take input.
-   - It is an emulator control, not part of the board, so it belongs under
-     Bench controls beside **Displays**, remembered in `localStorage` the way
-     the display look is.
-   - Check first how the monitor treats a held key. `pressKey()` releases an
-     on-screen key after 100 ms of real time, which at 10x is a full second
-     to the monitor, and longer at Max. That is harmless if the monitor waits
-     for release and wrong if it repeats; the ROM was not read to find out.
-   - Not measured: how fast Max is. The monitor never sleeps, it idles in its
-     scan loop, so Max keeps a processor core busy while the page is open.
-   - Unaffected: the trapped cassette LOAD and SAVE, which are instant at any
-     speed. The real-time cassette keeps time by CPU cycles, so it would run
-     faster with the processor, which is probably what a user wants from it.
-   - The display is still drawn once per frame, so a program that animates
-     the digits shows only some of its steps.
-8. **Ideas, not started:** a pass on wear and physical irregularity, sound,
-   and a desk scene around the board.
+10. **Speed multiplier, requested by the owner, not started.** Three settings:
+    **1x**, the default, which is today's behaviour and stays as close to the
+    real board as the emulator can manage; **10x**; and **Max**, as fast as
+    the browser can run it.
+    - The speed is set in one place: `_runFrame()` in `amico2000.js` hands the
+      CPU `cyclesPerFrame` (16667) cycles for each 16.667 ms of real time, and
+      caps the catch-up at two frames' worth. 10x multiplies both. Max needs a
+      time budget in place of a cycle budget: run the CPU in chunks until most
+      of the frame is spent, then yield so the page can draw and take input.
+    - It is an emulator control, not part of the board, so it belongs under
+      Bench controls beside **Displays**, remembered in `localStorage` the way
+      the display look is.
+    - Check first how the monitor treats a held key. `pressKey()` releases an
+      on-screen key after 100 ms of real time, which at 10x is a full second
+      to the monitor, and longer at Max. That is harmless if the monitor waits
+      for release and wrong if it repeats; the ROM was not read to find out.
+    - Not measured: how fast Max is. The monitor never sleeps, it idles in its
+      scan loop, so Max keeps a processor core busy while the page is open.
+    - Unaffected: the trapped cassette LOAD and SAVE, which are instant at any
+      speed. The real-time cassette keeps time by CPU cycles, so it would run
+      faster with the processor, which is probably what a user wants from it.
+    - The display is still drawn once per frame, so a program that animates
+      the digits shows only some of its steps.
+11. **Ideas, not started:** a pass on wear and physical irregularity, sound,
+    and a desk scene around the board.
 
 ## Cassette Work (Secondary)
 
@@ -279,7 +402,9 @@ In rough priority order. None of it is started.
   DevTools protocol in real time checks the page as served: scripts evaluated
   through the protocol are not subject to the page's CSP, and
   `requestAnimationFrame` runs at 60 Hz. Avoid `--virtual-time-budget`, which
-  stops `requestAnimationFrame` and so the emulator. The page also runs from
+  stops `requestAnimationFrame` and so the emulator. To see the page as an
+  Italian browser does, give `Emulation.setUserAgentOverride` an
+  `acceptLanguage` of `it-IT` before loading it; `?lang=it` forces it. The page also runs from
   `file://`. The cassette in real time has to be watched in real time: a
   SAVE and a LOAD are over twenty seconds between them.
 - A pull request gets an automated review when it is opened. Its findings

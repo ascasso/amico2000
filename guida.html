@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Same policy as index.html; keep the two in step. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <!-- The Italian guide. guide.html is the English one, and
+         tests/guide-languages.test.js holds the two in step: the same
+         sections, ids, listings and code. Change them together. -->
+    <title>Come si usa l'AMICO 2000</title>
+    <meta name="description" content="Come si usa l'emulatore dell'AMICO 2000: introdurre ed eseguire i programmi dalla tastiera esadecimale, il monitor, HLT e il passo singolo, il registratore a cassette, i LED e i formati dei file.">
+    <link rel="canonical" href="https://ascasso.github.io/amico2000/guida.html">
+    <link rel="alternate" hreflang="en" href="https://ascasso.github.io/amico2000/guide.html">
+    <link rel="alternate" hreflang="it" href="https://ascasso.github.io/amico2000/guida.html">
+    <link rel="alternate" hreflang="x-default" href="https://ascasso.github.io/amico2000/guide.html">
+    <!-- Social previews. No og:image: the only pictures of the board are
+         private photographs that are not in the repository. -->
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="it_IT">
+    <meta property="og:site_name" content="Emulatore AMICO 2000">
+    <meta property="og:title" content="Come si usa l'AMICO 2000">
+    <meta property="og:description" content="Come si usa l'emulatore dell'AMICO 2000: introdurre ed eseguire i programmi dalla tastiera esadecimale, il monitor, HLT e il passo singolo, il registratore a cassette, i LED e i formati dei file.">
+    <meta property="og:url" content="https://ascasso.github.io/amico2000/guida.html">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Come si usa l'AMICO 2000">
+    <meta name="twitter:description" content="Come si usa l'emulatore dell'AMICO 2000: introdurre ed eseguire i programmi dalla tastiera esadecimale, il monitor, HLT e il passo singolo, il registratore a cassette, i LED e i formati dei file.">
+    <style>
+        /* The guide uses the emulator's bench and paper palette, with room for prose. */
+        :root { --paper: #efe7d8; --ink: #2e2822; --green: #22522c; }
+        * { box-sizing: border-box; }
+        html { background: #6d5540; scroll-behavior: auto; }
+        body {
+            margin: 0; padding: 2rem 1rem; color: var(--ink);
+            background: radial-gradient(120% 80% at 50% 0%, #c8a882, #b09070 45%, #6d5540);
+            font-family: system-ui, sans-serif; line-height: 1.65; min-height: 100vh;
+        }
+        main { max-width: 54rem; margin: auto; padding: clamp(1.25rem, 4vw, 3rem);
+            background: var(--paper); box-shadow: 0 6px 18px rgba(40, 26, 12, 0.28); }
+        h1, h2, h3, code, kbd, .back, .lang { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        h1 { font-size: clamp(1.5rem, 4vw, 2.25rem); line-height: 1.25; margin: 1rem 0; }
+        h2 { font-size: 1.3rem; line-height: 1.35; margin: 0 0 1rem; }
+        h3 { font-size: 1rem; margin-top: 1.5rem; }
+        a { color: var(--green); text-underline-offset: 0.18em; }
+        a:focus-visible { outline: 2px solid #8a6a2f; outline-offset: 3px; }
+        /* The link to the guide in the other language, on the back link's
+           line and at its far end. */
+        .lang { float: right; margin-left: 1.25rem; }
+        .intro { font-size: 1.1rem; }
+        nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin: 1.5rem 0; }
+        section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #c4b8a4; scroll-margin-top: 1rem; }
+        li + li { margin-top: 0.5rem; }
+        ol, ul { padding-left: 1.5rem; }
+        kbd { padding: 0.1em 0.3em; border: 1px solid #b9ae99; border-radius: 2px; background: #e2d8c4; }
+        code { font-size: 0.92em; overflow-wrap: anywhere; }
+        pre { padding: 1rem; background: #e2d8c4; white-space: pre-wrap; overflow-wrap: anywhere; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.7rem 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid #c4b8a4; }
+        th { font-size: 0.9rem; }
+        .callout { border-left: 3px solid var(--green); padding: 0.6rem 1rem; background: #e2d8c4; }
+        footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #c4b8a4; }
+        @media (max-width: 480px) { body { padding: 0.5rem; } th, td { padding: 0.5rem 0.25rem; } }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <a class="back" href="index.html?lang=it">Torna all'emulatore</a>
+        <a class="lang" href="guide.html" lang="en" hreflang="en">English</a>
+        <h1>Come si usa l'AMICO 2000</h1>
+        <p class="intro">Una tastiera, sei cifre rosse e il linguaggio macchina
+            del 6502. Il monitor è il piccolo programma già presente nella
+            macchina che permette di esaminare la memoria, introdurre i byte e
+            far partire i vostri programmi.</p>
+    </header>
+    <nav aria-label="Indice della guida">
+        <a href="#getting-started">Per cominciare</a>
+        <a href="#keypad">Tastiera e memoria</a>
+        <a href="#hlt">HLT, interruzioni e passo singolo</a>
+        <a href="#leds">I quattro LED</a>
+        <a href="#file-formats">Formati dei file</a>
+        <a href="#cassette">LOAD e SAVE su cassetta</a>
+        <a href="#troubleshooting">Se qualcosa non va</a>
+    </nav>
+
+    <section id="getting-started">
+        <h2>Per cominciare</h2>
+        <p>L'emulatore parte da solo, con la ROM del monitor già montata. Per
+            usarlo non occorre caricare alcun file. Premete i tasti della
+            scheda con il mouse o con il dito, oppure usate i tasti del
+            computer elencati più sotto.</p>
+        <p>Su un telefono tenuto in verticale la scheda è troppo larga per
+            essere usata così com'è disegnata. La pagina ne raccoglie allora i
+            display, i LED, il commutatore NOR/SS e i tasti in una sola
+            colonna in alto, con i tasti a misura di pollice, e sotto mostra
+            una figura della scheda intera. Tutto funziona allo stesso modo.
+            Girate il telefono in orizzontale per usare la scheda così com'è
+            disegnata.</p>
+        <p>Le quattro cifre di sinistra, il display indirizzi, mostrano di
+            norma un indirizzo; le due di destra, il display dati, mostrano il
+            byte contenuto in quella locazione. Tutto è in esadecimale: le
+            cifre <code>0-9</code> e <code>A-F</code>. Il segno del dollaro
+            indica un valore esadecimale: <code>$0200</code> è un indirizzo e
+            <code>$EA</code> è un byte.</p>
+        <ul>
+            <li><strong>RES</strong> (Esc o Backspace) riporta al monitor,
+                anche da un programma bloccato, e conserva il contenuto della
+                RAM.</li>
+            <li><strong>HLT</strong> (<kbd>H</kbd>) ferma un programma in
+                esecuzione senza azzerarlo, così che RUN possa riprenderlo.
+                Vedi <a href="#hlt">HLT, interruzioni e passo singolo</a>.</li>
+            <li><strong>Reset a freddo</strong> cancella i 2 KB di RAM
+                dell'emulatore. Usatelo quando volete ricominciare da capo.</li>
+            <li>Il pulsante <strong>Ferma/Avvia</strong> dei Comandi
+                dell'emulatore mette in pausa il processore o lo fa
+                ripartire. Per usare la tastiera lasciatelo in esecuzione: il
+                monitor deve girare per leggere i tasti.</li>
+            <li><strong>Passo</strong> esegue una sola istruzione della CPU
+                mentre il processore è in pausa. Il riquadro Stato del
+                processore mostra i registri della CPU istante per istante.
+                Per eseguire un vostro programma un'istruzione alla volta
+                usate invece il commutatore NOR/SS della scheda; vedi
+                <a href="#single-step">Eseguire un programma a passo singolo</a>.</li>
+            <li><strong>Display: Leggibili / Autentici</strong> cambia
+                soltanto il modo in cui le cifre sono disegnate. Leggibili,
+                la scelta iniziale, tiene nitido ogni segmento; Autentici
+                aggiunge l'alone di una scheda vera accesa, più fedele alla
+                macchina ma più faticoso da leggere su uno schermo. La pagina
+                ricorda la scelta.</li>
+        </ul>
+        <p class="callout">Il tasto RUN della scheda fa partire un programma
+            utente attraverso il monitor. Il pulsante Avvia dei Comandi
+            dell'emulatore fa ripartire l'emulatore dopo una pausa. RES e
+            Reset a freddo non fanno ripartire un emulatore in pausa.</p>
+    </section>
+
+    <section id="keypad">
+        <h2>Tastiera e memoria</h2>
+        <table>
+            <thead><tr><th scope="col">Tasto della scheda</th><th scope="col">Tasto del computer</th></tr></thead>
+            <tbody>
+                <tr><td>Cifre esadecimali</td><td><kbd>0</kbd>-<kbd>9</kbd>, <kbd>A</kbd>-<kbd>F</kbd></td></tr>
+                <tr><td>AD (indirizzo)</td><td>Freccia su</td></tr>
+                <tr><td>DA (dato)</td><td>Freccia giù</td></tr>
+                <tr><td>Incremento (il tasto con la freccia in su)</td><td><kbd>+</kbd> o <kbd>=</kbd></td></tr>
+                <tr><td>RUN</td><td>Invio o <kbd>G</kbd></td></tr>
+                <tr><td>REG (richiama il program counter memorizzato)</td><td><kbd>R</kbd></td></tr>
+                <tr><td>HLT (genera una interruzione del processore; vedi
+                    <a href="#hlt">HLT, interruzioni e passo singolo</a>)</td><td><kbd>H</kbd></td></tr>
+                <tr><td>RES</td><td>Esc o Backspace</td></tr>
+            </tbody>
+        </table>
+        <h3>Esaminare o modificare un byte</h3>
+        <ol>
+            <li>Premete <strong>RES</strong>, poi <strong>AD</strong> e le
+                quattro cifre dell'indirizzo, per esempio <code>0 2 0 0</code>.</li>
+            <li>Premete <strong>DA</strong>, poi due cifre per scrivere un
+                byte, per esempio <code>E A</code> (l'istruzione NOP del 6502).</li>
+            <li>Premete <strong>Incremento</strong> per passare alla locazione
+                successiva. Introducete le due cifre seguenti: la funzione DA
+                resta selezionata.</li>
+            <li>Per esaminare un'altra locazione premete <strong>AD</strong>
+                e le sue quattro cifre. Con Incremento si scorrono i byte uno
+                dopo l'altro.</li>
+        </ol>
+        <p>La RAM della scheda occupa <code>$0000-$07FF</code>: usate quelle
+            locazioni. Le locazioni della ROM sono a sola lettura:
+            introdurvi un dato non può modificare il monitor.</p>
+        <h3>Introdurre un piccolo programma</h3>
+        <p>A partire da <code>$0200</code> introducete questi sette byte,
+            premendo Incremento tra un byte e l'altro:</p>
+        <pre><code>A9 42 85 20 4C 22 FE</code></pre>
+        <p>Il programma scrive <code>$42</code> nella locazione
+            <code>$0020</code>, poi salta di nuovo al monitor. Selezionatene
+            l'inizio con <strong>AD</strong> <code>0 2 0 0</code>, poi premete
+            <strong>RUN</strong>. Per vedere il risultato esaminate
+            <code>$0020</code> con AD.</p>
+        <p>Per caricare ed eseguire un programma senza batterlo sui tasti,
+            usate l'esempio per la console più sotto. Se un programma non
+            ritorna al monitor, RES vi rimedia.</p>
+    </section>
+
+    <section id="hlt">
+        <h2>HLT, interruzioni e passo singolo</h2>
+        <p>Il tasto HLT fa una cosa sola: genera una interruzione del
+            processore. Sulla scheda è collegato alla linea NMI del 6502,
+            l'interruzione che non si può disabilitare. Che cosa accada poi
+            dipende da due byte di RAM, <code>$03FC</code> e
+            <code>$03FD</code>, che contengono l'indirizzo a cui il monitor
+            salta quando l'interruzione arriva.</p>
+        <h3>Fermare un programma ed esaminarlo</h3>
+        <p>Con quei due byte così come l'emulatore li prepara all'accensione,
+            HLT ferma un programma in esecuzione senza perderlo:</p>
+        <ol>
+            <li>Mentre il programma gira, premete <strong>HLT</strong>. I
+                display si riaccendono e mostrano l'indirizzo dell'istruzione
+                che stava per essere eseguita e il byte che vi si trova.</li>
+            <li>Guardatevi intorno. All'arresto i registri sono stati
+                salvati, e potete leggerli o modificarli come qualsiasi altra
+                locazione di memoria:
+                <code>$00F3</code> accumulatore, <code>$00F4</code> Y,
+                <code>$00F5</code> X, <code>$00F6/$00F7</code> program
+                counter, <code>$00FD</code> registro di stato,
+                <code>$00FE</code> stack pointer.</li>
+            <li>Per proseguire premete <strong>RUN</strong>. Se nel frattempo
+                vi siete spostati su un altro indirizzo, premete prima
+                <strong>REG</strong>, che richiama l'indirizzo al quale il
+                programma si era fermato.</li>
+        </ol>
+        <p>Anche RES ferma un programma, ma azzera il processore: i registri
+            sono perduti e non c'è nulla da riprendere. HLT conserva
+            tutto.</p>
+        <p>Dopo HLT la riga CPU di Stato del processore dice ancora
+            <em>in esecuzione</em>, e a ragione: il processore non si è
+            fermato, è tornato a eseguire il monitor. La parola
+            <em>bloccato</em> su quella riga significa un'altra cosa, cioè
+            un processore che ha incontrato un'istruzione che l'emulatore non
+            sa eseguire, e non ha nulla a che vedere con questo tasto.</p>
+        <p class="callout">Sulla macchina vera quei due byte contengono ciò
+            che la memoria si è trovata all'accensione, e il manuale ve li fa
+            introdurre a mano prima di usare questa funzione: <code>00</code>
+            in <code>$03FC</code> e <code>FE</code> in <code>$03FD</code>,
+            l'indirizzo della routine del monitor. L'emulatore parte con quei
+            valori già al loro posto, così HLT funziona subito. RES non li
+            tocca; Reset a freddo li rimette a posto.</p>
+        <h3>Usare HLT in un vostro programma</h3>
+        <p>Un programma può servirsi dell'interruzione per conto proprio:
+            basta che scriva in <code>$03FC/$03FD</code> l'indirizzo di una
+            sua routine e che la routine termini con <code>RTI</code>
+            (<code>40</code>). L'esempio del manuale fa proprio questo.
+            Introducetelo, poi fatelo partire da <code>$0200</code>:</p>
+        <pre><code>0200: A9 00 8D FC 03 A9 03 8D FD 03 18 90 FD
+0300: A9 88 85 FB 85 FA 85 F9 A9 10 85 00 A9 00 85 01
+0310: 20 0C FF C6 01 D0 F9 C6 00 D0 F5 40</code></pre>
+        <p>Il programma in <code>$0200</code> indirizza l'interruzione a
+            <code>$0300</code> e poi gira in un loop senza fine, con i display
+            spenti. Ogni volta che premete <strong>HLT</strong> tutte le cifre
+            mostrano <code>8</code> per circa sedici secondi, poi i display
+            si spengono di nuovo. Per fermarlo premete RES. Dopo, i due byte
+            puntano ancora a <code>$0300</code>: reintroducete <code>00</code>
+            e <code>FE</code>, oppure usate Reset a freddo, perché HLT torni
+            a fermare i programmi.</p>
+        <h3 id="single-step">Eseguire un programma a passo singolo</h3>
+        <p>Il commutatore a slitta sopra il tasto RES, con le scritte NOR e
+            SS, è il passo singolo della scheda. In posizione SS la scheda
+            genera da sola la stessa interruzione di HLT dopo ogni istruzione
+            del vostro programma, che avanza così di un'istruzione alla
+            volta.</p>
+        <ol>
+            <li>Selezionate il primo indirizzo del programma con
+                <strong>AD</strong>, per esempio <code>0 2 0 0</code>.</li>
+            <li>Spostate il commutatore su <strong>SS</strong> con un clic.</li>
+            <li>Premete <strong>RUN</strong>. Viene eseguita una sola
+                istruzione, e i display mostrano l'indirizzo della successiva
+                e il byte che vi si trova.</li>
+            <li>Premete ancora <strong>RUN</strong> per ogni istruzione
+                seguente. Chiamate a subroutine, ritorni e salti vengono
+                seguiti così come avvengono.</li>
+            <li>A ogni arresto potete leggere o modificare i registri, alle
+                locazioni elencate sopra. Se vi siete spostati su un altro
+                indirizzo, premete <strong>REG</strong> prima di
+                <strong>RUN</strong>.</li>
+            <li>Per lasciar correre il programma riportate il commutatore su
+                <strong>NOR</strong> e premete <strong>RUN</strong>.</li>
+        </ol>
+        <p>Spostare il commutatore su SS mentre un programma gira lo ferma in
+            quel punto. Il monitor non viene mai eseguito a passo singolo,
+            perciò la tastiera funziona come sempre. Il passo singolo ha
+            bisogno degli stessi due byte in <code>$03FC/$03FD</code> di cui
+            ha bisogno HLT: un programma che li ha cambiati non può essere
+            eseguito a passo singolo finché non vengono rimessi a posto.
+            Nemmeno un LOAD o un SAVE immediato viene eseguito a passi: si
+            compie in un passo solo.</p>
+        <p>Questo è il passo singolo della scheda, e non è il pulsante
+            <strong>Passo</strong> dei Comandi dell'emulatore. Quello
+            appartiene all'emulatore: fa avanzare un processore in pausa di
+            un'istruzione di ciò che sta girando in quel momento, monitor
+            compreso, e di rado è quello che interessa osservare.</p>
+    </section>
+
+    <section id="leds">
+        <h2>I quattro LED in un vostro programma</h2>
+        <p>Il manuale assegna ai LED da D4 a D7 un solo compito, indicare ciò
+            che sta facendo il registratore, e potete vederli all'opera con
+            <a href="#tape-real-time">la cassetta in tempo reale</a>. Sulla
+            scheda però nulla li lega al registratore. Ciascuno è acceso
+            finché due linee dell'8255 sono entrambe a 1: il bit 7 della
+            Porta B in <code>$FD01</code>, comune a tutti e quattro, e la
+            propria linea della Porta A in <code>$FD00</code>, dal bit 0 per
+            D4 al bit 3 per D7. Un vostro programma può comandare quelle
+            linee, qualunque sia la scelta fatta per Cassetta.</p>
+        <h3>Accenderli</h3>
+        <p>Introducete questo programma a partire da <code>$0200</code> e
+            fatelo partire da lì:</p>
+        <pre><code>0200: A9 89 8D 03 FD A9 0F 8D 00 FD A9 87 8D 01 FD 4C
+0210: 0F 02</code></pre>
+        <p>I quattro LED si accendono e i sei display si spengono. Premete
+            RES per tornare al monitor, che li spegne. Ecco che cosa fa il
+            programma:</p>
+        <ul>
+            <li><code>A9 89 8D 03 FD</code> predispone la Porta A in uscita:
+                scrive nel registro del modo di funzionamento la stessa
+                parola che usa il monitor.</li>
+            <li><code>A9 0F 8D 00 FD</code> mette la configurazione sulla
+                Porta A. I suoi quattro bit più bassi sono i quattro LED.</li>
+            <li><code>A9 87 8D 01 FD</code> porta a 1 il bit 7 della Porta B.
+                Il resto di <code>87</code> tiene spenti i display: le linee
+                della Porta A sono anche i segmenti dei display, e questo
+                valore non seleziona nessuna delle sei cifre. Il programma di
+                lettura della cassetta (LOAD) accende i LED con lo stesso
+                valore.</li>
+            <li><code>4C 0F 02</code> gira in un loop senza fine.</li>
+        </ul>
+        <p>Per accenderne solo alcuni cambiate la configurazione, cioè il
+            byte in <code>$0206</code>: <code>01</code> per D4,
+            <code>02</code> per D5, <code>04</code> per D6, <code>08</code>
+            per D7, sommati tra loro per più di uno. <code>0A</code> accende
+            D5 e D7.</p>
+        <h3>Farli contare</h3>
+        <pre><code>0200: A9 89 8D 03 FD A9 87 8D 01 FD E6 20 A5 20 29 0F
+0210: 8D 00 FD A2 00 A0 00 88 D0 FD CA D0 F8 4C 00 02</code></pre>
+        <p>Fatto partire da <code>$0200</code>, questo programma conta in
+            binario sui quattro LED, con D4 come bit più basso, a circa tre
+            passi al secondo, e tiene il conteggio in <code>$0020</code>.
+            Premete <strong>HLT</strong> e i LED si spengono, perché il
+            monitor si riprende le due porte per i display e non porta mai a
+            1 il bit 7; premete <strong>RUN</strong> e il conteggio riprende
+            da dove si era fermato.</p>
+        <p class="callout">Il manuale non descrive questo uso. Lo si ricava
+            dallo schema elettrico della scheda pubblicato nel manuale e dal
+            programma della cassetta, che accende i LED allo stesso modo. Non
+            è stato provato su una scheda vera.</p>
+    </section>
+
+    <section id="file-formats">
+        <h2>Quali file si possono caricare?</h2>
+        <p>Per usare l'emulatore non occorre caricare nulla. Le due ROM sono
+            incorporate e vengono montate all'apertura della pagina: il
+            monitor (IC9) e la ROM della cassetta (IC10). Caricate un file ROM
+            solo per sostituirne una, per esempio con un monitor
+            modificato.</p>
+        <p>Scegliete <strong>Carica ROM o nastro</strong> nella pagina
+            dell'emulatore. La finestra di scelta propone i file
+            <code>.bin</code>, <code>.rom</code>, <code>.ic9</code>,
+            <code>.ic10</code>, <code>.amtape</code> e <code>.wav</code>.</p>
+        <p><strong>I file di ROM e di programma sono byte binari puri</strong>,
+            senza intestazione e senza indirizzo di caricamento incorporato.
+            Un file di testo che contiene <code>A9 42</code>, un listing
+            assembler o un file Intel HEX va prima convertito in binario
+            puro. Cambiargli nome non lo converte.</p>
+        <table>
+            <thead><tr><th scope="col">File</th><th scope="col">Come viene trattato</th></tr></thead>
+            <tbody>
+                <tr><td><code>.wav</code></td><td>Viene letto come registrazione sonora di
+                    una cassetta dell'AMICO 2000, e ogni programma che vi si trova viene
+                    importato per un LOAD successivo. Nessun programma viene copiato subito
+                    nella RAM. Vedi <a href="#tape-sound">I nastri come suono</a>.</td></tr>
+                <tr><td><code>.amtape</code></td><td>Importa una registrazione su cassetta
+                    dell'emulatore per un LOAD successivo. Il programma non viene copiato
+                    subito nella RAM.</td></tr>
+                <tr><td>Il nome contiene <code>ic9</code> o <code>monitor</code></td>
+                    <td>Sostituisce la ROM del monitor in <code>$FE00</code>, poi esegue un
+                        reset a freddo. Un'immagine completa è di 512 byte; i file più
+                        grandi vengono rifiutati.</td></tr>
+                <tr><td>Il nome contiene <code>ic10</code> o <code>cassette</code></td>
+                    <td>Sostituisce la ROM della cassetta nello zoccolo IC10, in
+                        <code>$FB00-$FCFF</code>, poi esegue un reset a freddo. Il file è il
+                        contenuto della PROM nell'ordine dell'integrato: i primi 256 byte
+                        compaiono in <code>$FC00</code> e gli ultimi 256 in
+                        <code>$FB00</code>. Un'immagine completa è di 512 byte; i file più
+                        grandi vengono rifiutati.</td></tr>
+                <tr><td>Qualsiasi altro file di 512 byte</td><td>Sostituisce con esso la ROM
+                    del monitor, poi esegue un reset a freddo, anche se l'estensione è
+                    <code>.bin</code>.</td></tr>
+                <tr><td>Altri file binari puri</td><td>Copia i byte a partire da
+                    <code>$0000</code>, senza azzerare e senza far partire il programma.
+                    Selezionate poi l'indirizzo di partenza e usate RUN.</td></tr>
+            </tbody>
+        </table>
+        <p>I nomi vengono confrontati senza distinguere maiuscole e minuscole,
+            nell'ordine indicato sopra. Anche un nome che contiene
+            <code>tape</code> viene trattato come immagine di nastro, prima di
+            ogni controllo sulla ROM o sulla lunghezza, a meno che finisca in
+            <code>.wav</code>. Usate nomi come <code>prom.ic9</code>,
+            <code>prom.ic10</code> o <code>program.bin</code> per evitare che
+            un file sia preso per un altro. I file ROM più corti vengono
+            accettati e scritti in parte: per sostituire una PROM usate
+            un'immagine completa di 512 byte.</p>
+        <p class="callout">Caricare l'una o l'altra ROM cancella la RAM. Per
+            un programma binario che richiede un altro indirizzo di
+            caricamento, o per un programma di 512 byte che verrebbe scambiato
+            per una ROM, usate il metodo della console descritto qui
+            sotto.</p>
+        <h3 id="console-program">Caricare ed eseguire a un indirizzo scelto (console)</h3>
+        <p>Aprite la console per sviluppatori del browser. Questo esempio
+            carica ed esegue in <code>$0200</code> il programma di sette byte
+            visto sopra:</p>
+        <pre><code>amico.stop();
+amico.res();
+amico.loadProgram(new Uint8Array([0xA9, 0x42, 0x85, 0x20, 0x4C, 0x22, 0xFE]), 0x0200);
+amico.cpu.PC = 0x0200;
+amico.start();</code></pre>
+        <p>Aspettate che l'emulatore lo esegua e ritorni al monitor, poi
+            incollate questo come comando separato nella console per
+            esaminare il risultato:</p>
+        <pre><code>debug.mem(0x0020, 1);</code></pre>
+        <p>Deve comparire <code>42</code>. Per un vostro programma sostituite
+            i byte, l'indirizzo di caricamento e l'indirizzo di partenza. Non
+            fate un reset a freddo tra il caricamento e l'esecuzione.</p>
+    </section>
+
+    <section id="cassette">
+        <h2>LOAD e SAVE su cassetta</h2>
+        <p>Un file <code>.amtape</code> è il formato binario dell'emulatore
+            per le cassette: contiene l'identificatore del programma, gli
+            indirizzi registrati, i byte del programma e il checksum. Lo
+            produce questo emulatore; non è una registrazione sonora né il
+            contenuto di una ROM. La registrazione sonora di un nastro è un
+            file <code>.wav</code>, e l'emulatore legge e scrive anche
+            quelli: vedi <a href="#tape-sound">I nastri come suono</a>.</p>
+        <p>La PROM della cassetta viene montata all'apertura della pagina,
+            perciò in <code>$FBBC</code> e in <code>$FC54</code> ci sono i
+            programmi originali, come su una scheda costruita con
+            l'interfaccia per il registratore. Come vengano eseguiti lo
+            scegliete voi, con i pulsanti <strong>Cassetta</strong> dei
+            Comandi dell'emulatore:</p>
+        <ul>
+            <li><strong>Immediata</strong>, la scelta iniziale: quando fate
+                partire con RUN l'uno o l'altro indirizzo, l'emulatore
+                interviene e fa subito il lavoro del programma, leggendo o
+                scrivendo la propria raccolta di programmi.</li>
+            <li><strong>Tempo reale</strong>: girano i programmi originali,
+                su un registratore emulato, e impiegano il tempo che
+                impiegava la macchina vera. Vedi
+                <a href="#tape-real-time">La cassetta in tempo reale</a>.</li>
+        </ul>
+        <p>In un caso e nell'altro i programmi sono gli stessi, e alla fine
+            il controllo ritorna al monitor. I passi che seguono descrivono
+            la scelta Immediata.</p>
+        <h3>LOAD di un nastro importato</h3>
+        <ol>
+            <li>Scegliete il file <code>.amtape</code>, o una registrazione
+                <code>.wav</code>, con <strong>Carica ROM o nastro</strong>.
+                L'identificatore e gli indirizzi registrati vengono riportati
+                nella console del browser.</li>
+            <li>Introducete l'identificatore in <code>$0000</code>. Per
+                caricare all'indirizzo registrato sul nastro mettete
+                <code>00</code> in <code>$0001</code> e <code>FF</code> in
+                <code>$0002</code>. Per caricare altrove mettete invece la
+                parte bassa dell'indirizzo voluto in <code>$0001</code> e la
+                parte alta in <code>$0002</code>.</li>
+            <li>Selezionate <code>$FC54</code> con AD e premete RUN per
+                eseguire il LOAD. Il LOAD carica soltanto i byte: il
+                programma va poi fatto partire a parte, dal suo indirizzo di
+                partenza.</li>
+        </ol>
+        <p>Per esempio, per fare dalla console il LOAD del programma con
+            identificatore <code>01</code> al suo indirizzo registrato:</p>
+        <pre><code>amico.stop();
+amico.res();
+amico.writeMemory(0x0000, 0x01);
+amico.writeMemory(0x0001, 0x00);
+amico.writeMemory(0x0002, 0xFF);
+amico.cpu.PC = 0xFC54;
+amico.start();</code></pre>
+        <p>Se l'identificatore non c'è, o se la destinazione si sovrappone a
+            una ROM, il LOAD fallisce lasciando <code>FF</code> in
+            <code>$0000</code>, e la riga accanto ai pulsanti Cassetta dice
+            perché. Un LOAD riuscito lascia <code>$0000-$0002</code> come li
+            avete introdotti e dice dove è finito il programma. Esaminate i
+            byte di destinazione prima di far partire il programma.</p>
+        <h3>SAVE e scaricamento di un nastro</h3>
+        <p>Introducete la parte bassa e la parte alta dell'indirizzo iniziale
+            in <code>$0000/$0001</code>, quelle dell'indirizzo finale,
+            compreso, in <code>$0002/$0003</code>, e l'identificatore in
+            <code>$0004</code>. Per <code>$0200-$0206</code> con
+            identificatore <code>01</code> i cinque byte sono
+            <code>00 02 06 02 01</code>.</p>
+        <p>Fate partire con RUN da <code>$FBBC</code> per eseguire il SAVE.
+            Tornati al monitor, eseguite <code>debug.saveTape()</code> nella
+            console del browser per scaricare un file <code>.amtape</code>.
+            Il solo SAVE conserva la registrazione soltanto finché la pagina
+            resta aperta: scaricatela prima di chiudere o ricaricare la
+            pagina.</p>
+        <p>Il SAVE lascia gli indirizzi e l'identificatore in
+            <code>$0000-$0004</code> come li avete introdotti, come fa il
+            programma vero: potete così modificare il programma e
+            registrarlo di nuovo senza reintrodurli.</p>
+        <p>Un indirizzo finale che precede quello iniziale, o l'intero campo
+            <code>$0000-$FFFF</code>, che è più di quanto un'immagine di
+            nastro possa contenere, non viene registrato. Il programma vero
+            non ha modo di dirlo, e nemmeno questo: ritorna al monitor senza
+            aver cambiato nulla. La riga accanto ai pulsanti Cassetta, e la
+            console del browser, dicono che non è stato registrato nulla e
+            perché.</p>
+        <p>Per registrare dalla console il programma d'esempio, dopo averlo
+            caricato in <code>$0200</code>:</p>
+        <pre><code>amico.stop();
+amico.res();
+amico.writeMemory(0x0000, 0x00);
+amico.writeMemory(0x0001, 0x02);
+amico.writeMemory(0x0002, 0x06);
+amico.writeMemory(0x0003, 0x02);
+amico.writeMemory(0x0004, 0x01);
+amico.cpu.PC = 0xFBBC;
+amico.start();</code></pre>
+        <p>Poi eseguite <code>debug.saveTape()</code> per scaricare il risultato.</p>
+        <h3 id="tape-real-time">La cassetta in tempo reale</h3>
+        <p>Mettete <strong>Cassetta</strong> su <strong>Tempo reale</strong>,
+            e LOAD e SAVE sono i programmi stessi della scheda, al lavoro su
+            un nastro. Si introducono gli stessi parametri e si parte con RUN
+            dagli stessi indirizzi. Quello che segue è ciò che descrive il
+            manuale:</p>
+        <ul>
+            <li>I sei display si spengono, perché il programma non li
+                rinfresca, e la tastiera non risponde: il monitor non è lì a
+                leggerla. RES abbandona il programma. HLT lo interrompe come
+                qualsiasi altro programma e riporta al monitor, ma il nastro
+                continua a girare finché non premete RES.</li>
+            <li>I quattro LED in alto sulla scheda indicano la fase. Durante
+                il SAVE, D6 (registrazione) resta acceso per tutto il tempo,
+                insieme a D4 (coda) per sei secondi, poi a D5 (testo) mentre
+                esce il programma, poi di nuovo a D4. Durante il LOAD è
+                acceso D7 (lettura), meno luminoso, insieme a D4 e poi a
+                D5.</li>
+            <li>Ci vuole tempo: circa tredici secondi per un programma breve,
+                più un secondo ogni 41 byte. Il LOAD parte sempre dall'inizio
+                del nastro e passa su tutti i programmi che precedono quello
+                richiesto, ciascuno per tutta la sua durata.</li>
+            <li>Una riga accanto ai pulsanti Cassetta dice che cosa sta
+                facendo il registratore. L'emulatore ne preme i tasti al
+                posto vostro: lo mette in ascolto quando parte il LOAD, in
+                registrazione quando parte il SAVE, e lo ferma quando il
+                programma restituisce il controllo al monitor.</li>
+        </ul>
+        <p>Il nastro contiene i programmi che l'emulatore possiede: tutto ciò
+            che è stato registrato o importato da quando la pagina è aperta,
+            in quell'ordine.</p>
+        <p>I programmi veri si comportano in modo un po' diverso da quelli immediati:</p>
+        <ul>
+            <li>Il LOAD di un programma che non è sul nastro non si arrende
+                mai. Aspetta altro nastro, come fa la macchina vera, e la
+                riga di stato dice <em>Fine del nastro</em>. Premete RES.</li>
+            <li>L'unica segnalazione di errore è <code>FF</code> in
+                <code>$0000</code> dopo un LOAD il cui checksum non
+                corrisponde.</li>
+            <li>Un LOAD diretto su una ROM scrive ciò che la RAM accetta e
+                perde il resto, senza segnalare errori. Il LOAD immediato lo
+                rifiuta.</li>
+            <li>Un blocco più lungo di un byte rispetto a un numero intero di
+                pagine da 256 byte perde l'ultimo byte; vedi la fine di
+                questa sezione. Un SAVE dell'intero campo
+                <code>$0000-$FFFF</code> ne registra solo i primi 256
+                byte.</li>
+        </ul>
+        <p>In tutto il resto i due concordano, anche in ciò che lasciano in
+            <code>$0000-$0004</code>.</p>
+        <p>RES durante un SAVE lo abbandona: sul nastro non viene messo nulla.</p>
+        <h3 id="tape-sound">I nastri come suono</h3>
+        <p>La macchina vera conservava i programmi su cassette audio.
+            L'emulatore sa leggere la registrazione di una di quelle
+            cassette, e sa scrivere un programma sotto forma del suono che la
+            scheda avrebbe mandato al registratore.</p>
+        <p><strong>Per leggere una registrazione</strong> scegliete il file
+            <code>.wav</code> con <strong>Carica ROM o nastro</strong>. Ogni
+            programma che vi si trova viene importato, e il messaggio ne
+            elenca l'identificatore, gli indirizzi e il punto della
+            registrazione in cui comincia. Fate poi il LOAD di quello che
+            volete, come descritto sopra. Un programma il cui checksum non
+            corrisponde, o la cui registrazione si interrompe, è elencato
+            come non letto; gli altri vengono importati lo stesso.</p>
+        <p>Il file deve essere un WAV non compresso, con una qualsiasi delle
+            frequenze di campionamento usuali da 11 kHz in su, mono o stereo,
+            e non più grande di 64 MB. Convertite prima un MP3 o un FLAC,
+            tagliate in pezzi una registrazione lunga, e lasciate disinseriti
+            la riduzione del rumore e ogni altra elaborazione. Comprendete il
+            ticchettio regolare che precede ogni programma: è la coda, di cui
+            il programma di lettura ha bisogno.</p>
+        <p><strong>Per scriverne una</strong> fate il SAVE del programma come
+            descritto sopra, poi eseguite
+            <code>debug.saveTapeAudio()</code> nella console del browser.
+            Viene scaricato un file <code>.wav</code> lungo circa tredici
+            secondi, più un secondo ogni 41 byte.
+            <code>debug.saveTapeAudio(0x13)</code> sceglie un programma per
+            mezzo del suo identificatore.</p>
+        <p class="callout">Il formato del suono è stato ricavato dalla ROM
+            della cassetta e dallo schema elettrico, e verificato con i
+            programmi stessi della ROM fatti girare nell'emulatore. Non è
+            ancora stato provato su una registrazione di un nastro vero, né
+            fatto ascoltare a un AMICO 2000 vero.</p>
+        <p>Il formato porta con sé una stranezza. I programmi della scheda
+            non registrano l'ultimo byte di un blocco più lungo di un byte
+            rispetto a un numero intero di pagine da 256 byte, come
+            <code>$0200-$0300</code>. Un file sonoro prodotto qui si comporta
+            allo stesso modo, perché sia quello che la scheda avrebbe
+            scritto, e così pure un SAVE con Cassetta su Tempo reale. Un SAVE
+            immediato e un file <code>.amtape</code> conservano tutti i
+            byte.</p>
+    </section>
+
+    <section id="troubleshooting">
+        <h2>Se qualcosa non va</h2>
+        <ul>
+            <li><strong>I tasti non rispondono:</strong> fate ripartire
+                l'emulatore con il pulsante Avvia dei Comandi dell'emulatore,
+                poi premete RES. Su uno schermo stretto fate scorrere la
+                scheda di lato per raggiungere tutti i tasti.</li>
+            <li><strong>Un programma si è bloccato:</strong> premete RES,
+                oppure HLT per fermarlo e vedere dov'era arrivato. Se nemmeno
+                così il monitor funziona, Reset a freddo ripristina ciò che
+                al monitor serve nella RAM e cancella il vostro
+                programma.</li>
+            <li><strong>HLT non fa nulla di utile, o manda tutto in
+                blocco:</strong> un programma ha cambiato i due byte in
+                <code>$03FC/$03FD</code>, che dicono dove va l'interruzione.
+                Premete RES, poi reintroducetevi <code>00</code> e
+                <code>FE</code>, oppure usate Reset a freddo.</li>
+            <li><strong>I display si sono spenti:</strong> sta girando un
+                programma che non li rinfresca. Il monitor accende le cifre
+                scandendole molte volte al secondo; quando il controllo passa
+                al vostro programma restano spente, a meno che il programma
+                faccia altrettanto, esattamente come sulla scheda vera. La
+                riga CPU di Stato del processore dice ancora in esecuzione.
+                Premete RES per tornare al monitor, oppure HLT per fermare il
+                programma dove si trova.</li>
+            <li><strong>Un file non si carica:</strong> leggete il messaggio
+                di errore e controllatene il nome, il numero di byte e il
+                formato. Un programma di 512 byte viene preso per una ROM; un
+                file audio o di testo a cui è stato cambiato il nome non è un
+                nastro binario né una ROM. Una registrazione sonora deve
+                essere un <code>.wav</code> non compresso.</li>
+            <li><strong>Occorre esaminare la memoria:</strong> nella console
+                del browser usate <code>debug.mem(0x0200, 16)</code> oppure
+                <code>debug.state()</code>.</li>
+            <li><strong>Il lavoro è sparito dopo aver ricaricato la
+                pagina:</strong> la RAM e i nastri importati durano finché la
+                pagina resta aperta. Per conservare un programma registratelo
+                con SAVE e scaricate il nastro.</li>
+        </ul>
+    </section>
+    <footer><a href="index.html?lang=it">Torna all'emulatore</a></footer>
+</main>
+</body>
+</html>

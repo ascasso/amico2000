@@ -8,27 +8,41 @@
          so an injection bug elsewhere could not run code. Inline styles stay
          allowed because the board layout uses <style> and style attributes. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
-    <title>AMICO 2000 Emulator: 6502 Italian Home Computer (ASEL Milano, 1978)</title>
-    <meta name="description" content="Run the AMICO 2000 in your browser: a 6502 emulator of the Italian ASEL Milano home computer built from a kit in 1978 and published in Sperimentare, with its monitor ROM, hex keypad, six displays and cassette interface.">
+    <!-- The page is in English and in Italian. What a search engine or a link
+         preview reads here is the English; lang.js puts the Italian from the
+         data-it-... attributes in its place for a visitor reading in Italian,
+         so that the tab and a bookmark are in the language of the page. -->
+    <title data-it-text="Emulatore AMICO 2000: il microelaboratore 6502 italiano (ASEL Milano, 1978)">AMICO 2000 Emulator: 6502 Italian Home Computer (ASEL Milano, 1978)</title>
+    <meta name="description" content="Run the AMICO 2000 in your browser: a 6502 emulator of the Italian ASEL Milano home computer built from a kit in 1978 and published in Sperimentare, with its monitor ROM, hex keypad, six displays and cassette interface."
+          data-it-content="L&rsquo;AMICO 2000 nel browser: un emulatore del microelaboratore 6502 italiano della ASEL di Milano, costruito da un kit nel 1978 e pubblicato su Sperimentare, con il suo monitor originale, la tastiera esadecimale, i sei display e l&rsquo;interfaccia per il registratore a cassette.">
     <link rel="canonical" href="https://ascasso.github.io/amico2000/">
     <!-- Social previews. No og:image: the only pictures of the board are
          private photographs that are not in the repository. -->
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="AMICO 2000 Emulator">
-    <meta property="og:title" content="AMICO 2000 Emulator: 6502 Italian Home Computer (ASEL Milano, 1978)">
-    <meta property="og:description" content="Run the AMICO 2000 in your browser: a 6502 emulator of the Italian ASEL Milano home computer built from a kit in 1978 and published in Sperimentare, with its monitor ROM, hex keypad, six displays and cassette interface.">
+    <meta property="og:site_name" content="AMICO 2000 Emulator" data-it-content="Emulatore AMICO 2000">
+    <meta property="og:title" content="AMICO 2000 Emulator: 6502 Italian Home Computer (ASEL Milano, 1978)"
+          data-it-content="Emulatore AMICO 2000: il microelaboratore 6502 italiano (ASEL Milano, 1978)">
+    <meta property="og:description" content="Run the AMICO 2000 in your browser: a 6502 emulator of the Italian ASEL Milano home computer built from a kit in 1978 and published in Sperimentare, with its monitor ROM, hex keypad, six displays and cassette interface."
+          data-it-content="L&rsquo;AMICO 2000 nel browser: un emulatore del microelaboratore 6502 italiano della ASEL di Milano, costruito da un kit nel 1978 e pubblicato su Sperimentare, con il suo monitor originale, la tastiera esadecimale, i sei display e l&rsquo;interfaccia per il registratore a cassette.">
     <meta property="og:url" content="https://ascasso.github.io/amico2000/">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="AMICO 2000 Emulator: 6502 Italian Home Computer (ASEL Milano, 1978)">
-    <meta name="twitter:description" content="Run the AMICO 2000 in your browser: a 6502 emulator of the Italian ASEL Milano home computer built from a kit in 1978 and published in Sperimentare, with its monitor ROM, hex keypad, six displays and cassette interface.">
+    <meta name="twitter:title" content="AMICO 2000 Emulator: 6502 Italian Home Computer (ASEL Milano, 1978)"
+          data-it-content="Emulatore AMICO 2000: il microelaboratore 6502 italiano (ASEL Milano, 1978)">
+    <meta name="twitter:description" content="Run the AMICO 2000 in your browser: a 6502 emulator of the Italian ASEL Milano home computer built from a kit in 1978 and published in Sperimentare, with its monitor ROM, hex keypad, six displays and cassette interface."
+          data-it-content="L&rsquo;AMICO 2000 nel browser: un emulatore del microelaboratore 6502 italiano della ASEL di Milano, costruito da un kit nel 1978 e pubblicato su Sperimentare, con il suo monitor originale, la tastiera esadecimale, i sei display e l&rsquo;interfaccia per il registratore a cassette.">
     <script type="application/ld+json">
     {"@context": "https://schema.org", "@type": "SoftwareApplication",
       "name": "AMICO 2000 Emulator", "url": "https://ascasso.github.io/amico2000/",
       "description": "Run the AMICO 2000 in your browser: a 6502 emulator of the Italian ASEL Milano home computer built from a kit in 1978 and published in Sperimentare, with its monitor ROM, hex keypad, six displays and cassette interface.",
       "applicationCategory": "GameApplication", "applicationSubCategory": "Emulator",
-      "operatingSystem": "Any modern web browser",
+      "operatingSystem": "Any modern web browser", "inLanguage": ["en", "it"],
       "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}
     </script>
+    <!-- Chooses English or Italian and sets <html lang> before the body is
+         read, which is why it is here and not with the other scripts at the
+         foot of the page: the style rule under "Two languages" needs the
+         attribute before anything is drawn. -->
+    <script src="lang.js"></script>
     <style>
         /* ================================================================
            AMICO 2000 Emulator
@@ -119,6 +133,47 @@
             letter-spacing: 0.14em;
             color: #4e3f2e;
         }
+
+        /* ---------------------------------------------------------------
+           Two languages. The page's text is written twice, an element
+           marked data-lang="en" and then the same thing marked
+           data-lang="it", and this rule hides whichever is not the
+           language of <html lang>. lang.js sets that attribute from
+           <head>, before the body is read, so only one is ever drawn.
+           With scripts off the page is in English. !important, because
+           some of these elements are given a display of their own
+           further down.
+           --------------------------------------------------------------- */
+
+        html[lang="it"] [data-lang="en"],
+        html:not([lang="it"]) [data-lang="it"] { display: none !important; }
+
+        /* The way to the other language: one word in the page's top right
+           corner, in that language. It is placed against the page, over
+           the masthead, and takes no room, so nothing below moves. The
+           masthead is deliberately not made its containing block: that
+           was tried, and it changed how a few one-pixel lines further
+           down the page were antialiased. */
+        .lang-switch {
+            position: absolute;
+            top: 0.85rem;
+            right: 1.25rem;
+            padding: 0.4rem 0.5rem;
+            border: 0;
+            background: none;
+            font: inherit;
+            font-size: 0.78rem;
+            letter-spacing: 0.1em;
+            color: #4e3f2e;
+            text-decoration: underline;
+            text-underline-offset: 0.22em;
+            cursor: pointer;
+        }
+        .lang-switch:hover { color: var(--ink); }
+        .lang-switch:focus-visible { outline: 2px solid #f3ece0; outline-offset: 1px; }
+        /* Its two-letter form, for the handheld layout, where the title
+           leaves no room for a word beside it. */
+        .lang-switch::after { content: none; }
 
         /* ---------------------------------------------------------------
            The board. Everything inside is sized in cqw so the whole
@@ -489,6 +544,12 @@
         }
         .run-lamp.halted + .run-word::after { content: "halted"; }
 
+        /* The same three words in Italian, in the same order, so that
+           "bloccato" wins as "halted" does. */
+        html[lang="it"] .run-lamp + .run-word::after { content: "fermo"; }
+        html[lang="it"] .run-lamp.on + .run-word::after { content: "in esecuzione"; }
+        html[lang="it"] .run-lamp.halted + .run-word::after { content: "bloccato"; }
+
         /* --- Seven-segment displays -----------------------------------
            The six packages are drawn by display.js. This element only
            places them: it is as wide as the four address packages, the
@@ -838,6 +899,10 @@
         }
 
         .regs div { display: flex; gap: 0.55rem; white-space: nowrap; }
+        /* "in esecuzione" is longer than "running" and would run into the
+           program counter beside it, so in Italian the CPU line has two
+           columns to itself. */
+        html[lang="it"] .regs div:first-child { grid-column: span 2; }
         .regs dt, .regs .k { color: var(--ink-soft); }
         .regs .v { font-weight: 700; }
 
@@ -860,6 +925,9 @@
         /* Let the board description use the full width of its enclosing panel. */
         .about p { margin: 0 0 0.8rem; }
         .about p:last-child { margin-bottom: 0; }
+        /* Each paragraph is there twice, in English and then in Italian, so
+           the last one shown in English is the one before the last. */
+        html:not([lang="it"]) .about p:nth-last-child(2) { margin-bottom: 0; }
 
         .colophon {
             grid-column: 1 / -1;
@@ -908,6 +976,20 @@
         html.handheld .masthead { padding: 0.8rem 1rem 0.7rem; }
         html.handheld .masthead h1 { font-size: 1.55rem; }
         html.handheld .masthead p { font-size: 0.6rem; letter-spacing: 0.1em; }
+
+        /* The language, as two letters in the corner the title leaves
+           free: IT or EN, from the button's data-code. The word would run
+           into the title on a narrow phone. The padding is the room a
+           thumb needs, and the masthead is no taller for it. */
+        html.handheld .lang-switch {
+            top: 0;
+            right: 0.15rem;
+            padding: 0.6rem 0.7rem;
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+        }
+        html.handheld .lang-switch span { display: none; }
+        html.handheld .lang-switch::after { content: attr(data-code); }
 
         html.handheld .handheld-panel {
             display: grid;
@@ -1034,6 +1116,11 @@
 <body>
 
     <header class="masthead">
+        <!-- The other language, named in that language. lang.js changes the
+             page where it stands when one is pressed; nothing is reloaded,
+             so what is in the machine's memory stays. -->
+        <button type="button" class="lang-switch" data-lang="en" data-set-lang="it" data-code="IT" lang="it" aria-label="Italiano" title="Leggi questa pagina in italiano"><span>Italiano</span></button>
+        <button type="button" class="lang-switch" data-lang="it" data-set-lang="en" data-code="EN" lang="en" aria-label="English" title="Read this page in English"><span>English</span></button>
         <h1>AMICO 2000</h1>
         <p>Advanced MIcro COmputer &middot; A.S.E.L. Milano &middot; 1978</p>
     </header>
@@ -1042,7 +1129,7 @@
          displays, lamps, switch and keys out of the board drawing into this
          panel and leaves pictures of them behind in the drawing. Empty and
          hidden everywhere else. See "Handheld layout" in the styles. -->
-    <section class="handheld-panel" id="handheld-panel" aria-label="Displays and keys">
+    <section class="handheld-panel" id="handheld-panel" aria-label="Displays and keys" data-it-aria-label="Display e tasti">
         <!-- The board's maker's mark, as printed up its right-hand edge (see
              .silk in the board drawing), here upright at the panel's foot. -->
         <svg class="handheld-mark" viewBox="0 0 22 10" aria-hidden="true" focusable="false">
@@ -1472,10 +1559,10 @@
              others: the PWR, RUN, IRQ, NMI and RW lamps drawn here once
              were invented. -->
         <div class="part led-bank" style="left:49.94%; top:14.1%;">
-            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own."></div><b>D4</b></div>
-            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own."></div><b>D5</b></div>
-            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Lit during SAVE when Cassette is set to Real time, or by a program of your own."></div><b>D6</b></div>
-            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Lit during LOAD when Cassette is set to Real time, or by a program of your own."></div><b>D7</b></div>
+            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D4 — coda del nastro. Si accende durante LOAD e SAVE con Cassetta su Tempo reale, oppure da un vostro programma."></div><b>D4</b></div>
+            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D5 — testo del nastro. Si accende durante LOAD e SAVE con Cassetta su Tempo reale, oppure da un vostro programma."></div><b>D5</b></div>
+            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Lit during SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D6 — registrazione sul nastro. Si accende durante SAVE con Cassetta su Tempo reale, oppure da un vostro programma."></div><b>D6</b></div>
+            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Lit during LOAD when Cassette is set to Real time, or by a program of your own." data-it-title="D7 — lettura del nastro. Si accende durante LOAD con Cassetta su Tempo reale, oppure da un vostro programma."></div><b>D7</b></div>
         </div>
 
         <!-- Seven-segment displays: six TIL312 packages, four for the address
@@ -1529,16 +1616,16 @@
                     <rect class="slot slot-ss" x="2" y="33" width="38" height="51"/>
                     <rect x="-0.9" y="28.6" width="102.3" height="60.3"/>
                 </svg>
-                <button type="button" class="slide-switch" id="ss-switch" role="switch" aria-checked="false" aria-label="Single step"></button>
+                <button type="button" class="slide-switch" id="ss-switch" role="switch" aria-checked="false" aria-label="Single step" data-it-aria-label="Passo singolo"></button>
             </div>
-            <div class="keycell"><button class="key key-func" data-key="go" aria-label="RUN" title="RUN — start execution (Enter)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="62.6" lengthAdjust="spacingAndGlyphs">RUN</text></svg></button></div>
-            <div class="keycell"><button class="key key-func" data-key="+" aria-label="Increment" title="Increment address (+)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><path class="legend-arrow" d="M50,33.5 L56.4,51.5 L51.8,59 V71.5 H48.2 V59 L43.6,51.5 Z"/></svg></button></div>
-            <div class="keycell"><button class="key key-func" data-key="da" aria-label="DA" title="DA — enter data (Arrow Down)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="45" lengthAdjust="spacingAndGlyphs">DA</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="go" aria-label="RUN" title="RUN — start execution (Enter)" data-it-title="RUN — via: fa partire l&rsquo;esecuzione (Invio)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="62.6" lengthAdjust="spacingAndGlyphs">RUN</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="+" aria-label="Increment" data-it-aria-label="Incremento" title="Increment address (+)" data-it-title="Incremento indirizzo (+)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><path class="legend-arrow" d="M50,33.5 L56.4,51.5 L51.8,59 V71.5 H48.2 V59 L43.6,51.5 Z"/></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="da" aria-label="DA" title="DA — enter data (Arrow Down)" data-it-title="DA — dato: per introdurre un dato (Freccia giù)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="45" lengthAdjust="spacingAndGlyphs">DA</text></svg></button></div>
 
-            <div class="keycell"><button class="key key-func" data-key="res" aria-label="RES" title="RES — stop whatever is running and return to the monitor, keeping RAM (Escape or Backspace)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.8" lengthAdjust="spacingAndGlyphs">RES</text></svg></button></div>
-            <div class="keycell"><button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — interrupt the processor: a running program stops and the monitor shows where; RUN takes it up again (H)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.4" lengthAdjust="spacingAndGlyphs">HLT</text></svg></button></div>
-            <div class="keycell"><button class="key key-func" data-key="reg" aria-label="REG" title="REG — recall the saved program counter (R)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="61" lengthAdjust="spacingAndGlyphs">REG</text></svg></button></div>
-            <div class="keycell"><button class="key key-func" data-key="ad" aria-label="AD" title="AD — enter address (Arrow Up)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="41.1" lengthAdjust="spacingAndGlyphs">AD</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="res" aria-label="RES" title="RES — stop whatever is running and return to the monitor, keeping RAM (Escape or Backspace)" data-it-title="RES — ferma qualunque cosa sia in esecuzione e torna al monitor, senza toccare la RAM (Esc o Backspace)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.8" lengthAdjust="spacingAndGlyphs">RES</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="pc" aria-label="HLT" title="HLT — interrupt the processor: a running program stops and the monitor shows where; RUN takes it up again (H)" data-it-title="HLT — interrompe il processore: il programma in esecuzione si ferma e il monitor mostra dove; RUN lo fa riprendere (H)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="56.4" lengthAdjust="spacingAndGlyphs">HLT</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="reg" aria-label="REG" title="REG — recall the saved program counter (R)" data-it-title="REG — richiama il program counter memorizzato (R)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="61" lengthAdjust="spacingAndGlyphs">REG</text></svg></button></div>
+            <div class="keycell"><button class="key key-func" data-key="ad" aria-label="AD" title="AD — enter address (Arrow Up)" data-it-title="AD — indirizzo: per introdurre un indirizzo (Freccia su)"><svg class="keycap" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#keycap"/><text class="legend" x="50" y="68" textLength="41.1" lengthAdjust="spacingAndGlyphs">AD</text></svg></button></div>
         </div>
 
         <!-- Hex keypad: 0-3, 4-7, 8-B, C-F from the top. -->
@@ -1563,66 +1650,76 @@
 
       </div>
       <p class="board-caption">
-          The whole board, drawn from photographs of surviving ones. Its displays,
+          <span data-lang="en">The whole board, drawn from photographs of surviving ones. Its displays,
           lamps, switch and keys are the ones above, brought together where a
-          thumb can reach them.
+          thumb can reach them.</span>
+          <span data-lang="it" lang="it">La scheda intera, disegnata dalle fotografie di esemplari
+          sopravvissuti. I suoi display, i LED, il commutatore e i tasti sono
+          quelli qui sopra, riuniti dove il pollice li raggiunge.</span>
       </p>
     </div>
 
     <main class="bench">
 
         <section class="note">
-            <h2>Bench controls</h2>
+            <h2><span data-lang="en">Bench controls</span><span data-lang="it" lang="it">Comandi dell&rsquo;emulatore</span></h2>
             <div class="controls">
                 <button class="control-btn control-btn-primary" id="btn-run">Run</button>
-                <button class="control-btn" id="btn-step">Step</button>
-                <button class="control-btn" id="btn-reset" title="Power-on reset — clears RAM, the way switching the board off and on does. The board&rsquo;s own RES key keeps RAM.">Cold reset</button>
-                <button class="control-btn" id="btn-load" aria-describedby="load-help">Load ROM or tape</button>
+                <button class="control-btn" id="btn-step"><span data-lang="en">Step</span><span data-lang="it" lang="it">Passo</span></button>
+                <button class="control-btn" id="btn-reset" title="Power-on reset — clears RAM, the way switching the board off and on does. The board&rsquo;s own RES key keeps RAM." data-it-title="Reset di accensione: cancella la RAM, come spegnere e riaccendere la scheda. Il tasto RES della scheda, invece, la conserva."><span data-lang="en">Cold reset</span><span data-lang="it" lang="it">Reset a freddo</span></button>
+                <button class="control-btn" id="btn-load" aria-describedby="load-help"><span data-lang="en">Load ROM or tape</span><span data-lang="it" lang="it">Carica ROM o nastro</span></button>
             </div>
-            <div class="look-toggle" role="group" aria-label="How the displays are drawn">
-                <span class="k">Displays</span>
-                <button class="control-btn look-btn" data-look="readable" aria-pressed="true" title="Solid digits with no halo: easier to read on a screen">Readable</button>
-                <button class="control-btn look-btn" data-look="authentic" aria-pressed="false" title="Bright, blooming digits, as a photograph of a powered board shows them">Authentic</button>
+            <div class="look-toggle" role="group" aria-label="How the displays are drawn" data-it-aria-label="Come sono disegnati i display">
+                <span class="k"><span data-lang="en">Displays</span><span data-lang="it" lang="it">Display</span></span>
+                <button class="control-btn look-btn" data-look="readable" aria-pressed="true" title="Solid digits with no halo: easier to read on a screen" data-it-title="Cifre piene, senza alone: più facili da leggere su uno schermo"><span data-lang="en">Readable</span><span data-lang="it" lang="it">Leggibili</span></button>
+                <button class="control-btn look-btn" data-look="authentic" aria-pressed="false" title="Bright, blooming digits, as a photograph of a powered board shows them" data-it-title="Cifre luminose con il loro alone, come le mostra la fotografia di una scheda accesa"><span data-lang="en">Authentic</span><span data-lang="it" lang="it">Autentici</span></button>
             </div>
-            <div class="look-toggle" role="group" aria-label="How cassette LOAD and SAVE run">
-                <span class="k">Cassette</span>
-                <button class="control-btn tape-btn" data-tape="instant" aria-pressed="true" title="LOAD and SAVE happen at once">Instant</button>
-                <button class="control-btn tape-btn" data-tape="realtime" aria-pressed="false" title="LOAD and SAVE are the board&rsquo;s own routines working on a tape, as on the real machine: thirteen seconds or more, with the displays dark and the phase LEDs lit">Real time</button>
+            <div class="look-toggle" role="group" aria-label="How cassette LOAD and SAVE run" data-it-aria-label="Come vengono eseguiti LOAD e SAVE su cassetta">
+                <span class="k"><span data-lang="en">Cassette</span><span data-lang="it" lang="it">Cassetta</span></span>
+                <button class="control-btn tape-btn" data-tape="instant" aria-pressed="true" title="LOAD and SAVE happen at once" data-it-title="LOAD e SAVE avvengono all&rsquo;istante"><span data-lang="en">Instant</span><span data-lang="it" lang="it">Immediata</span></button>
+                <button class="control-btn tape-btn" data-tape="realtime" aria-pressed="false" title="LOAD and SAVE are the board&rsquo;s own routines working on a tape, as on the real machine: thirteen seconds or more, with the displays dark and the phase LEDs lit" data-it-title="LOAD e SAVE sono i programmi originali della scheda al lavoro su un nastro, come sulla macchina vera: tredici secondi o più, con i display spenti e i quattro LED accesi"><span data-lang="en">Real time</span><span data-lang="it" lang="it">Tempo reale</span></button>
                 <span class="tape-status" id="tape-status" role="status"></span>
             </div>
+            <!-- Help opens separately so reading it does not discard the current RAM.
+                 The Italian links go to the Italian guide, guida.html, whose
+                 sections have the same ids as guide.html's. -->
             <p class="load-help" id="load-help">
-                Raw binary ROMs/programs (<code>.bin</code>, <code>.rom</code>,
+                <span data-lang="en">Raw binary ROMs/programs (<code>.bin</code>, <code>.rom</code>,
                 <code>.ic9</code>, <code>.ic10</code>), <code>.amtape</code> tape images,
                 or a <code>.wav</code> recording of an AMICO 2000 cassette.
-                <!-- Help opens separately so reading it does not discard the current RAM. -->
                 <a href="guide.html#file-formats" target="_blank" rel="noopener">File formats</a>
-                &middot; <a href="guide.html" target="_blank" rel="noopener">How to use the AMICO 2000</a>
+                &middot; <a href="guide.html" target="_blank" rel="noopener">How to use the AMICO 2000</a></span>
+                <span data-lang="it" lang="it">ROM e programmi in binario puro (<code>.bin</code>, <code>.rom</code>,
+                <code>.ic9</code>, <code>.ic10</code>), immagini di nastro <code>.amtape</code>,
+                oppure la registrazione <code>.wav</code> di una cassetta dell&rsquo;AMICO 2000.
+                <a href="guida.html#file-formats" target="_blank" rel="noopener">Formati dei file</a>
+                &middot; <a href="guida.html" target="_blank" rel="noopener">Come si usa l&rsquo;AMICO 2000</a></span>
             </p>
-            <h2>Processor state</h2>
+            <h2><span data-lang="en">Processor state</span><span data-lang="it" lang="it">Stato del processore</span></h2>
             <div class="regs">
-                <div title="Running: the emulator is executing the program. Stopped: paused with the Stop button. Halted: the processor met an opcode this emulator does not implement and will execute nothing more until RES or a cold reset."><span class="k">CPU</span><span class="v"><span class="run-lamp" id="led-run"></span><span class="run-word"></span></span></div>
+                <div title="Running: the emulator is executing the program. Stopped: paused with the Stop button. Halted: the processor met an opcode this emulator does not implement and will execute nothing more until RES or a cold reset." data-it-title="In esecuzione: l&rsquo;emulatore sta eseguendo il programma. Fermo: in pausa, con il pulsante Ferma. Bloccato: il processore ha incontrato un codice operativo che questo emulatore non realizza, e non eseguirà più nulla fino a RES o a un reset a freddo."><span class="k">CPU</span><span class="v"><span class="run-lamp" id="led-run"></span><span class="run-word"></span></span></div>
                 <div><span class="k">PC</span><span class="v" id="reg-pc">0000</span></div>
                 <div><span class="k">A</span><span class="v" id="reg-a">00</span></div>
                 <div><span class="k">X</span><span class="v" id="reg-x">00</span></div>
                 <div><span class="k">Y</span><span class="v" id="reg-y">00</span></div>
                 <div><span class="k">SP</span><span class="v" id="reg-sp">FD</span></div>
-                <div><span class="k">Flags</span><span class="v" id="reg-flags">--I-----</span></div>
+                <div><span class="k"><span data-lang="en">Flags</span><span data-lang="it" lang="it">Flag</span></span><span class="v" id="reg-flags">--I-----</span></div>
             </div>
         </section>
 
         <section class="note">
-            <h2>Typing on the board</h2>
+            <h2><span data-lang="en">Typing on the board</span><span data-lang="it" lang="it">Dalla tastiera del computer</span></h2>
             <table class="shortcuts">
-                <tr><td>Hex digits</td><td>0&ndash;9, A&ndash;F</td></tr>
-                <tr><td>AD, enter an address</td><td>Arrow Up</td></tr>
-                <tr><td>DA, enter data</td><td>Arrow Down</td></tr>
-                <tr><td>Increment</td><td>+ or =</td></tr>
-                <tr><td>RUN</td><td>Enter</td></tr>
+                <tr><td><span data-lang="en">Hex digits</span><span data-lang="it" lang="it">Cifre esadecimali</span></td><td>0&ndash;9, A&ndash;F</td></tr>
+                <tr><td><span data-lang="en">AD, enter an address</span><span data-lang="it" lang="it">AD, per introdurre un indirizzo</span></td><td><span data-lang="en">Arrow Up</span><span data-lang="it" lang="it">Freccia su</span></td></tr>
+                <tr><td><span data-lang="en">DA, enter data</span><span data-lang="it" lang="it">DA, per introdurre un dato</span></td><td><span data-lang="en">Arrow Down</span><span data-lang="it" lang="it">Freccia giù</span></td></tr>
+                <tr><td><span data-lang="en">Increment</span><span data-lang="it" lang="it">Incremento</span></td><td><span data-lang="en">+ or =</span><span data-lang="it" lang="it">+ oppure =</span></td></tr>
+                <tr><td>RUN</td><td><span data-lang="en">Enter</span><span data-lang="it" lang="it">Invio</span></td></tr>
                 <tr><td>REG</td><td>R</td></tr>
                 <tr><td>HLT</td><td>H</td></tr>
-                <tr><td>RES</td><td>Escape or Backspace</td></tr>
+                <tr><td>RES</td><td><span data-lang="en">Escape or Backspace</span><span data-lang="it" lang="it">Esc o Backspace</span></td></tr>
             </table>
-            <p>
+            <p data-lang="en">
                 RES works like the reset line on the real board: it stops whatever
                 is running &mdash; a program in a loop, or one that has crashed the
                 processor &mdash; and hands control back to the monitor, leaving
@@ -1630,42 +1727,82 @@
                 controls is the harder one: it clears RAM as switching the machine
                 off and on does.
             </p>
-            <p>
+            <p data-lang="it" lang="it">
+                RES funziona come la linea di reset della scheda vera: ferma
+                qualunque cosa sia in esecuzione &mdash; un programma chiuso in un
+                ciclo, o uno che ha mandato in blocco il processore &mdash; e
+                restituisce il controllo al monitor, lasciando intatto quello che
+                avete scritto in RAM. <em>Reset a freddo</em>, fra i Comandi
+                dell&rsquo;emulatore, è quello più drastico: cancella la RAM,
+                come spegnere e riaccendere la macchina.
+            </p>
+            <p data-lang="en">
                 HLT interrupts the processor without resetting anything. A running
                 program stops where it is and the monitor shows the address it had
                 reached, with the registers kept; RUN takes it up again from there.
             </p>
-            <p>
+            <p data-lang="it" lang="it">
+                HLT interrompe il processore senza azzerare nulla. Il programma in
+                esecuzione si ferma dov&rsquo;è e il monitor mostra l&rsquo;indirizzo a
+                cui era arrivato, con i registri conservati; RUN lo fa riprendere
+                da lì.
+            </p>
+            <p data-lang="en">
                 The slide switch above RES is the board&rsquo;s single step. Click it
                 across to SS and each RUN executes one instruction of your program,
                 then shows the address of the next.
             </p>
+            <p data-lang="it" lang="it">
+                Il commutatore a slitta sopra RES è il passo singolo della
+                scheda. Portatelo su SS con un clic e ogni RUN esegue una sola
+                istruzione del vostro programma, poi mostra l&rsquo;indirizzo della
+                successiva.
+            </p>
         </section>
 
         <section class="note about">
-            <h2>About this board</h2>
-            <p>
+            <h2><span data-lang="en">About this board</span><span data-lang="it" lang="it">Questa scheda</span></h2>
+            <p data-lang="en">
                 The AMICO 2000 was designed by A.S.E.L. in Milan and published as a
                 build-it-yourself project in the magazine <em>Sperimentare</em> from
                 December 1978. A MOS 6502 at 1&nbsp;MHz, 1&nbsp;KB of RAM, sixteen hex
                 keys, seven function keys and six red seven-segment displays, all on one
                 green board about the size of a keyboard.
             </p>
-            <p>
+            <p data-lang="it" lang="it">
+                L&rsquo;AMICO 2000 fu progettato dalla A.S.E.L. di Milano e pubblicato
+                dal dicembre 1978 sulla rivista <em>Sperimentare</em>, come progetto
+                da costruire da sé. Un MOS 6502 a 1&nbsp;MHz, 1&nbsp;KB di RAM, sedici
+                tasti esadecimali, sette tasti funzionali e sei display rossi a sette
+                segmenti, tutto su una sola scheda verde grande più o meno come
+                una tastiera.
+            </p>
+            <p data-lang="en">
                 This page runs the original monitor ROM, so entering and executing 6502
                 machine code works the way it did on the real hardware. The layout,
                 silkscreen legends and keycap colours follow photographs of a finished
                 board; the regulator on its heatsink and the capacitors are there
                 for the look of the thing and do nothing.
             </p>
+            <p data-lang="it" lang="it">
+                Questa pagina esegue la ROM originale del monitor: introdurre ed
+                eseguire codice macchina 6502 funziona quindi come sulla macchina
+                vera. La disposizione dei componenti, le scritte serigrafate e i
+                colori dei tasti seguono le fotografie di una scheda finita; il
+                regolatore con il suo dissipatore e i condensatori ci sono per
+                l&rsquo;aspetto e non fanno nulla.
+            </p>
         </section>
 
         <div class="colophon">
-            Emulator by Andrea Scasso &middot; original design by A.S.E.L. Milano, 1978 &middot;
+            <span data-lang="en">Emulator by Andrea Scasso &middot; original design by A.S.E.L. Milano, 1978 &middot;
             <a href="https://github.com/ascasso/amico2000" target="_blank" rel="noopener">Source code on GitHub</a> &middot;
-            <a href="https://computerhistory.it/computer/asel/amico-2000" target="_blank" rel="noopener">board photographs on ComputerHistory.it</a>
+            <a href="https://computerhistory.it/computer/asel/amico-2000" target="_blank" rel="noopener">board photographs on ComputerHistory.it</a></span>
+            <span data-lang="it" lang="it">Emulatore di Andrea Scasso &middot; progetto originale della A.S.E.L. di Milano, 1978 &middot;
+            <a href="https://github.com/ascasso/amico2000" target="_blank" rel="noopener">Codice sorgente su GitHub</a> &middot;
+            <a href="https://computerhistory.it/computer/asel/amico-2000" target="_blank" rel="noopener">fotografie della scheda su ComputerHistory.it</a></span>
             <!-- Committed stamp: keep the date aligned with the commit, even when opened offline. -->
-            <p class="build-stamp">Build <time id="build-date" datetime="2026-11-22">20261122</time></p>
+            <p class="build-stamp"><span data-lang="en">Build</span><span data-lang="it" lang="it">Versione</span> <time id="build-date" datetime="2026-11-22">20261122</time></p>
         </div>
 
     </main>
