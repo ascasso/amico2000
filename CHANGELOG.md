@@ -26,10 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     corner the title leaves free. It takes no room: the first screen holds
     what it held.
   - The English page is laid out exactly as before, with the link added.
-  - Not yet in Italian: the reasons the machine gives when it refuses a file
-    or a SAVE, which follow in the next change. And one address serves both
-    languages, so a search engine or a link preview reads the page's
-    English; the Italian guide has an address of its own.
+  - The reasons the machine gives when it refuses a file, a LOAD or a SAVE
+    are in Italian as well: "Non registrato: l'indirizzo finale precede
+    quello iniziale". `amico2000.js` and `tape-audio.js` go on making them in
+    English and know nothing of the page; `lang.js` has the Italian for each,
+    found by its shape, and the test makes every one of them for real, 32
+    messages of 27 kinds, so a new or reworded one cannot reach an Italian
+    reader unnoticed.
+  - One address serves both languages, so a search engine or a link preview
+    reads the page's English. The Italian guide has an address of its own.
 - Added the guide in Italian, `guida.html`: all of `guide.html`, for the
   people who used this board around 1980, many of whom do not read English.
   It uses the manual's own words where the manual has them, "locazione",

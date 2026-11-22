@@ -650,7 +650,8 @@ function reportTrap(outcome) {
     let detail = '';
     if (outcome.error) {
         key = outcome.operation === 'save' ? 'tape.notSaved' : 'tape.notLoaded';
-        values = { why: outcome.error };
+        // The reason is the machine's, in English; lang.js has its Italian.
+        values = (language) => ({ why: AmicoLang.message(outcome.error, language) });
     } else {
         const record = outcome.record;
         const size = `${record.data.length} byte${record.data.length === 1 ? '' : 's'}`;
@@ -664,8 +665,9 @@ function reportTrap(outcome) {
             detail = `, ${size}`;
         }
     }
-    tapeStatusNote = () => AmicoLang.t(key, values);
-    const inEnglish = AmicoLang.t(key, values, 'en') + detail;
+    const say = (language) => AmicoLang.t(key, typeof values === 'function' ? values(language) : values, language);
+    tapeStatusNote = () => say(AmicoLang.current);
+    const inEnglish = say('en') + detail;
     if (outcome.error) {
         console.warn(inEnglish);
     } else {
@@ -721,25 +723,30 @@ const hexWord = (value) => value.toString(16).padStart(4, '0').toUpperCase();
  * message is the English, for the console.
  *
  * `values` may be a function of the language, for a value that is itself
- * worded differently in each. `detail` is added after the string as it is.
+ * worded differently in each. `detail`, also a function of the language, is
+ * added after the string.
  */
 class PageError extends Error {
-    constructor(key, values = {}, detail = '') {
+    constructor(key, values = {}, detail = () => '') {
         const valuesFor = typeof values === 'function' ? values : () => values;
-        super(AmicoLang.t(key, valuesFor('en'), 'en') + detail);
+        super(AmicoLang.t(key, valuesFor('en'), 'en') + detail('en'));
         this.key = key;
         this.valuesFor = valuesFor;
         this.detail = detail;
     }
 
     text(language = AmicoLang.current) {
-        return AmicoLang.t(this.key, this.valuesFor(language), language) + this.detail;
+        return AmicoLang.t(this.key, this.valuesFor(language), language) + this.detail(language);
     }
 }
 
-/** What went wrong, in the page's language where the page has the words. */
+/**
+ * What went wrong, in the page's language. An error of the page's own says
+ * itself; one thrown by the machine or the tape codec is English, and
+ * lang.js has the Italian for it.
+ */
 function errorText(err) {
-    return err instanceof PageError ? err.text() : err.message;
+    return err instanceof PageError ? err.text() : AmicoLang.message(err.message);
 }
 
 /**
@@ -758,11 +765,15 @@ function importTapeRecording(name, result) {
         seconds: AmicoLang.decimal(result.duration, 1, language),
         rate: result.sampleRate
     }, language);
+    // What the decoder could not read, one line each. Its words are English;
+    // lang.js has the Italian for them.
+    const damage = (language, indent) =>
+        result.problems.map((problem) => indent + AmicoLang.message(problem, language)).join('\n');
     if (result.records.length === 0) {
         throw new PageError(
             'recording.nothing',
             (language) => ({ name, length: length(language) }),
-            result.problems.length ? '\n' + result.problems.join('\n') : ''
+            (language) => (result.problems.length ? '\n' + damage(language, '') : '')
         );
     }
 
@@ -776,14 +787,13 @@ function importTapeRecording(name, result) {
                 end: hexWord(record.end),
                 bytes: record.data.length,
                 time: AmicoLang.decimal(decoded.time, 1, language)
-            }, language) + (decoded.note ? `\n      (${decoded.note})` : ''));
+            }, language) + (decoded.note ? `\n      (${AmicoLang.message(decoded.note, language)})` : ''));
         let summary = AmicoLang.t(count === 1 ? 'recording.readOne' : 'recording.readSeveral',
             { count, name, length: length(language) }, language) + '\n' +
             lines.join('\n') + '\n' +
             AmicoLang.t('recording.howToLoad', {}, language);
         if (result.problems.length) {
-            summary += '\n\n' + AmicoLang.t('recording.notRead', {}, language) + '\n' +
-                result.problems.map((problem) => '  ' + problem).join('\n');
+            summary += '\n\n' + AmicoLang.t('recording.notRead', {}, language) + '\n' + damage(language, '  ');
         }
         return summary;
     };

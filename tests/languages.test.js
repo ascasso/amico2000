@@ -103,6 +103,177 @@ test('a number is written with the language\'s own decimal mark', () => {
 });
 
 // ---------------------------------------------------------------------------
+// What the machine says
+// ---------------------------------------------------------------------------
+
+// amico2000.js and tape-audio.js say why they refused something in English,
+// and know nothing of the page's language. lang.js has the Italian for each
+// of those messages, found by its shape. Here every one of them is made for
+// real, by doing the thing that is refused, so that a message reworded in the
+// machine, or a new one, fails this check and does not reach an Italian
+// reader in English.
+
+const { Amico2000, bootedMachine } = require('./helpers/machine');
+const { SAVE_ENTRY, LOAD_ENTRY, machineWithCassettePROM, runRoutine } = require('./helpers/cassette-signal');
+const { AmicoTapeAudio } = require(path.join(ROOT, 'tape-audio'));
+
+/** The message of the error an action throws. */
+function refusal(action) {
+    try {
+        action();
+    } catch (err) {
+        return err.message;
+    }
+    throw new Error('expected a refusal');
+}
+
+/** What an instant LOAD or SAVE tells the page when it cannot be done. */
+function trapRefusal(entry, prepare) {
+    const amico = machineWithCassettePROM();
+    amico.cassette.interceptROM = true;
+    const told = [];
+    amico.onCassetteTrap = (outcome) => told.push(outcome);
+    prepare(amico);
+    runRoutine(amico, entry);
+    assert.equal(told.length, 1);
+    assert.ok(told[0].error, 'the trap refused');
+    return told[0].error;
+}
+
+/** Every message the machine layer can hand to the page, each made for real. */
+function machineMessages() {
+    const amico = bootedMachine();
+    const messages = [];
+
+    // A ROM or a program from Load ROM or tape.
+    messages.push(refusal(() => amico.loadMonitorROM(new Uint8Array(513))));
+    messages.push(refusal(() => amico.loadCassetteROM(new Uint8Array(600))));
+    messages.push(refusal(() => amico.loadProgram(new Uint8Array(4), -1)));
+    messages.push(refusal(() => amico.loadProgram(new Uint8Array(4), 0x10000)));
+    messages.push(refusal(() => amico.loadProgram(new Uint8Array(4), 1.5)));
+    messages.push(refusal(() => amico.loadProgram(new Uint8Array(0x20), 0xFFF8)));
+    messages.push(refusal(() => amico.loadProgram(new Uint8Array(0x10), 0xFE00)));
+    messages.push(refusal(() => amico.loadProgram(new Uint8Array(0x10), 0xFB00)));
+
+    // An .amtape image.
+    amico.addTapeRecord({ id: 0x01, start: 0x0200, data: [1, 2, 3] });
+    const image = amico.exportTape(0x01);
+    const header = Amico2000.TAPE_MAGIC.length;
+    const spoiled = (change) => { const copy = Uint8Array.from(image); change(copy); return copy; };
+    messages.push(refusal(() => amico.loadTape(new Uint8Array(3))));
+    messages.push(refusal(() => amico.loadTape(new Uint8Array(40))));
+    messages.push(refusal(() => amico.loadTape(spoiled((copy) => { copy[header] = 2; }))));
+    messages.push(refusal(() => amico.loadTape(image.slice(0, image.length - 1))));
+    messages.push(refusal(() => amico.loadTape(spoiled((copy) => { copy[copy.length - 1] ^= 0xFF; }))));
+
+    // A sound recording. A good one, then its header spoiled: bytes 20-21 are
+    // the format tag, 22-23 the channel count.
+    const wav = AmicoTapeAudio.encodeWav({ id: 0x01, start: 0x0200, data: [1, 2, 3] });
+    const riff = Uint8Array.from([...'RIFF'].map((c) => c.charCodeAt(0)).concat([4, 0, 0, 0], [...'WAVE'].map((c) => c.charCodeAt(0))));
+    const spoiledWav = (change) => { const copy = Uint8Array.from(wav); change(copy); return copy; };
+    messages.push(refusal(() => AmicoTapeAudio.decodeWav(new Uint8Array(100))));
+    messages.push(refusal(() => AmicoTapeAudio.decodeWav(riff)));
+    messages.push(refusal(() => AmicoTapeAudio.decodeWav(spoiledWav((copy) => { copy[20] = 2; }))));
+    messages.push(refusal(() => AmicoTapeAudio.decodeWav(spoiledWav((copy) => { copy[22] = 0; }))));
+
+    // A program going onto the cassette.
+    messages.push(refusal(() => amico.addTapeRecord({ id: 0x100, start: 0, data: [1] })));
+    messages.push(refusal(() => amico.addTapeRecord({ id: 1, start: 0, data: [] })));
+    messages.push(refusal(() => amico.addTapeRecord({ id: 1, start: 0xFFFF, data: [1, 2] })));
+
+    // An instant SAVE or LOAD that is not done.
+    messages.push(trapRefusal(SAVE_ENTRY, (board) => board.cpu.memory.set([0x00, 0x03, 0x00, 0x02, 0x01], 0)));
+    messages.push(trapRefusal(SAVE_ENTRY, (board) => board.cpu.memory.set([0x00, 0x00, 0xFF, 0xFF, 0x01], 0)));
+    messages.push(trapRefusal(LOAD_ENTRY, (board) => board.cpu.memory.set([0x55, 0x00, 0xFF], 0)));
+    messages.push(trapRefusal(LOAD_ENTRY, (board) => {
+        board.addTapeRecord({ id: 0x02, start: 0x0200, data: new Uint8Array(0x300) });
+        board.cpu.memory.set([0x02, 0x00, 0xFE], 0);
+    }));
+    for (const high of [0xFA, 0xFD]) {   // onto the cassette ROM, then onto the monitor
+        messages.push(trapRefusal(LOAD_ENTRY, (board) => {
+            board.addTapeRecord({ id: 0x13, start: 0x0200, data: new Uint8Array(0x200) });
+            board.cpu.memory.set([0x13, 0xFE, high], 0);
+        }));
+    }
+
+    // What could not be read from a sound recording, and the notes on what
+    // was. Tapes as SAVE would write them, then damaged.
+    const tapeOf = (record) => AmicoTapeAudio.recordToTapeBytes(record);
+    const read = (tape) => AmicoTapeAudio.decodePulses(AmicoTapeAudio.tapeBytesToPulseTimes(tape, 0.5));
+    const good = tapeOf({ id: 0x11, start: 0x0200, data: [1, 2, 3, 4] });
+    const afterLeader = AmicoTapeAudio.LEADER_BYTES + 1;     // the first byte of the header
+    messages.push(...read(good.slice(0, afterLeader + 2)).problems);                 // off inside the header
+    messages.push(...read(good.slice(0, afterLeader + 5 + 2)).problems);             // off inside the data
+    const wrongSum = Uint8Array.from(good);
+    wrongSum[afterLeader + 5 + 4] ^= 0xFF;
+    messages.push(...read(wrongSum).problems);                                       // checksum
+    // 257 bytes: the routines lose the last, and the record says so.
+    const long = read(tapeOf({ id: 0x12, start: 0x0200, data: new Uint8Array(257) }));
+    messages.push(...long.records.map((record) => record.note));
+    // Past the top of memory: a block whose header says $FFFE and 4 bytes.
+    const high = Uint8Array.from(good);
+    const before = high[afterLeader + 1] + high[afterLeader + 2];
+    high[afterLeader + 1] = 0xFE;
+    high[afterLeader + 2] = 0xFF;
+    high[high.length - AmicoTapeAudio.LEADER_BYTES - 1] += 0xFE + 0xFF - before;      // keep its checksum right
+    messages.push(...read(high).problems);
+    // One byte, as a recording made elsewhere might hold: count zero.
+    const one = Uint8Array.from(tapeOf({ id: 0x14, start: 0x0200, data: [9, 9] }));
+    const single = new Uint8Array(one.length - 1);
+    single.set(one.slice(0, afterLeader + 5));
+    single[afterLeader + 3] = 0;                                                     // count low: 0, one byte
+    single[afterLeader + 5] = 9;
+    single[afterLeader + 6] = (AmicoTapeAudio.START_BYTE + 0x14 + 0x00 + 0x02 + 0 + 0 + 9) & 0xFF;
+    messages.push(...read(single).records.map((record) => record.note));
+
+    return messages;
+}
+
+test('every refusal the machine can hand to the page has its Italian', () => {
+    const messages = machineMessages();
+    // Each kind of message was really made: one of each shape below.
+    const shapes = [
+        /^monitor ROM \(IC9\) image is 513 bytes/, /^cassette ROM \(IC10\) image is 600 bytes/,
+        /^Load address -1 /, /^Load address 65536 /, /^Load address 1\.5 /,
+        /runs past the end of the address space$/, /would overwrite the monitor ROM \(IC9\)/, /would overwrite the cassette ROM \(IC10\)/,
+        /^Tape image is too short$/, /^Unrecognized AMICO 2000 tape image$/, /^Unsupported tape image version: 2$/,
+        /^Tape image length does not match header$/, /^Tape image checksum mismatch$/,
+        /^Not a WAV file$/, /^WAV file has no format or no sound data$/, /^Unsupported WAV encoding/, /^Unsupported WAV file: 0 channels/,
+        /^Tape program identifier must be a byte, not 256$/, /^A tape record holds 1 to 65535 bytes, not 0$/, /^Tape record does not fit/,
+        /^the end address is before the start address$/, /^65536 bytes is more than a tape image can hold/,
+        /^program 55 is not on the cassette$/, /^program 02 would run past \$FFFF from \$FE00$/,
+        /^program 13 at \$FAFE would overlap the cassette ROM \(IC10\)$/, /^program 13 at \$FDFE would overlap the monitor ROM \(IC9\)$/,
+        /^Block at \d+\.\d s: the recording breaks off inside the header$/, /: the recording breaks off after \d+ of \d+ bytes$/,
+        /: checksum mismatch, the tape says \$[0-9A-F]{2} and its bytes add up to \$[0-9A-F]{2}$/,
+        /^the block was 1 byte longer than a whole number of pages/, /: the block runs past \$FFFF$/, /^a 1-byte block:/
+    ];
+    for (const shape of shapes) {
+        assert.ok(messages.some((message) => shape.test(message)), `a message like ${shape} was made (${messages.join(' | ')})`);
+    }
+    assert.equal(messages.length, shapes.length, 'and no other');
+
+    for (const message of messages) {
+        const italian = AmicoLang.message(message, 'it');
+        assert.notEqual(italian, message, `"${message}" has an Italian`);
+        assert.equal(AmicoLang.message(message, 'en'), message, 'and in English it is itself');
+        // The numbers and addresses in it are carried over.
+        for (const value of message.match(/\$[0-9A-F]{2,4}|\b\d{2,}\b/g) || []) {
+            assert.ok(italian.includes(value), `"${italian}" keeps ${value}`);
+        }
+        assert.ok(!/undefined|NaN|\$\{/.test(italian), `"${italian}" is whole`);
+    }
+});
+
+test('a message lang.js does not know is shown as it is', () => {
+    assert.equal(AmicoLang.message('Something nobody has seen before', 'it'), 'Something nobody has seen before');
+    assert.equal(AmicoLang.message(undefined, 'it'), undefined);
+    // A time in a recording is written the Italian way.
+    assert.equal(AmicoLang.message('Block at 12.3 s: the recording breaks off inside the header', 'it'),
+        'Blocco a 12,3 s: la registrazione si interrompe dentro l’intestazione');
+    assert.equal(AmicoLang.message('program 55 is not on the cassette', 'it'), 'il programma 55 non è sulla cassetta');
+});
+
+// ---------------------------------------------------------------------------
 // The page
 // ---------------------------------------------------------------------------
 
