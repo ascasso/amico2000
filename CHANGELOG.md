@@ -24,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   D4 and D6 again, and LOAD flashes D4 and D7, then D5 and D7, as the manual
   describes. Nothing on the page uses this yet, and with the traps on, which
   is the default, LOAD and SAVE behave as before.
+- Added a cassette recorder, `AmicoTapeAudio.createRecorder()`, to plug into
+  the board's interface (#20). With it connected and the traps off, LOAD and
+  SAVE are the real IC10 routines working on a tape, in the time the board
+  takes: about 13 seconds for a short program, more for a long one or for one
+  further along the tape. Playing, the recorder lays out the programs on the
+  emulator's cassette one after another as the pulses SAVE would have made;
+  recording, it notes the board's pulses and reads the programs back out of
+  them when it stops. Run this way the emulator keeps the PROM's own
+  behaviour where the traps differ from it: SAVE leaves its parameters in
+  `$0000-$0004` alone, a LOAD for a program that is not on the tape waits
+  until RES, and a block one byte longer than whole pages loses its last
+  byte. The page does not offer this yet.
 - Added `tape-audio.js`, a codec between tape records and the sound the
   board's cassette interface puts on tape (#20). It writes a record as a WAV
   file and reads the records back out of a WAV recording of a tape. No

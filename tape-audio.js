@@ -27,7 +27,9 @@
  * here works the same way.
  *
  * This file knows nothing about the page or the machine. It is plain functions
- * over bytes and samples, so Node can test all of it.
+ * over bytes and samples, so Node can test all of it. The one thing with a
+ * state of its own is the recorder at the end, which the machine layer can be
+ * given so that the real routines have a tape to work on.
  *
  * Author: Andrea Scasso / Claude
  * License: MIT
@@ -682,6 +684,120 @@ const AmicoTapeAudio = (() => {
         return { ...best, sampleRate: wav.sampleRate, duration: wav.frames / wav.sampleRate };
     }
 
+    // =========================================================================
+    // A recorder
+    // =========================================================================
+
+    /**
+     * A cassette recorder to plug into the board's interface, for when the
+     * real LOAD and SAVE routines run instead of being trapped (#20). It is
+     * what Amico2000.connectRecorder() expects, and like the rest of this file
+     * it knows nothing about the machine: it is told the time, in seconds, and
+     * says when its tape gave a pulse.
+     *
+     * Its tape is not kept as sound. Playing, it is given the programs on the
+     * emulator's cassette and lays them out one after another, each as the
+     * pulses SAVE would have made for it, with half a second of blank tape
+     * before each. Recording, it notes when the board made a pulse, and when
+     * stopped reads the programs back out of those pulses with the same
+     * decoder that reads a sound file. So in both directions the PROM's own
+     * routine does the work, on a signal timed as the board times it.
+     */
+    function createRecorder() {
+        const BLANK = 0.5;
+        const pulseLength = 2 * TIMING.halfPulse;
+        let state = 'stopped';
+        let origin = 0;                     // when the tape started moving
+        let pulses = new Float64Array(0);   // playing: when each pulse starts
+        let next = 0;                       // first pulse not yet wholly past
+        let length = 0;                     // playing: where the tape ends
+        let rises = [];                     // recording: when the line went high
+        let skipped = [];
+
+        return {
+            get state() { return state; },
+            /** How long the tape being played is, in seconds. */
+            get length() { return length; },
+            /** Programs left off the tape being played, as `{id, reason}`. */
+            get skipped() { return skipped; },
+            /** How far the tape has run since it was started, in seconds. */
+            position(time) {
+                return state === 'stopped' ? 0 : time - origin;
+            },
+
+            /** Rewind, load the tape with these programs and start playing. */
+            play(time, programs) {
+                const runs = [];
+                let at = 0;
+                let count = 0;
+                skipped = [];
+                for (const program of programs) {
+                    let bytes;
+                    try {
+                        bytes = recordToTapeBytes(program);
+                    } catch (err) {
+                        // A block SAVE could not have written, such as one of
+                        // a single byte, has no place on a tape.
+                        skipped.push({ id: program.id, reason: err.message });
+                        continue;
+                    }
+                    const times = tapeBytesToPulseTimes(bytes, at + BLANK);
+                    runs.push(times);
+                    count += times.length;
+                    at = times[times.length - 1] + TIMING.bitCell;
+                }
+                pulses = new Float64Array(count);
+                let filled = 0;
+                for (const times of runs) {
+                    pulses.set(times, filled);
+                    filled += times.length;
+                }
+                length = at;
+                next = 0;
+                origin = time;
+                state = 'playing';
+            },
+
+            /** Start recording on a blank tape. */
+            record(time) {
+                rises = [];
+                origin = time;
+                state = 'recording';
+            },
+
+            /**
+             * Stop the tape. After a recording, returns the programs found
+             * on it and what could not be read, as decodePulses() does.
+             * After playing, returns null.
+             */
+            stop() {
+                const wasRecording = state === 'recording';
+                state = 'stopped';
+                if (!wasRecording) return null;
+                // The line goes high half way through a pulse. The low half
+                // before it cannot be relied on: the board's first pulse has
+                // none, because the line starts low.
+                const times = Float64Array.from(rises, (time) => time - TIMING.halfPulse);
+                rises = [];
+                return decodePulses(times);
+            },
+
+            /** Whether the tape gave a pulse between two moments. */
+            heard(from, to) {
+                if (state !== 'playing') return false;
+                const since = from - origin;
+                const until = to - origin;
+                while (next < pulses.length && pulses[next] + pulseLength <= since) next++;
+                return next < pulses.length && pulses[next] < until;
+            },
+
+            /** The board's output changed to this level, 0 to 2. */
+            level(level, time) {
+                if (state === 'recording' && level === 2) rises.push(time - origin);
+            }
+        };
+    }
+
     return {
         TIMING,
         LEADER_BYTES,
@@ -696,7 +812,8 @@ const AmicoTapeAudio = (() => {
         parseWav,
         detectPulses,
         decodePulses,
-        decodeWav
+        decodeWav,
+        createRecorder
     };
 })();
 
