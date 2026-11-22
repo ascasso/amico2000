@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added Italian to the home page. A browser set to Italian now opens the
+  page in Italian with nothing to press, and a word in the page's top right
+  corner, `Italiano` or `English`, changes it where it stands: nothing is
+  reloaded, so the machine and whatever is in its memory are left alone. The
+  choice is remembered in this browser, under `amico2000.lang`, and
+  `?lang=it` or `?lang=en` in the address sets it, which is how the Italian
+  guide links back. In Italian are the bench controls, every tooltip, the
+  three notes under the board, the tab's title, the word beside the run lamp,
+  the tape's status line and the messages after a file is loaded. The board
+  keeps its own legends, and the browser console stays in English.
+  - `index.html` carries its text twice, English and then Italian, and a
+    style rule shows one; a new script, `lang.js`, loaded in `<head>`,
+    chooses which before anything is drawn. `tests/languages.test.js` fails
+    if a sentence, a tooltip or a message is added in one language only.
+  - In the handheld layout the link is two letters, `IT` or `EN`, in the
+    corner the title leaves free. It takes no room: the first screen holds
+    what it held.
+  - The English page is laid out exactly as before, with the link added.
+  - Not yet in Italian: the reasons the machine gives when it refuses a file
+    or a SAVE, which follow in the next change. And one address serves both
+    languages, so a search engine or a link preview reads the page's
+    English; the Italian guide has an address of its own.
 - Added the guide in Italian, `guida.html`: all of `guide.html`, for the
   people who used this board around 1980, many of whom do not read English.
   It uses the manual's own words where the manual has them, "locazione",

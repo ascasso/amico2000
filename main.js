@@ -161,7 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Create display renderer
     display = new DisplayRenderer('display');
-    
+    labelDisplay();
+
     // Choose how the displays are drawn before the first frame paints.
     setupDisplayLook();
 
@@ -210,6 +211,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // After the keys have their handlers: the pictures of them that this
     // leaves in the board drawing must not get any.
     setupHandheldLayout();
+
+    // The page can change language where it stands (lang.js). Its text and
+    // tooltips change by themselves; these are the words this file puts
+    // there. The tape's status line needs nothing: it is worked out afresh
+    // every frame.
+    AmicoLang.onChange(() => {
+        labelDisplay();
+        updateRunButton();
+        titleSingleStepSwitch();
+    });
 
     // The Run/Stop label and the run lamp beside the registers were already
     // set by onRunStateChange when start() ran.
@@ -408,18 +419,13 @@ function setupCassetteMode() {
 // The page always opens with it at NOR. A real switch stays where it was
 // left, but a page that came back at SS would open with a RUN key that
 // seemed not to run anything.
-const SWITCH_TITLES = {
-    false: 'NOR / SS switch, at NOR: programs run normally. Click for SS, single step.',
-    true: 'NOR / SS switch, at SS: RUN executes one instruction and shows the address of the next. Click for NOR.'
-};
-
 function setupSingleStepSwitch() {
     const button = document.getElementById('ss-switch');
 
     const move = (toSS) => {
         amico.setSingleStep(toSS);
         button.setAttribute('aria-checked', String(toSS));
-        button.title = SWITCH_TITLES[toSS];
+        titleSingleStepSwitch();
         // The class goes on the cell, because the printed slot beside the
         // switch changes sides with it. Every cell: on a phone the board
         // drawing holds a picture of the switch as well, which follows it.
@@ -428,6 +434,19 @@ function setupSingleStepSwitch() {
 
     button.addEventListener('click', () => move(!amico.singleStep));
     move(false);
+}
+
+// The switch's tooltip says where it stands, so it is set here and not in the
+// page, and again when the language changes.
+function titleSingleStepSwitch() {
+    document.getElementById('ss-switch').title = AmicoLang.t(amico.singleStep ? 'switch.ss' : 'switch.nor');
+}
+
+// What a screen reader is told the displays are. display.js writes the
+// English when it draws them; this puts it in the page's language.
+function labelDisplay() {
+    const drawing = document.querySelector('#display svg');
+    if (drawing) drawing.setAttribute('aria-label', AmicoLang.t('display.label'));
 }
 
 // ============================================================================
@@ -524,6 +543,12 @@ function pictureOf(live) {
         element.removeAttribute('id');
         element.removeAttribute('data-key');
         element.removeAttribute('title');
+        // Nor the Italian tooltip and the English one kept beside it
+        // (lang.js), or a change of language would give the picture a
+        // tooltip back.
+        for (const name of element.getAttributeNames()) {
+            if (/^data-(it|en)-/.test(name)) element.removeAttribute(name);
+        }
     }
     // The press of a key is an inline style; a picture shows every key up.
     picture.querySelectorAll('.key').forEach((button) => button.removeAttribute('style'));
@@ -553,9 +578,12 @@ function updatePhaseLEDs(share) {
 // What the recorder is doing, in words beside the Cassette buttons. This is
 // the emulator's own indicator, like the run lamp: the board has none, and a
 // user of the real machine watches the recorder. Called every frame; the text
-// changes at most once a second.
+// changes at most once a second, or when the page changes language.
 let tapeStatusText = '';
-let tapeStatusNote = '';   // the outcome of the last recording, shown while stopped
+// The outcome of the last LOAD or SAVE, shown while the recorder is stopped.
+// A function and not a string, so that it is said in whatever language the
+// page is in when it is read, not the one it was in when it happened.
+let tapeStatusNote = null;
 let tapeWasPlaying = false;
 
 function updateTapeStatus() {
@@ -567,18 +595,18 @@ function updateTapeStatus() {
     }
     tapeWasPlaying = playing;
 
-    let text = tapeStatusNote;
+    let text = tapeStatusNote ? tapeStatusNote() : '';
     if (recorder.state !== 'stopped') {
-        tapeStatusNote = '';
+        tapeStatusNote = null;
         const at = Math.floor(recorder.position(amico.cpu.cycles / Amico2000.CLOCK_HZ));
         if (recorder.state === 'recording') {
-            text = `Recording, ${at} s`;
+            text = AmicoLang.t('tape.recording', { at });
         } else if (recorder.length === 0) {
-            text = 'The cassette is empty. Press RES.';
+            text = AmicoLang.t('tape.empty');
         } else if (at >= recorder.length) {
-            text = 'End of tape. Press RES.';
+            text = AmicoLang.t('tape.end');
         } else {
-            text = `Playing, ${at} s of ${Math.ceil(recorder.length)} s`;
+            text = AmicoLang.t('tape.playing', { at, length: Math.ceil(recorder.length) });
         }
     }
     if (text !== tapeStatusText) {
@@ -600,10 +628,13 @@ function reportRecording(result) {
     });
     result.problems.forEach((problem) => console.warn(`Not saved. ${problem}`));
 
-    if (result.records.length) {
-        tapeStatusNote = 'Saved program ' + result.records.map((record) => hexByte(record.id)).join(', ');
+    const ids = result.records.map((record) => hexByte(record.id)).join(', ');
+    if (result.records.length === 0) {
+        tapeStatusNote = () => AmicoLang.t('tape.nothingSaved');
     } else {
-        tapeStatusNote = 'Nothing was saved';
+        // Italian says one program and several differently.
+        const key = result.records.length === 1 ? 'tape.saved' : 'tape.savedSeveral';
+        tapeStatusNote = () => AmicoLang.t(key, { ids });
     }
 }
 
@@ -612,20 +643,33 @@ function reportRecording(result) {
 // now do the same (#41), so this line and the console are where a user finds
 // out that a range was not saved, and why.
 function reportTrap(outcome) {
-    const done = outcome.operation === 'save' ? 'saved' : 'loaded';
+    // Each outcome is said twice: on the page in the page's language, and in
+    // the console in English, as everything there is.
+    let key;
+    let values;
+    let detail = '';
     if (outcome.error) {
-        tapeStatusNote = `Not ${done}: ${outcome.error}`;
-        console.warn(tapeStatusNote);
-        return;
-    }
-    const record = outcome.record;
-    const size = `${record.data.length} byte${record.data.length === 1 ? '' : 's'}`;
-    if (outcome.operation === 'save') {
-        tapeStatusNote = `Saved program ${hexByte(record.id)}`;
-        console.log(`${tapeStatusNote}: $${hexWord(record.start)}-$${hexWord(record.end)}, ${size}`);
+        key = outcome.operation === 'save' ? 'tape.notSaved' : 'tape.notLoaded';
+        values = { why: outcome.error };
     } else {
-        tapeStatusNote = `Loaded program ${hexByte(record.id)} at $${hexWord(outcome.address)}`;
-        console.log(`${tapeStatusNote}, ${size}`);
+        const record = outcome.record;
+        const size = `${record.data.length} byte${record.data.length === 1 ? '' : 's'}`;
+        if (outcome.operation === 'save') {
+            key = 'tape.saved';
+            values = { ids: hexByte(record.id) };
+            detail = `: $${hexWord(record.start)}-$${hexWord(record.end)}, ${size}`;
+        } else {
+            key = 'tape.loaded';
+            values = { id: hexByte(record.id), address: hexWord(outcome.address) };
+            detail = `, ${size}`;
+        }
+    }
+    tapeStatusNote = () => AmicoLang.t(key, values);
+    const inEnglish = AmicoLang.t(key, values, 'en') + detail;
+    if (outcome.error) {
+        console.warn(inEnglish);
+    } else {
+        console.log(inEnglish);
     }
 }
 
@@ -672,36 +716,77 @@ const hexByte = (value) => value.toString(16).padStart(2, '0').toUpperCase();
 const hexWord = (value) => value.toString(16).padStart(4, '0').toUpperCase();
 
 /**
+ * An error of the page's own making, which can be said in either language:
+ * it names a string of lang.js and gives the values that go in it. Its
+ * message is the English, for the console.
+ *
+ * `values` may be a function of the language, for a value that is itself
+ * worded differently in each. `detail` is added after the string as it is.
+ */
+class PageError extends Error {
+    constructor(key, values = {}, detail = '') {
+        const valuesFor = typeof values === 'function' ? values : () => values;
+        super(AmicoLang.t(key, valuesFor('en'), 'en') + detail);
+        this.key = key;
+        this.valuesFor = valuesFor;
+        this.detail = detail;
+    }
+
+    text(language = AmicoLang.current) {
+        return AmicoLang.t(this.key, this.valuesFor(language), language) + this.detail;
+    }
+}
+
+/** What went wrong, in the page's language where the page has the words. */
+function errorText(err) {
+    return err instanceof PageError ? err.text() : err.message;
+}
+
+/**
  * Put the programs decoded from a sound recording on the mock cassette and
  * say what was found, in the words the load alert shows (#20).
  *
  * A recording with nothing readable on it is an error. One with some programs
  * read and others damaged is not: the good ones are kept and the damage is
  * listed under them.
+ *
+ * @returns {function(string): string} What was found, said in the language
+ *     asked for: the alert asks for the page's, the console for English.
  */
 function importTapeRecording(name, result) {
-    const length = `${result.duration.toFixed(1)} s at ${result.sampleRate} Hz`;
+    const length = (language) => AmicoLang.t('recording.length', {
+        seconds: AmicoLang.decimal(result.duration, 1, language),
+        rate: result.sampleRate
+    }, language);
     if (result.records.length === 0) {
-        throw new Error(
-            `No AMICO 2000 program could be read from ${name} (${length}).` +
-            (result.problems.length ? '\n' + result.problems.join('\n') : '')
+        throw new PageError(
+            'recording.nothing',
+            (language) => ({ name, length: length(language) }),
+            result.problems.length ? '\n' + result.problems.join('\n') : ''
         );
     }
 
-    const lines = result.records.map((decoded) => {
-        const record = amico.addTapeRecord(decoded);
-        return `  ${hexByte(record.id)}: $${hexWord(record.start)}-$${hexWord(record.end)}, ` +
-            `${record.data.length} bytes, at ${decoded.time.toFixed(1)} s` +
-            (decoded.note ? `\n      (${decoded.note})` : '');
-    });
-    const count = result.records.length;
-    let summary = `Read ${count} program${count === 1 ? '' : 's'} from ${name} (${length}):\n` +
-        lines.join('\n') +
-        '\nTo load one, put its number in $0000 and run from $FC54.';
-    if (result.problems.length) {
-        summary += '\n\nNot read:\n' + result.problems.map((problem) => '  ' + problem).join('\n');
-    }
-    return summary;
+    const stored = result.records.map((decoded) => ({ decoded, record: amico.addTapeRecord(decoded) }));
+    const count = stored.length;
+    return (language) => {
+        const lines = stored.map(({ decoded, record }) =>
+            AmicoLang.t('recording.program', {
+                id: hexByte(record.id),
+                start: hexWord(record.start),
+                end: hexWord(record.end),
+                bytes: record.data.length,
+                time: AmicoLang.decimal(decoded.time, 1, language)
+            }, language) + (decoded.note ? `\n      (${decoded.note})` : ''));
+        let summary = AmicoLang.t(count === 1 ? 'recording.readOne' : 'recording.readSeveral',
+            { count, name, length: length(language) }, language) + '\n' +
+            lines.join('\n') + '\n' +
+            AmicoLang.t('recording.howToLoad', {}, language);
+        if (result.problems.length) {
+            summary += '\n\n' + AmicoLang.t('recording.notRead', {}, language) + '\n' +
+                result.problems.map((problem) => '  ' + problem).join('\n');
+        }
+        return summary;
+    };
 }
 
 function setupFileLoader() {
@@ -719,27 +804,30 @@ function setupFileLoader() {
             // that a file called tape.wav is not taken for an .amtape image.
             const isRecording = lowerName.endsWith('.wav');
             if (isRecording && file.size > MAX_RECORDING_BYTES) {
-                throw new Error(
-                    `${file.name} is ${Math.round(file.size / (1024 * 1024))} MB; the largest ` +
-                    `recording that can be read is ${MAX_RECORDING_BYTES / (1024 * 1024)} MB. ` +
-                    'Cut it into shorter pieces, or save it as mono.'
-                );
+                throw new PageError('load.recordingTooLarge', {
+                    name: file.name,
+                    size: Math.round(file.size / (1024 * 1024)),
+                    limit: MAX_RECORDING_BYTES / (1024 * 1024)
+                });
             }
             if (!isRecording && file.size > MAX_LOAD_BYTES) {
-                throw new Error(
-                    `${file.name} is ${file.size} bytes; the largest file the ` +
-                    `AMICO 2000 can load is ${MAX_LOAD_BYTES} bytes`
-                );
+                throw new PageError('load.fileTooLarge', {
+                    name: file.name,
+                    size: file.size,
+                    limit: MAX_LOAD_BYTES
+                });
             }
 
             const data = await readFileAsArrayBuffer(file);
             const rom = new Uint8Array(data);
-            let summary = `Loaded: ${file.name} (${rom.length} bytes)`;
+            // What the alert will say, as a function of the language, so that
+            // the console can have the same thing in English.
+            let summary = (language) => AmicoLang.t('load.done', { name: file.name, bytes: rom.length }, language);
 
             // Determine ROM type based on size and name
             if (isRecording) {
                 summary = importTapeRecording(file.name, AmicoTapeAudio.decodeWav(rom));
-                console.log(summary);
+                console.log(summary('en'));
             } else if (lowerName.endsWith('.amtape') || lowerName.includes('tape')) {
                 const record = amico.loadTape(rom);
                 console.log(`Tape image loaded: ${file.name} (program ${record.id}, $${record.start.toString(16).padStart(4, '0').toUpperCase()}-$${record.end.toString(16).padStart(4, '0').toUpperCase()})`);
@@ -768,10 +856,10 @@ function setupFileLoader() {
                 console.log('Program loaded at $0000:', file.name);
             }
 
-            alert(summary);
+            alert(summary(AmicoLang.current));
         } catch (err) {
             console.error('Error loading file:', err);
-            alert('Error loading file: ' + err.message);
+            alert(AmicoLang.t('load.error', { message: errorText(err) }));
         }
         
         // Clear file input
@@ -818,13 +906,10 @@ function updateRunButton() {
     const btn = document.getElementById('btn-run');
     const led = document.getElementById('led-run');
 
-    if (amico.running) {
-        btn.textContent = 'Stop';
-        led.classList.add('on');
-    } else {
-        btn.textContent = 'Run';
-        led.classList.remove('on');
-    }
+    // The one bench button whose word changes, so the word comes from
+    // lang.js and not from the page.
+    btn.textContent = AmicoLang.t(amico.running ? 'stop' : 'run');
+    led.classList.toggle('on', amico.running);
 }
 
 // Keyboard keys whose on-screen button has a different data-key; every other
