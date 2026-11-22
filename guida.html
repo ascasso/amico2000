@@ -383,9 +383,10 @@
             ogni controllo sulla ROM o sulla lunghezza, a meno che finisca in
             <code>.wav</code>. Usate nomi come <code>prom.ic9</code>,
             <code>prom.ic10</code> o <code>program.bin</code> per evitare che
-            un file sia preso per un altro. I file ROM più corti vengono
-            accettati e scritti in parte: per sostituire una PROM usate
-            un'immagine completa di 512 byte.</p>
+            un file sia preso per un altro. Un file ROM più corto viene
+            accettato, ma cambia soltanto una parte della ROM e lascia il
+            resto com'era: per sostituire una PROM usate un'immagine completa
+            di 512 byte.</p>
         <p class="callout">Caricare l'una o l'altra ROM cancella la RAM. Per
             un programma binario che richiede un altro indirizzo di
             caricamento, o per un programma di 512 byte che verrebbe scambiato

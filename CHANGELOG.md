@@ -637,6 +637,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the guide already said. Found by a second agent's review of the Italian.
   `tests/languages.test.js` now follows the message's own keys on a board
   just switched on.
+- Corrected three passages of the Italian that said something the English
+  beside them does not, found by the same review:
+  - The tooltip of **Tempo reale** promised "i quattro LED accesi", all four
+    lit. They are never lit together: two at a time, as the guide describes.
+    It now says that the LEDs show the phase.
+  - The Italian guide said a ROM file shorter than 512 bytes is "scritto in
+    parte", written in part, as if some of the file were dropped. Every byte
+    of it is copied; it is the ROM that is only partly replaced, and the
+    guide now says that.
+  - A WAV file without its data was said to "contain no sound", which reads
+    as a silent recording. A silent recording is read like any other. The
+    message now says the file has no audio data.
 - Corrected what the page and the documentation said about the LEDs D4-D7:
   that they light only with **Cassette: Real time**. They light for any
   program that drives them, at either setting. What is true is that the

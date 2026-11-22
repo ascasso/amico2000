@@ -187,8 +187,10 @@ const AmicoLang = (() => {
 
         // --- Load ROM or tape: a sound recording --------------------------
         [pattern('Not a WAV file'), () => 'Non è un file WAV'],
+        // "Dati audio", not "suono": the decoder found no data chunk. A file
+        // of silence has one, and is read, and gets a different message.
         [pattern('WAV file has no format or no sound data'),
-            () => 'Il file WAV non dichiara il suo formato o non contiene suono'],
+            () => 'Il file WAV non dichiara il suo formato o non contiene dati audio'],
         [pattern('Unsupported WAV encoding \\(format (\\d+), (\\d+) bits\\); save it as uncompressed PCM'),
             (m) => `Codifica WAV non prevista (formato ${m[1]}, ${m[2]} bit); salvatelo come PCM non compresso`],
         [pattern('Unsupported WAV file: (\\d+) channels at (\\d+) Hz'),
