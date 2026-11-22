@@ -13,11 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page, and gave the home page a longer title naming the 6502 and the 1978
   ASEL Milano machine, so a search result says what the page is. There is no
   preview image: the only pictures of the board are private photographs.
-- Added `robots.txt` and `sitemap.xml` at the site root, so search engines are
-  told plainly that the page may be crawled and where its two pages are
+- Added `sitemap.xml` and `robots.txt` at the site root, listing the two pages
   (`index.html`'s address and `guide.html`). Nothing on the site blocked
-  crawlers before; the files make that explicit and give Google Search Console
-  a sitemap to take. They reach the live site only when `master` does.
+  crawlers before. The sitemap gives Google Search Console something to take,
+  but it has to be submitted there by hand: while the site is served under
+  `ascasso.github.io/amico2000/`, crawlers read only the host's own
+  `robots.txt`, so this one is not found and its `Sitemap:` line advertises
+  nothing. It is kept for a site at a domain of its own, where it will be at
+  the root. The addresses in both files, and the canonical ones in the pages,
+  then need changing to the new domain. The files reach the live site only
+  when `master` does.
 - Added a section to the guide, The four LEDs in your own program, with two
   short programs to key in: one lights any of D4 to D7, the other counts in
   binary on them. The manual gives the four LEDs to the cassette, but on its
