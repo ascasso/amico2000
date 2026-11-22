@@ -70,6 +70,9 @@
         <ul>
             <li><strong>RES</strong> (Escape or Backspace) returns to the monitor,
                 even from a stuck program, and keeps RAM.</li>
+            <li><strong>HLT</strong> (<kbd>H</kbd>) stops a running program
+                without resetting it, so that RUN can take it up again. See
+                <a href="#hlt">HLT and interrupts</a>.</li>
             <li><strong>Cold reset</strong> clears the emulator's 2 KB of RAM.
                 Use it when you want to start over.</li>
             <li>The bench <strong>Stop/Run</strong> button pauses or resumes the
@@ -156,6 +159,12 @@
         <p>RES also stops a program, but it resets the processor: the
             registers are gone and there is nothing to resume. HLT keeps
             everything.</p>
+        <p>After HLT the CPU line under Processor state still reads
+            <em>running</em>, and rightly: the processor has not stopped, it
+            has gone back to running the monitor. The word <em>halted</em>
+            on that line means something else, a processor that has met an
+            instruction the emulator does not implement, and has nothing to
+            do with this key.</p>
         <p class="callout">On the real machine those two bytes hold whatever
             the memory powered up with, and the manual has you key them in
             yourself before using this: <code>00</code> at <code>$03FC</code>
@@ -333,7 +342,10 @@ amico.start();</code></pre>
             is what the manual describes:</p>
         <ul>
             <li>The six displays go dark, because the routine does not refresh
-                them, and the keys do nothing except RES.</li>
+                them, and the keypad does nothing: the monitor is not there
+                to read it. RES abandons the routine. HLT interrupts it like
+                any other program and brings the monitor back, but the tape
+                goes on running until you press RES.</li>
             <li>The four LEDs at the top of the board show the phase. During
                 SAVE, D6 (recording) is lit throughout, with D4 (leader) for
                 six seconds, then D5 (text) while the program goes out, then
@@ -408,14 +420,19 @@ amico.start();</code></pre>
             <li><strong>Keys do nothing:</strong> resume with the bench Run button,
                 then press RES. On a narrow screen, scroll the board sideways to
                 reach all keys.</li>
-            <li><strong>A program is stuck:</strong> press RES. If the monitor still
-                fails, Cold reset restores its RAM setup and clears your program.</li>
+            <li><strong>A program is stuck:</strong> press RES, or HLT to stop it
+                and see where it was. If the monitor still fails, Cold reset
+                restores its RAM setup and clears your program.</li>
+            <li><strong>HLT does nothing useful, or crashes:</strong> a program
+                has changed the two bytes at <code>$03FC/$03FD</code> that say
+                where the interrupt goes. Press RES, then key <code>00</code>
+                and <code>FE</code> back into them, or use Cold reset.</li>
             <li><strong>The displays went dark:</strong> a program is running that
                 does not refresh them. The monitor lights the digits by scanning
                 them many times a second; once your program has control, they stay
                 dark unless it does the same, exactly as on the real board. The
                 CPU line under Processor state still says running. Press RES to
-                return to the monitor.</li>
+                return to the monitor, or HLT to stop the program where it is.</li>
             <li><strong>A file does not load:</strong> read the error alert and check
                 its name, byte count, and format. A 512-byte program uses the ROM
                 fallback; a renamed audio or text file is not a binary tape or ROM.

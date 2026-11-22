@@ -237,6 +237,10 @@ The display update system is decoupled from PIA writes. The emulator runs the CP
 ### Interrupt Handling
 The CPU properly polls for pending NMI/IRQ before each instruction fetch. This matches real 6502 behavior and is critical for correct emulation.
 
+On this board the HLT key is what raises NMI; see HLT and the NMI Line below.
+Nothing on the board itself raises IRQ: the schematic takes that line, pulled
+up, to the expansion connector. A program reaches the IRQ vector with `BRK`.
+
 ### Decimal ADC/SBC
 The AMICO 2000 uses an NMOS 6502. Decimal-mode ADC/SBC should follow NMOS flag
 behavior: the accumulator and carry are BCD-adjusted, while Z/V and ADC's N are
@@ -336,8 +340,9 @@ controllo del sistema al monitor". The 8255's RESET pin is on the same line, so
 `Amico2000.reset()` is the power-on reset: clear all 2KB of RAM, seed the
 monitor's RAM-resident NMI and IRQ vectors at `$03FC-$03FF`, then call
 `res()`. The seed is the emulator's own, since the board's RAM powers up with
-anything: `$FE00` for NMI and `$FE30` for IRQ; see HLT and the NMI Line. It is what `main.js`
-runs at startup and what the bench **Cold reset** control invokes.
+anything: `$FE00` for NMI and `$FE30` for IRQ; see HLT and the NMI Line. It
+is what `main.js` runs at startup and what the bench **Cold reset** control
+invokes.
 
 **RES preserves RAM.** This is a deliberate fidelity decision, not an
 oversight. The May 1979 Sperimentare clock article has the reader press RES to
@@ -408,6 +413,13 @@ One press is one interrupt: the line gives one falling edge however long the
 key is held, and `haltKeyDown` keeps a repeating keyboard key from giving
 more. NMI is taken at the next instruction boundary, also when interrupts
 are disabled.
+
+Two things HLT is not. It is not the page's *halted* lamp, which marks a CPU
+core stopped on an opcode it does not implement; after HLT the CPU is
+running the monitor and the lamp says running. And it does not stop the
+emulated recorder: pressed during a real cassette routine it brings the
+monitor back, as it would from any program, but the recorder is stopped only
+at `$FE22`, so the tape runs on until RES.
 
 **Single step is the same line and is not emulated.** The schematic has a
 second gate of IC4 on NMI, through the NOR/SS slide switch: a NAND of the

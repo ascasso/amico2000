@@ -62,7 +62,9 @@ the monitor. Your program and anything you typed into RAM are left alone.
 The **Cold reset** button under Bench controls is the harder one: it clears all
 of RAM the way switching the board off and on does. Reach for it if a program
 has overwritten the monitor's RAM-resident interrupt vectors at $03FC-$03FF,
-which RES does not restore because on the real machine it cannot.
+which RES does not restore because on the real machine it cannot. HLT goes
+through the first of them, so that is also how to get HLT back after a
+program has pointed it somewhere of its own.
 
 ## 🎮 How to Use
 
