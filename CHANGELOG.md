@@ -284,6 +284,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Changed the `AGENTS.md` guidance on attribution: an agent no longer puts a
+  link to its session anywhere it is published. Commit messages ended with a
+  `Claude-Session:` line and pull request descriptions with the session's
+  address, both at the tool's own prompting. The owner asked for neither. The
+  line saying an agent did the work stays, `Co-Authored-By:` on a commit and
+  "Generated with" on a pull request. The three pull requests that still
+  carried the link, 44, 45 and 50, had it removed; commits already pushed
+  keep theirs, since removing it would rewrite history.
 - Changed the NMI vector the emulator starts with, at `$03FC/$03FD`, from
   `$FE30` to `$FE00`. On the board those bytes hold whatever the RAM powered
   up with, the monitor never writes them, and the manual has the user key in

@@ -20,11 +20,16 @@ hardware over convenience abstractions. Priority order:
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
-  merged on request. Pull request 50,
-  `https://github.com/ascasso/amico2000/pull/50`, took the phone layout into
-  `master` on 2026-11-22, so it and everything before it is live. What was
-  committed after it, the guide's section on the LEDs and the corrections
-  that go with it, is on `develop` and waits for the next pull request.
+  merged on request. Pull request 51,
+  `https://github.com/ascasso/amico2000/pull/51`, took the guide's section on
+  the LEDs into `master` on 2026-11-22, the phone layout having gone in
+  earlier that day with pull request 50, so both and everything before them
+  are live. What was committed after it, the rule in `AGENTS.md` against
+  publishing a session link, changes nothing on the site; it is on `develop`
+  and goes in with the next pull request.
+- **Attribution:** no link to an agent's session in a commit message, a pull
+  request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
+  The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
   regression check for each earlier fix (`#17`). `node --test tests/` runs 198
   checks offline with no dependencies.
