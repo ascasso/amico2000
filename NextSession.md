@@ -56,7 +56,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 229
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 230
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -285,18 +285,6 @@ done but for the ends listed there.
      a reader on a narrow screen to scroll the board sideways, which is no
      longer true of a phone held upright; and it sends someone who wants to
      keep a tape to the console (item 5).
-   - **A LOAD is quicker than the page says, in both languages.** The
-     tooltip of **Real time** promises "thirteen seconds or more", and the
-     guide gives "about thirteen seconds for a short program" for LOAD and
-     SAVE alike. Thirteen is a SAVE, and the length of a short program on
-     the tape. A LOAD hands back to the monitor once the checksum is read
-     and does not wait for the closing leader. Measured in Node on
-     2026-11-22 with the PROM's own routines: 7.0 s for a 7-byte program
-     that is first on the tape and 7.8 s for one of 40 bytes, against 13.5 s
-     for a SAVE of 40 bytes. The manual agrees: "Quando la lettura del testo
-     è finita sul display appare 0000 01" (page 46). Noticed while checking
-     the review's point about that tooltip, and left alone: it is the
-     English that is loose here, not its translation, and nobody asked.
    - **The README is in English.** It is a document, and the owner's rule
      leaves documents in English, but it is also what a visitor to the
      repository reads first. It now says the site has an Italian version.

@@ -637,6 +637,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Corrected how long the page says a LOAD takes with **Cassette: Real
+  time**, in English and in Italian. The tooltip of **Real time** promised
+  "thirteen seconds or more" and both guides "about thirteen seconds for a
+  short program", for LOAD and SAVE alike. Thirteen is a SAVE. A LOAD of the
+  first program on the tape is done in about seven, because the routine
+  returns to the monitor once the program has been read and does not wait
+  for the leader that closes it, as the manual says: "Quando la lettura del
+  testo è finita sul display appare 0000 01". The tooltip, the two guides
+  and the README now give both figures, and `tests/tape-recorder.test.js`
+  holds the guides to what the routines take: about 12.5 s for a SAVE and
+  6.8 s for a LOAD, each plus a second for every 41 bytes.
 - Fixed the message shown after a sound recording is read, which told its
   reader how to LOAD a program in a way that put it at the wrong address, in
   English and in Italian alike. It said to put the program's number in

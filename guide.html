@@ -459,10 +459,14 @@ amico.start();</code></pre>
                 six seconds, then D5 (text) while the program goes out, then
                 D4 again. During LOAD it is D7 (reading), dimmer, with D4 and
                 then D5.</li>
-            <li>It takes time: about thirteen seconds for a short program plus
-                a second for every 41 bytes. LOAD always starts from the
-                beginning of the tape and passes over every program before the
-                one you asked for, each in its own full time.</li>
+            <li>It takes time. A SAVE is about thirteen seconds for a short
+                program, plus a second for every 41 bytes. A LOAD of the first
+                program on the tape is quicker, about seven seconds plus the
+                same second for every 41 bytes: it is over once the program
+                itself has been read, and does not wait for the closing
+                leader. LOAD always starts from the beginning of the tape and
+                passes over every program before the one you asked for, each
+                in its own full time.</li>
             <li>A line beside the Cassette buttons says what the recorder is
                 doing. The emulator presses its keys for you: it plays when
                 LOAD starts, records when SAVE starts, and stops when the

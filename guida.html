@@ -525,10 +525,14 @@ amico.start();</code></pre>
                 esce il programma, poi di nuovo a D4. Durante il LOAD è
                 acceso D7 (lettura), meno luminoso, insieme a D4 e poi a
                 D5.</li>
-            <li>Ci vuole tempo: circa tredici secondi per un programma breve,
-                più un secondo ogni 41 byte. Il LOAD parte sempre dall'inizio
-                del nastro e passa su tutti i programmi che precedono quello
-                richiesto, ciascuno per tutta la sua durata.</li>
+            <li>Ci vuole tempo. Un SAVE dura circa tredici secondi per un
+                programma breve, più un secondo ogni 41 byte. Il LOAD del
+                primo programma del nastro è più rapido, circa sette secondi
+                più lo stesso secondo ogni 41 byte: termina quando la lettura
+                del testo è finita, senza aspettare la coda di chiusura. Il
+                LOAD parte sempre dall'inizio del nastro e passa su tutti i
+                programmi che precedono quello richiesto, ciascuno per tutta
+                la sua durata.</li>
             <li>Una riga accanto ai pulsanti Cassetta dice che cosa sta
                 facendo il registratore. L'emulatore ne preme i tasti al
                 posto vostro: lo mette in ascolto quando parte il LOAD, in

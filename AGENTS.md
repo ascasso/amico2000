@@ -730,6 +730,17 @@ connected, nothing stands in for the PROM:
   user's job: `$FC54` rewinds and plays, `$FBBC` records, and `$FE22`, where
   both routines end and RES leads, stops. That is an emulator convenience.
   Every LOAD therefore starts at the beginning of the tape.
+- How long they take, measured with the routines themselves. A SAVE is about
+  12.5 s plus a second for every 41 bytes: the two leaders are 256 bytes
+  each, and a byte is some 24 ms. A LOAD of the first program on the tape is
+  about 6.8 s plus the same second for every 41 bytes. It is the shorter
+  because `$FC54` leaves for the monitor when the checksum is read, and does
+  not sit through the closing leader, as the manual has it: "Quando la
+  lettura del testo è finita sul display appare 0000 01" (page 46). Each
+  program ahead of the one asked for adds the whole of its length on the
+  tape, its half second of blank included. The page and the guide once gave
+  thirteen seconds for LOAD and SAVE alike; `tests/tape-recorder.test.js`
+  now holds what the guides say to what the routines take.
 - Run this way the emulator has the PROM's behaviour where the traps differ:
   a LOAD for a program that is not on the tape waits until RES, a LOAD over a
   ROM loses bytes without a word, and the last byte of a block one byte
