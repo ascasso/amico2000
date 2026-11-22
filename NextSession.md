@@ -73,7 +73,28 @@ In rough priority order. None of it is started.
      is the owner's call.
 6. **Archive links:** in `docs/computerhistory-amico2000.md`, every link other
    than the four PROM images is untested.
-7. **Ideas, not started:** a pass on wear and physical irregularity, sound,
+7. **Speed multiplier, requested by the owner, not started.** Three settings:
+   **1x**, the default, which is today's behaviour and stays as close to the
+   real board as the emulator can manage; **10x**; and **Max**, as fast as
+   the browser can run it.
+   - The speed is set in one place: `_runFrame()` in `amico2000.js` hands the
+     CPU `cyclesPerFrame` (16667) cycles for each 16.667 ms of real time, and
+     caps the catch-up at two frames' worth. 10x multiplies both. Max needs a
+     time budget in place of a cycle budget: run the CPU in chunks until most
+     of the frame is spent, then yield so the page can draw and take input.
+   - It is an emulator control, not part of the board, so it belongs under
+     Bench controls beside **Displays**, remembered in `localStorage` the way
+     the display look is.
+   - Check first how the monitor treats a held key. `pressKey()` releases an
+     on-screen key after 100 ms of real time, which at 10x is a full second
+     to the monitor, and longer at Max. That is harmless if the monitor waits
+     for release and wrong if it repeats; the ROM was not read to find out.
+   - Not measured: how fast Max is. The monitor never sleeps, it idles in its
+     scan loop, so Max keeps a processor core busy while the page is open.
+   - Unaffected: the trapped cassette LOAD and SAVE, which are instant at any
+     speed. The display is still drawn once per frame, so a program that
+     animates the digits shows only some of its steps.
+8. **Ideas, not started:** a pass on wear and physical irregularity, sound,
    and a desk scene around the board.
 
 ## Cassette Work (Secondary)
