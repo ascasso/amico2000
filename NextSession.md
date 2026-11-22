@@ -20,7 +20,7 @@ hardware over convenience abstractions. Priority order:
 - **Publishing:** GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 115
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 133
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -28,7 +28,8 @@ hardware over convenience abstractions. Priority order:
   The displays have a Readable look (the default) and an Authentic one.
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
   PROM (IC10). Cassette LOAD and SAVE are trapped at `$FC54` and `$FBBC` and
-  use `.amtape` files.
+  use the emulator's own tape records, which come and go as `.amtape` files
+  or as `.wav` sound files.
 - **Open issues:** `#19`, `#20`, `#41`.
 - **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-21.
 
@@ -103,11 +104,31 @@ In rough priority order. None of it is started.
   `1`, identifier, start, end, checksum and length, then the bytes. The parser
   does not check that start, end and length agree. `.amtape` is the
   emulator's container, not the tape record, whose layout is in `AGENTS.md`.
-- `#20`, analog fidelity: with `amico.cassette.interceptROM = false` the real
-  SAVE runs to completion (332 bit/s, a 6.2 s leader; the manual says about
-  300 and about six). LOAD cannot yet: it reads tape input on Port A bit 7,
-  which nothing drives, and switches Port A's direction with the 8255 control
-  word, which the PIA emulation ignores.
+- `#20`, analog fidelity. Done on 2026-11-21: tapes as sound files.
+  `tape-audio.js` writes a record as a WAV file and reads the programs out of
+  a recording, the page loads `.wav` and has `debug.saveTapeAudio()`, and
+  Cassette Sound Format in `AGENTS.md` describes the signal. Still open:
+  - **No real recording has been through the decoder.** The owner is asking
+    owners of the machine for one. When one arrives, try it first; if it does
+    not read, `detectPulses()` in `tape-audio.js` is where to look, and the
+    recording's own pulse shape should replace the guesses in the test's
+    simulated faults. A recording must not be committed without its owner's
+    leave.
+  - Nor has a real board been played a WAV file written here.
+  - The routines are still not run against a signal in the page. With
+    `amico.cassette.interceptROM = false` the real SAVE runs to completion
+    (332 bit/s, a 6.2 s leader; the manual says about 300 and about six), but
+    LOAD reads the tape on Port A bit 7, which nothing in `amico2000.js`
+    drives. `tests/helpers/cassette-signal.js` has a stand-in for that input
+    circuit, a latch set by the signal and cleared by Port B bit 0, with
+    which the real LOAD does run in Node. Moving that into the machine layer,
+    and lighting D4-D7 from it, would be the rest of this issue.
+  - There is no button for saving a tape, as sound or as `.amtape`; both are
+    console commands.
+- The real routines lose the last byte of a block one byte longer than a
+  whole number of pages (Cassette Sound Format in `AGENTS.md`). The traps do
+  not. It is not on issue `#41`'s list of trap differences, and belongs
+  there.
 
 ## How to Verify
 

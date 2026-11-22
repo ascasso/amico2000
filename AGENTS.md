@@ -81,7 +81,7 @@ python3 -m http.server 8000
 
 ## Code Architecture
 
-The project consists of four modular JavaScript files, and `index.html`, which
+The project consists of five modular JavaScript files, and `index.html`, which
 besides loading them draws the board; see Board Artwork under Important
 Implementation Notes.
 
@@ -139,11 +139,12 @@ SVG-based seven-segment display renderer:
 
 **Implementation note:** Display updates are intentionally separated from the CPU loop to avoid thousands of DOM updates per second. The geometry is in the single `DISPLAY_LAYOUT` object at the top of the file, measured on a photograph of a real board. `tests/display-renderer.test.js` pins the bit-to-segment mapping, the left-to-right order of the digits, and where each named segment is actually drawn; keep it passing when changing how the display is drawn.
 
-### 4. main.js (~590 lines)
+### 4. main.js (~670 lines)
 Application initialization and UI:
 - Contains the Monitor ROM data (MONITOR_ROM constant at top of file)
 - Keyboard event handling (both physical keyboard and on-screen buttons)
-- ROM file loading via file input
+- ROM, program and tape loading via file input, including `.wav` recordings
+  of a cassette, which it hands to `tape-audio.js`
 - Debug console commands exposed via global `debug` object
 
 **Memory Map:**
@@ -156,6 +157,26 @@ $FE00-$FFFF: Monitor ROM (512 bytes)
 
 Both PROM regions are read-only to the running program; see ROM Write
 Protection below.
+
+### 5. tape-audio.js (~700 lines)
+The cassette as sound (#20): a codec between tape records and WAV files,
+exposed as the single global `AmicoTapeAudio`.
+- `encodeWav()` writes a record as the sound the board's SAVE routine would
+  put on tape; `decodeWav()` reads every block out of a recording
+- Plain functions over bytes and samples. It knows nothing about the page or
+  the machine, and `amico2000.js` knows nothing about it; `main.js` joins them
+  through `amico.addTapeRecord()` and `amico.findTape()`
+- `blockOffsets()` is the PROM's own loop for the order of a block's bytes,
+  step for step, faults included. Do not tidy it into the obvious order
+
+**Implementation note:** no recording of a real tape was available when this
+was written. The format is from the PROM and the schematic, and
+`tests/tape-audio.test.js` holds the codec to the real SAVE and LOAD routines
+running in the emulator, through `tests/helpers/cassette-signal.js`. The pulse
+detector, `detectPulses()`, is the one part that rests on guesses, about what
+a cassette deck does to the signal; expect to adjust it, and its simulated
+faults in the test, when a real recording turns up. See Cassette Sound Format
+below.
 
 ## Important Implementation Notes
 
@@ -318,6 +339,10 @@ files:
   answers at $FC00 and its second half at $FB00; see PROM Image Order above.
   Node tests built on `tests/helpers/machine.js` start with the socket empty,
   as before, and fit it themselves where they need it
+- A `.wav` file is read as a sound recording of a cassette, and the programs
+  on it are imported for the trapped LOAD; see Cassette Sound Format below.
+  The extension is tested first, because any other name containing `tape` is
+  taken for an `.amtape` image
 - Other .bin files load as programs at $0000
 
 **Note on hardware PROMs**: The original AMICO 2000 used `prom.ic6` and `prom.ic7` for address decoding logic (generating chip-select signals). These are **not needed** in the emulator as address decoding is implemented in software through the CPU's memory read/write callbacks.
@@ -384,8 +409,10 @@ checked by running the real routine in `tests/cassette-rom-mapping.test.js`:
   and `$99`.
 
 The emulator's current cassette support is intentionally file-backed: it traps
-the IC10 entry points and reads/writes `.amtape` images instead of emulating the
-analog signal path or exact Port A/B timing.
+the IC10 entry points and reads/writes its own store of tape records instead
+of running the routines against a signal with exact Port A/B timing. A record
+enters or leaves that store as an `.amtape` image or as sound; see Cassette
+Sound Format below.
 
 Return convention (issue #24): the IC10 routines do not end in `RTS`. They exit
 with `JMP $FE22`, the monitor's reset entry and the `$FFFC` vector target, whose
@@ -395,6 +422,77 @@ matches the original ROM and cannot leak stack space. Do not add a `pull16()`
 there: the ROM also re-enters LOAD with `JMP $FC54` (no frame pushed), so an
 unconditional pull would corrupt the stack on that path. Protected by
 `tests/cassette-trap-stack.test.js`.
+
+### Cassette Sound Format
+
+Issue #20: what the cassette interface puts on tape, as far as the PROM and
+the supplement's schematic (page 28) fix it. `tape-audio.js` implements it.
+
+**No recording of a real tape has been seen.** Everything here is read from
+the PROM listing and the schematic, or measured by running the real routines
+in the emulator. What a cassette deck does to the signal is not known and is
+not described here.
+
+Output, from SAVE:
+
+- `REG IN`, the recorder's microphone input, hangs on Port B bits 5 and 6
+  (8255 pins 23 and 24) through R39 and R40, 1.8 kOhm each, with R41, 100 Ohm,
+  to ground. Equal resistors make three levels: both lines low, one high,
+  both high.
+- `$FB5A` makes one pulse: `$00` to Port B, a delay, `$E1`, the same delay,
+  `$A1`. That is low for 87 cycles, high for 87, then back to the middle
+  level, where the line rests between pulses.
+- `$FB95` sends a byte, most significant bit first, with no start or stop
+  bits. Every bit cell begins with a pulse. A 1 has a second pulse 1491
+  cycles after the first; a 0 has none. A cell is 3008 to 3010 cycles, so
+  about 332 bit/s, and bytes are 28 cycles further apart in the leader and 56
+  in the header and text.
+- Before the first pulse the line is at the low level, not the middle one:
+  nothing sets bit 5 until then. The monitor leaves it low as well.
+
+Input, to LOAD:
+
+- `REG OUT`, the recorder's speaker output, goes through IC19, an LM358, and
+  one gate of IC20, a 74LS132 wired as an inverter, to a latch made of two
+  more gates of IC20. Port A bit 7 (pin 37) reads the latch. Port B bit 0
+  (pin 18) low clears it, which is what `$FB00` does.
+- `$FB38` reads a byte. For each bit it waits for the latch to set, flashes
+  the LEDs, clears the latch about 0.78 ms after the pulse, waits until about
+  2.4 ms after it, and takes the latch as the bit. `$FC54` shifts bits in the
+  same way until the last eight are `$A5`.
+- So only when pulses arrive matters, not their height or shape. Against the
+  real SAVE routine's own signal, the real LOAD routine still loads with the
+  tape's timing scaled by anything from 0.82 to 1.54.
+- Which half of a pulse sets the latch depends on the recorder's polarity.
+  A pulse has both halves, so either works, and the tests run both.
+
+**The PROM loses the last byte of some blocks.** When the header's count has
+a low byte of zero, that is when the block is one byte longer than a whole
+number of pages, SAVE takes the last byte from one page too low, and LOAD
+stores it one page too low: `DEC $E9` at `$FC36`, and at `$FCD6`, undoes an
+`INC $E9` that on this path never happened. A 257-byte block sends its first
+byte twice and its last never. A 1-byte block sends the byte 256 below it.
+The checksum agrees on both sides, so nothing reports it. Confirmed by
+running the routines. A second fault is read from the listing only, since no
+block on a 2KB board can reach it: `DEC $EB` / `BMI` at `$FC2C` ends a block
+of more than `$8100` bytes after its first page.
+
+How the emulator treats that:
+
+- The sound codec follows the PROM. A recording decodes to what the real LOAD
+  routine would have left in memory, 256 bytes for a 257-byte block, with a
+  `note` on the record. `encodeWav()` writes what the real SAVE routine would
+  send, and refuses a 1-byte block, whose byte on tape is not in the record.
+- The traps do not. A trapped SAVE and LOAD keep every byte, and so does an
+  `.amtape` file. That is one more way the traps differ from the real
+  routines, beside those issue `#41` lists.
+
+What the page does with it: **Load ROM or tape** reads a `.wav` recording,
+uncompressed and at most 64 MB, and `debug.saveTapeAudio()` writes one. The
+decoder takes tape speed from the leader, accepting 0.6 to 1.6 times the
+board's own, and needs 64 zero bits before the `$A5`.
+
+Covered by `tests/tape-audio.test.js` and `tests/cassette-tape-records.test.js`.
 
 ### Board Artwork
 
@@ -514,10 +612,15 @@ When implementing changes based on a GitHub issue:
 
 1. **Browser Tab Throttling**: Modern browsers throttle `requestAnimationFrame` when tabs are backgrounded, causing the emulator to pause/slow down
 2. **Cassette I/O**: File-backed mock cassette LOAD/SAVE is implemented by
-   trapping the IC10 ROM entry points ($FBBC and $FC54), but the analog
-   300-bit/s tape waveform and Port A/B signal timing are not cycle-emulated.
-   The traps also differ from the real routines in what they leave in
-   `$0000-$0004`; issue `#41` lists the differences
+   trapping the IC10 ROM entry points ($FBBC and $FC54). The routines are not
+   run against a tape signal in real time, so a LOAD or SAVE is instant and
+   the phase LEDs stay dark. Tapes can be read from and written to `.wav`
+   sound files, but that format is taken from the PROM and the schematic and
+   has never been tried on a recording of a real tape or on a real board; the
+   part most likely to need adjusting is the pulse detector. Only
+   uncompressed WAV is read. The traps also differ from the real routines in
+   what they leave in `$0000-$0004`, which issue `#41` lists, and in keeping
+   the last byte of a block the real routines lose; see Cassette Sound Format
 3. **Keyboard Matrix**: Does not simulate ghosting that occurs on real hardware when multiple keys are pressed
 4. **Timing**: The CPU runs at approximately 1MHz but is not cycle-accurate;
    sufficient for the monitor ROM and simple programs. The functional suite the
