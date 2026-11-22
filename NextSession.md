@@ -56,7 +56,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 227
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 229
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -244,10 +244,25 @@ done but for the ends listed there.
    what the page says while it is used, down to the reasons the machine
    gives for a refusal (`AGENTS.md`, Two Languages). The changelog, the logs
    and the other documents stay in English, as the owner said. What is left:
-   - **The owner has not read the Italian.** Nobody has but the sessions that
-     wrote it. It follows the manual's vocabulary and addresses the reader
-     as "voi"; whether it sounds right to someone who read *Sperimentare* is
-     for the owner to say. The words most worth a look are the labels:
+   - **No person is known to have read the Italian through.** The sessions
+     that wrote it have, and on 2026-11-22 a second agent, Codex, reviewed
+     it at the owner's request. Its findings were checked one by one and all
+     held: an alert that sent a program to the wrong address, in English as
+     much as in Italian, three passages that said something else than the
+     English, and three that were English word for word. Reading the rest
+     again against the manual found four sentences more and two words that
+     are not the manual's: the NOR/SS switch is "interruttore" there and was
+     "commutatore" here, and a loop is a "loop", not a "ciclo". All of it is
+     put right (the log of that day). The owner asked then that the Italian
+     keep the manual's style and tone, not only its words; how is under Two
+     Languages in `AGENTS.md`. One question that raises is still open: the
+     manual walks through its examples as "noi" ("premiamo quindi i tasti"),
+     and the guide only gives orders to "voi", which the manual does too.
+     Whether the guide should take up the "noi" is the owner's to say.
+   - **What the owner's own reading is still needed for.** The Italian
+     follows the manual's vocabulary and addresses the reader as "voi";
+     whether it sounds right to someone who read *Sperimentare* is for the
+     owner to say. The words most worth a look are the labels:
      "Comandi dell'emulatore" for Bench controls, "Reset a freddo", "Passo",
      "Display: Leggibili / Autentici", "Cassetta: Immediata / Tempo reale",
      and "in esecuzione", "fermo", "bloccato" beside the run lamp. Changing
@@ -270,6 +285,18 @@ done but for the ends listed there.
      a reader on a narrow screen to scroll the board sideways, which is no
      longer true of a phone held upright; and it sends someone who wants to
      keep a tape to the console (item 5).
+   - **A LOAD is quicker than the page says, in both languages.** The
+     tooltip of **Real time** promises "thirteen seconds or more", and the
+     guide gives "about thirteen seconds for a short program" for LOAD and
+     SAVE alike. Thirteen is a SAVE, and the length of a short program on
+     the tape. A LOAD hands back to the monitor once the checksum is read
+     and does not wait for the closing leader. Measured in Node on
+     2026-11-22 with the PROM's own routines: 7.0 s for a 7-byte program
+     that is first on the tape and 7.8 s for one of 40 bytes, against 13.5 s
+     for a SAVE of 40 bytes. The manual agrees: "Quando la lettura del testo
+     è finita sul display appare 0000 01" (page 46). Noticed while checking
+     the review's point about that tooltip, and left alone: it is the
+     English that is loose here, not its translation, and nobody asked.
    - **The README is in English.** It is a document, and the owner's rule
      leaves documents in English, but it is also what a visitor to the
      repository reads first. It now says the site has an Italian version.

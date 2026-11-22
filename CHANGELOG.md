@@ -331,6 +331,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Wrote down in `AGENTS.md` how the Italian is to be written, after the owner
+  asked that it keep the style and tone of the original documentation and
+  not only its words: build each sentence on the manual's own sentence for
+  the same thing, how the manual sounds, the kinds of English carried across
+  word for word that a second agent's review found on the site, and that a
+  reviewer's Italian points at a passage without being the text to use. The
+  table of the Italian's words gains the program's number, the two cassette
+  routines and the halves of an address, each with its page. `NextSession.md`
+  records the review, a question it leaves for the owner, and something
+  noticed on the way and left alone: a LOAD takes about seven seconds where
+  the page says thirteen, in both languages. Documentation only.
 - Recorded that the handheld layout for phones held upright was opened by the
   owner in Safari on an iPhone 17 Pro and looked right, with everything
   working. It had been checked only in headless Chrome emulation before. No

@@ -1017,6 +1017,9 @@ choosing one of your own:
 | leader; text | coda; testo | Fig. 27, and "i LED relativi alla coda" |
 | LOAD; SAVE | lettura; registrazione | "lettura del nastro", "registrazione sul nastro" |
 | identifier; load address | identificatore; indirizzo di caricamento | Fig. 27 |
+| the program's number | numero del programma | "Numero del programma da caricare" (page 46); the identifier by its other name, "Identificatore (N. del programma)" in Tabella 12 |
+| the LOAD routine; the SAVE routine | programma di lettura; programma di registrazione | "indirizzo di partenza del programma di lettura (indirizzo FC54)" (page 46); "l'inizio del programma di registrazione" (page 47) |
+| low byte, high byte of an address | parte bassa, parte alta | the table of LOAD's parameters (page 46) |
 | checksum | checksum | "parola di controllo (checksum)" |
 | microcomputer | microelaboratore | throughout |
 
@@ -1027,6 +1030,39 @@ emulator's controls are "pulsanti", so that "tasto" stays a key of the board,
 and the panel that holds them is "Comandi dell'emulatore". The Italian guide
 quotes the page's labels and status words; `tests/languages.test.js` holds
 the ones it quotes to what the page says.
+
+**The manual's style and tone, not only its words.** The owner asked on
+2026-11-22 for the Italian to be "written in the same style and tone of the
+original documentation". No reason was given; the one that fits is that the
+people the Italian is for learned the machine from the supplement.
+
+- **Write from the manual's sentence.** For most of what the site says about
+  the board the supplement has a sentence of its own: keying a byte, running
+  a program, LOAD's and SAVE's parameters (pages 46 and 47), what RES
+  recovers from, reading the registers after a halt (pages 85 and 86). Find
+  it and build on it. The alert after a recording is read was made that way,
+  from "scriviamo 04 nella locazione di memoria 0000 e FF [...] nella
+  locazione di memoria 0002", and so was the step after HLT in the guide.
+- **How it sounds.** Plain and patient, a teacher beside the reader. Steps
+  are orders to "voi" ("premete", "introducete") or the impersonal "si" ("si
+  preme RUN", "si procede al solito modo"). Its turns of phrase are "A
+  questo punto", "basta premere", "per far partire il programma". It keeps
+  the English it already has, such as loop, routine, byte and Program
+  Counter, and adds none. Its examples it walks through as "noi" ("premiamo
+  quindi i tasti", "vediamo ora come si introducono i parametri"). The site
+  has only the orders so far; whether its guide should take up the "noi" as
+  well is the owner's to decide.
+- **English carried across word for word** is what a review of 2026-11-22
+  found, and each of these was on the site. A passive participle turned
+  into "si" with its "da" left hanging: "si accende [...] da un vostro
+  programma". "Vi" for "there" or "to it", where the reader is "voi": "RES
+  vi rimedia". A verb whose first meaning is another: "comprendete" for
+  "include". An idiom word for word: "Guardatevi intorno". A loose English
+  made exact and false: "the phase LEDs lit" as "i quattro LED accesi".
+  Read the Italian on its own, as a reader with no English beside it does.
+- **A reviewer's Italian points at the passage; it is not the text to
+  use.** Check what it says is wrong against the code or the page, then
+  write the replacement from the manual.
 
 **Not translated, on purpose:** the masthead, which is the machine's name;
 the legends on the board and on the keys; register names; and everything in
@@ -1059,8 +1095,12 @@ says what the English says; that has to be read. In headless Chrome,
 browser Italian. When a change touches the page's layout, compare the English
 page with the page before the change: same boxes, same height.
 
-The Italian was written on 2026-11-22 and has been read by the sessions that
-wrote it. No other Italian reader had read it when this was written.
+The Italian was written on 2026-11-22 and read by the sessions that wrote
+it. The same day a second agent, Codex, reviewed it at the owner's request;
+what it found was checked and put right, and the whole was read again
+against the manual, which found the switch's name and a few sentences more
+(the log of that day, A Second Agent's Review of the Italian). No person is
+known to have read it through when this was written, the owner included.
 
 ## Development Guidelines
 
@@ -1151,8 +1191,9 @@ When implementing changes based on a GitHub issue:
    its English; only the guide has an Italian address. The Italian of a
    machine's refusal is found by the shape of the English message, so a
    message nobody listed is shown in English. The browser console is English
-   only. The Italian has not been read by anyone but the sessions that wrote
-   it, and the language link has been tried in Chrome only. See Two Languages
+   only. The Italian has been read by the sessions that wrote it and
+   reviewed by a second agent, and by no person that is known; and the
+   language link has been tried in Chrome only. See Two Languages
 
 ## Keyboard Mappings
 
