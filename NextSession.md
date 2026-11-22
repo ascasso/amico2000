@@ -21,8 +21,10 @@ hardware over convenience abstractions. Priority order:
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
   merged on request. Pull request 47,
-  `https://github.com/ascasso/amico2000/pull/47`, carries the cassette work of
-  2026-11-21 and was open when this was written.
+  `https://github.com/ascasso/amico2000/pull/47`, took the cassette work of
+  2026-11-21 into `master` that evening, so it is live. What was committed
+  after it, the ComputerHistory.it links and this file's own update, is on
+  `develop` and waits for the next pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
   regression check for each earlier fix (`#17`). `node --test tests/` runs 171
   checks offline with no dependencies.
@@ -72,7 +74,9 @@ In rough priority order. None of it is started.
      Reflowing it is an owner decision.
    - The measurement table and the browser-check scripts live with the
      private photographs, outside the repository. Whether they belong in it
-     is the owner's call.
+     is the owner's call. The three checks of the cassette written on
+     2026-11-21 are there too, as `cassette-files.mjs`, `cassette-realtime.mjs`
+     and `cassette-instant.mjs`; they hold nothing private.
 5. **Speed multiplier, requested by the owner, not started.** Three settings:
    **1x**, the default, which is today's behaviour and stays as close to the
    real board as the emulator can manage; **10x**; and **Max**, as fast as
@@ -93,8 +97,9 @@ In rough priority order. None of it is started.
      scan loop, so Max keeps a processor core busy while the page is open.
    - Unaffected: the trapped cassette LOAD and SAVE, which are instant at any
      speed. The real-time cassette keeps time by CPU cycles, so it would run
-     faster with the processor, which is probably what a user wants from it. The display is still drawn once per frame, so a program that
-     animates the digits shows only some of its steps.
+     faster with the processor, which is probably what a user wants from it.
+   - The display is still drawn once per frame, so a program that animates
+     the digits shows only some of its steps.
 6. **Ideas, not started:** a pass on wear and physical irregularity, sound,
    and a desk scene around the board.
 
@@ -153,6 +158,11 @@ In rough priority order. None of it is started.
   through the protocol are not subject to the page's CSP, and
   `requestAnimationFrame` runs at 60 Hz. Avoid `--virtual-time-budget`, which
   stops `requestAnimationFrame` and so the emulator. The page also runs from
-  `file://`.
+  `file://`. The cassette in real time has to be watched in real time: a
+  SAVE and a LOAD are over twenty seconds between them.
+- A pull request gets an automated review when it is opened. Its findings
+  are worth reading and are not always right: of the two on pull request 47,
+  one was a real bug and one misread a commit's date. `AGENTS.md` now has a
+  test for the date.
 - If behavior and documents disagree, trust the ROM, the manual and verified
   behavior, and fix the documents.
