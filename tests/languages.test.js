@@ -73,7 +73,8 @@ test('t() fills in the values, in the language asked for', () => {
     assert.equal(AmicoLang.t('tape.playing', { at: 3, length: 14 }, 'it'), 'Lettura, 3 s di 14 s');
     // A dollar sign in a string is a hex prefix and is left alone.
     assert.equal(AmicoLang.t('tape.loaded', { id: '01', address: '0200' }, 'it'), 'Programma 01 caricato a $0200');
-    assert.equal(AmicoLang.t('recording.howToLoad', {}, 'en'), 'To load one, put its number in $0000 and run from $FC54.');
+    assert.equal(AmicoLang.t('recording.howToLoad', {}, 'en'),
+        'To load one at its recorded address, put its number in $0000 and FF in $0002, then run from $FC54.');
     assert.throws(() => AmicoLang.t('no.such.string'), /No string called/);
 });
 
@@ -271,6 +272,44 @@ test('a message lang.js does not know is shown as it is', () => {
     assert.equal(AmicoLang.message('Block at 12.3 s: the recording breaks off inside the header', 'it'),
         'Blocco a 12,3 s: la registrazione si interrompe dentro l’intestazione');
     assert.equal(AmicoLang.message('program 55 is not on the cassette', 'it'), 'il programma 55 non è sulla cassetta');
+});
+
+// ---------------------------------------------------------------------------
+// What the page tells its reader to do
+// ---------------------------------------------------------------------------
+
+test('the alert after a recording gives a LOAD that lands where the tape says', () => {
+    // What the alert has its reader key, in either language: the program's
+    // number in $0000, FF in $0002, and a start from $FC54.
+    for (const language of ['en', 'it']) {
+        const text = AmicoLang.t('recording.howToLoad', {}, language);
+        assert.match(text, /\$0000/, `${language}: where the number goes`);
+        assert.match(text, /\bFF in \$0002/, `${language}: FF in $0002`);
+        assert.match(text, /\$FC54/, `${language}: where LOAD starts`);
+    }
+
+    // A board just switched on, a program recorded at $0200 on its cassette,
+    // and these bytes keyed before an instant LOAD.
+    const program = [0xA9, 0x42, 0x85, 0x20, 0x4C, 0x22, 0xFE];
+    const loadAfterKeying = (keyed) => {
+        const amico = machineWithCassettePROM();
+        amico.cassette.interceptROM = true;
+        amico.addTapeRecord({ id: 0x01, start: 0x0200, data: program });
+        for (const [address, value] of keyed) amico.cpu.memory[address] = value;
+        runRoutine(amico, LOAD_ENTRY);
+        return amico.cpu.memory;
+    };
+
+    const asTold = loadAfterKeying([[0x0000, 0x01], [0x0002, 0xFF]]);
+    assert.deepEqual([...asTold.subarray(0x0200, 0x0207)], program, 'the program is where it was recorded');
+    assert.deepEqual([...asTold.subarray(0x0000, 0x0003)], [0x01, 0x00, 0xFF], 'and what was keyed is still there');
+
+    // Why the alert has to say it. Without the FF, $0001/$0002 are an
+    // address, and after a cold reset that address is $0000: the alert once
+    // gave only the number, and the program went on top of it.
+    const numberOnly = loadAfterKeying([[0x0000, 0x01]]);
+    assert.deepEqual([...numberOnly.subarray(0x0000, 0x0007)], program, 'the program lands on its own parameters');
+    assert.equal(numberOnly[0x0200], 0x00, 'and nothing reaches $0200');
 });
 
 // ---------------------------------------------------------------------------

@@ -626,6 +626,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed the message shown after a sound recording is read, which told its
+  reader how to LOAD a program in a way that put it at the wrong address, in
+  English and in Italian alike. It said to put the program's number in
+  `$0000` and run from `$FC54`. The LOAD routine loads at the address in
+  `$0001/$0002` unless `$0002` holds `FF`, and after a cold reset both are
+  zero, so a program recorded at `$0200` went to `$0000`, on top of the
+  number just keyed. The message now says to put `FF` in `$0002` as well,
+  which loads the program where it was recorded, as the manual has it and as
+  the guide already said. Found by a second agent's review of the Italian.
+  `tests/languages.test.js` now follows the message's own keys on a board
+  just switched on.
 - Corrected what the page and the documentation said about the LEDs D4-D7:
   that they light only with **Cassette: Real time**. They light for any
   program that drives them, at either setting. What is true is that the

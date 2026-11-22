@@ -120,9 +120,17 @@ const AmicoLang = (() => {
             en: '  {id}: ${start}-${end}, {bytes} bytes, at {time} s',
             it: '  {id}: ${start}-${end}, {bytes} byte, a {time} s'
         },
+        // FF in $0002 has to be said. The routine loads at the address in
+        // $0001/$0002 unless $0002 holds FF, and after a cold reset those two
+        // are zero: a program recorded at $0200 went to $0000, on top of the
+        // number just keyed there. The Italian is the manual's own sentence
+        // for it: "scriviamo 04 nella locazione di memoria 0000 e FF [...]
+        // nella locazione di memoria 0002", to load "a partire dall'indirizzo
+        // registrato sul nastro", with $FC54 the "programma di lettura".
         'recording.howToLoad': {
-            en: 'To load one, put its number in $0000 and run from $FC54.',
-            it: 'Per caricarne uno, mettete il suo numero in $0000 e fate partire da $FC54.'
+            en: 'To load one at its recorded address, put its number in $0000 and FF in $0002, then run from $FC54.',
+            it: 'Per caricarne uno a partire dall’indirizzo registrato sul nastro, scrivete il suo numero in $0000 ' +
+                'e FF in $0002, poi fate partire il programma di lettura da $FC54.'
         },
         'recording.notRead': { en: 'Not read:', it: 'Non letti:' }
     };
