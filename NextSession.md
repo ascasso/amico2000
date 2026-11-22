@@ -15,7 +15,7 @@ hardware over convenience abstractions. Priority order:
 5. Large conformance or test-framework projects, only after core behavior is
    trustworthy.
 
-## Where Things Stand (2026-11-21)
+## Where Things Stand (2026-11-22)
 
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
@@ -26,7 +26,7 @@ hardware over convenience abstractions. Priority order:
   after it, the ComputerHistory.it links and this file's own update, is on
   `develop` and waits for the next pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 188
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 193
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -35,6 +35,7 @@ hardware over convenience abstractions. Priority order:
   go dark when nothing is scanning them, as on the board.
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
   PROM (IC10).
+- **Phones:** held upright, the page uses a handheld layout; see item 1.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
   which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
   executes one instruction.
@@ -44,13 +45,31 @@ hardware over convenience abstractions. Priority order:
   time** the PROM's own routines run against an emulated recorder, with the
   phase LEDs lit (`#20`, closed).
 - **Open issues:** none.
-- **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-21.
+- **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-22.
 
 ## Outstanding
 
 In rough priority order. None of it is started.
 
-1. **Two interrupt decisions are the owner's to confirm.** HLT and the
+1. **Try the phone layout on a real phone.** The owner asked for the page to
+   work on a phone held upright, the way the owner uses one, and left the
+   choice of how to the agent. The handheld layout was built on 2026-11-22
+   (`AGENTS.md`, Handheld Layout): on an upright touch screen the displays,
+   LEDs, switch and keys move into one column above a picture of the board.
+   It was checked only in headless Chrome with touch emulation. Ask the owner
+   how it is on the owner's own phone, and fix what that shows. Known rough
+   edges, none of them blocking:
+   - On the smallest common screen, an iPhone SE with Safari's toolbars, the
+     last key row ends 2 px from the bottom and the maker's mark is below it.
+   - Turned to landscape, a phone gets the board as drawn, and the title
+     pushes the bottom rows of keys below the fold. The owner keeps rotation
+     locked, so this was left; a compact title for short landscape screens
+     would be the fix.
+   - The pictures left in the board drawing are static: they do not light up
+     with the real displays and LEDs.
+   - Tablets in portrait wider than 640 px keep the board as drawn, at about
+     the size a desktop window shows it.
+2. **Two interrupt decisions are the owner's to confirm.** HLT and the
    NOR/SS single-step switch both work now (`AGENTS.md`, HLT and the NMI
    Line). Both go through the NMI vector at `$03FC/$03FD`, which the board
    leaves to the user and the emulator has to start with something in. It
@@ -59,27 +78,25 @@ In rough priority order. None of it is started.
    was left at `$FE30`. Making it `$FE00` too would turn a `BRK` into a
    breakpoint that shows where it was, and would change what programs that
    end in `BRK` do today.
-2. **Machine-layer checks** for display multiplexing, pattern by pattern (how
+3. **Machine-layer checks** for display multiplexing, pattern by pattern (how
    Port A and Port B writes become the six-pattern buffer; when digits go
    dark is covered), and the `$FD00-$FDFF` partial decoding.
    `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
    Node and assert on RAM or PIA state.
-3. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
+4. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
    wires them and light when the real cassette routines run. By that wiring
    all four are dark while the monitor idles, yet unit A's photograph shows
    D7 lit at idle. Nothing accounts for it.
-4. **Board drawing, unverified ends.**
+5. **Board drawing, unverified ends.**
    - Only Chrome has been used. Safari, Firefox, touch and screen readers
      have not been tried, nor the key legends on systems without the macOS
      DIN faces.
-   - On a phone the board pans sideways and the keys start off screen.
-     Reflowing it is an owner decision.
    - The measurement table and the browser-check scripts live with the
      private photographs, outside the repository. Whether they belong in it
      is the owner's call. The three checks of the cassette written on
      2026-11-21 are there too, as `cassette-files.mjs`, `cassette-realtime.mjs`
      and `cassette-instant.mjs`; they hold nothing private.
-5. **Speed multiplier, requested by the owner, not started.** Three settings:
+6. **Speed multiplier, requested by the owner, not started.** Three settings:
    **1x**, the default, which is today's behaviour and stays as close to the
    real board as the emulator can manage; **10x**; and **Max**, as fast as
    the browser can run it.
@@ -102,7 +119,7 @@ In rough priority order. None of it is started.
      faster with the processor, which is probably what a user wants from it.
    - The display is still drawn once per frame, so a program that animates
      the digits shows only some of its steps.
-6. **Ideas, not started:** a pass on wear and physical irregularity, sound,
+7. **Ideas, not started:** a pass on wear and physical irregularity, sound,
    and a desk scene around the board.
 
 ## Cassette Work (Secondary)

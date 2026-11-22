@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a layout for phones held upright. The board is drawn three times as
+  wide as it is tall, so on a phone in portrait the page showed its left half
+  and left the displays and the whole keypad off screen to the right, behind
+  a sideways scroll. On such a screen the page now brings the six displays,
+  the four LEDs, the NOR/SS switch and all 23 keys together in one column at
+  the top, the function keys above the hex keys, with keys between 45 and 65
+  px across depending on the phone, and the board's maker's mark at the
+  foot. A picture of the whole board, the width of the screen, follows
+  beneath. Everything works as before, by touch. Turning the phone sideways
+  gives the board as drawn again. Desktop computers are not affected: the
+  layout needs a touch screen, and the desktop page was checked to be
+  identical pixel for pixel at five window sizes.
 - Added the cassette interface circuit to the machine layer (#20), so that
   the real IC10 routines have something to work against when the traps are
   off (`amico.cassette.interceptROM = false`). Port A bit 7 now reads the

@@ -72,6 +72,11 @@ program has pointed it somewhere of its own.
 
 ## 🎮 How to Use
 
+On a phone held upright the page gathers the displays, lamps, switch and keys
+into one column at the top, sized for a thumb, with a picture of the whole
+board beneath. On a computer, or a phone turned sideways, the board is used
+as drawn.
+
 The AMICO 2000 Monitor ROM uses a state machine — follow the exact sequence for your task.
 
 ### Initial Setup

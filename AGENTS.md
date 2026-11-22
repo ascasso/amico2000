@@ -754,8 +754,11 @@ unit A; the page follows unit B.
 **What the scripts depend on.** `main.js` looks up `btn-run`, `btn-step`,
 `btn-reset`, `btn-load`, `led-run`, `reg-pc`, `reg-a`, `reg-x`, `reg-y`,
 `reg-sp`, `reg-flags`, `rom-file`, `display`, `led-d4` to `led-d7`,
-`tape-status` and `ss-switch`, every `.key` by its `data-key`, and every
-`.look-btn` and `.tape-btn`. Keep those when redrawing. A pressed key is styled through the
+`tape-status`, `ss-switch` and `handheld-panel`, every `.key` by its
+`data-key`, and every `.look-btn` and `.tape-btn`. For the handheld layout it
+also finds the four parts it moves as direct children of `.pcb`:
+`.part.display-block`, `.part.led-bank`, `.part.keyfield.func` and
+`.part.keyfield.hex`. Keep those when redrawing. A pressed key is styled through the
 inline `translateY` that `main.js` sets on its button, for mouse, touch and
 keyboard alike, so the keyboard handling does not need to know about the
 artwork.
@@ -782,6 +785,62 @@ over the DevTools protocol in real time (How to Verify in `NextSession.md`):
 scripts evaluated through the protocol are not subject to the page's CSP, and
 `requestAnimationFrame` fires normally, so the page is checked as served. `tests/display-renderer.test.js` covers the display's
 geometry and nothing else on the board.
+
+### Handheld Layout
+
+On a phone held upright the board cannot be both whole and usable: it is
+three times as wide as it is tall, and at 390 px its keys would be 16 px. So
+on such a screen, and only there, the page rearranges itself.
+
+- **When.** `HANDHELD_QUERY` in `main.js`:
+  `(max-width: 640px) and (orientation: portrait) and (pointer: coarse)`. The
+  coarse pointer is what keeps it off every desktop: a mouse is a fine
+  pointer, so a desktop window of any shape keeps the board as drawn. A phone
+  turned to landscape keeps it too, since the board then fits the width.
+- **What.** `setupHandheldLayout()` moves the four parts a person works, the
+  displays, the four LEDs, the function keys with the NOR/SS switch and the
+  hex keys, out of `.pcb` into `#handheld-panel`, in that order, above the
+  maker's mark at the panel's foot, and sets `handheld` on `<html>`. Each
+  block keeps its own arrangement from the board; the function keys sit above
+  the hex keys, which are at the bottom, nearest the thumb. In the drawing
+  each part is replaced by `pictureOf()` it, a clone with no id, `data-key`
+  or `title`, marked `inert` and `aria-hidden`, so lookups by id and by
+  `data-key` still find only the live part and the clones never get
+  handlers. The drawing then shrinks to the screen's width as a picture of
+  the whole board, with a caption. Turning the phone back moves every part to
+  exactly where it came from. The live elements are the same throughout, so
+  their handlers and the references `display.js` holds stay valid.
+- **Pictures are static.** They are taken at startup, whatever the screen,
+  so they show the board unlit with every key up, and any inline press style
+  is stripped from them. Only the switch follows the real one:
+  `setupSingleStepSwitch()` sets its class on every `.switch-cell`. Focus is
+  given back to a moved element that had it.
+- **Touch.** In the handheld layout a key presses when the finger lifts
+  having moved less than `TAP_SLOP_PX`, not when it lands, because the keypad
+  fills most of the screen and a swipe that starts on it has to scroll the
+  page. On the board as drawn a key still presses on touch, as before.
+- **Browsers.** It needs container query units and `svh`: Safari 16, Chrome
+  108. Older ones get a broken keypad in the handheld layout only.
+- **Styles.** One block in `index.html` between `/* handheld:begin */` and
+  `/* handheld:end */`. Every rule in it is under `html.handheld`, apart from
+  the one that hides the panel and the caption everywhere else, and
+  `tests/handheld-layout.test.js` fails if a rule escapes. The parts were
+  sized in `cqw` of the board; in the panel `cqw` means the panel's width, so
+  every such length is restated in `--u`, the length one board `cqw` has to
+  stand for to keep the parts in proportion to the larger keys. Key pitch is
+  `min(19.5cqw, 9svh)`: four keys across the panel, and short enough that the
+  title, displays and every key fit on the first screen with the browser's
+  toolbars showing.
+- **The desktop is untouched**, and was checked to be: screenshots of the
+  page at 1400, 1024, 800, 700 and 600 px wide, the last two in portrait,
+  were identical pixel for pixel before and after the change.
+- **Checking it.** In headless Chrome with
+  `Emulation.setDeviceMetricsOverride` (`mobile: true`) and
+  `Emulation.setTouchEmulationEnabled`, which makes `(pointer: coarse)`
+  match; without touch emulation the layout stays off. Tap keys with
+  `Input.dispatchTouchEvent` and read the display, and change the metrics to
+  landscape and back to check the move both ways. Then on a real phone: a
+  headless browser is not one.
 
 ## Development Guidelines
 
@@ -859,11 +918,12 @@ When implementing changes based on a GitHub issue:
    the NMI Line
 7. **Board drawing**: the LEDs D4-D7 light only with **Cassette: Real time**,
    and the NOR/SS switch was photographed only at NOR, so its SS position is
-   the same drawing moved across. The displays do
-   not show the 31 ms blink a real board gives when a key is pressed. At window widths under about
-   800 pixels the board keeps its size and pans sideways, so on a phone the
-   keys and displays, at its right-hand end, are off screen until it is
-   panned. The drawing has been looked at in Chrome only. See Board Artwork
+   the same drawing moved across. The displays do not show the 31 ms blink a
+   real board gives when a key is pressed. On a phone held upright the parts
+   a person works are rearranged into one column (see Handheld Layout); in a
+   desktop window narrower than about 800 pixels the board keeps its size and
+   pans sideways, as before. The drawing has been looked at in Chrome only,
+   and the handheld layout in emulation only. See Board Artwork
 
 ## Keyboard Mappings
 
