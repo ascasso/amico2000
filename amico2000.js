@@ -27,7 +27,8 @@ class Amico2000 {
             portA: 0x00,    // Display segments / keyboard data
             portB: 0x00,    // Digit select / control
             portC: 0x00,    // General I/O (expansion port)
-            control: 0x00   // 8255 control register
+            control: 0x00,  // 8255 control register
+            portAInput: true  // Port A's direction, from the last mode word
         };
 
         // Fix for #2: mock cassette storage used by traps for the optional IC10 ROM entry points.
@@ -37,9 +38,27 @@ class Amico2000 {
             lastSavedTape: null,
             interceptROM: true
         };
-        
-        // Display state (6 digits, each 8 segments including DP)
+
+        // The cassette interface itself (#20), which the traps above stand in
+        // for when interceptROM is set and which the real IC10 routines use
+        // when it is not. See Cassette Interface Circuit further down.
+        this.tape = {
+            recorder: null,   // whatever is wired to REG IN and REG OUT
+            latch: 0,         // the latch of two IC20 gates, read on Port A bit 7
+            heardUpTo: 0,     // the CPU cycle the latch was last brought up to
+            outLevel: 0       // REG IN: how many of Port B bits 5 and 6 are high
+        };
+        // The phase LEDs D4-D7: which are on now (bits 0-3), since which cycle,
+        // and for how many cycles each has been on out of `counted`, since
+        // takePhaseLEDs() last asked.
+        this.phaseLEDs = { on: 0, since: 0, counted: 0, lit: [0, 0, 0, 0] };
+
+        // Display state (6 digits, each 8 segments including DP): the pattern
+        // each digit was last driven with, and the CPU cycle it was driven at.
+        // A digit is only alight while something keeps driving it; see
+        // getDisplay().
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        this.displayDriven = new Array(6).fill(-Infinity);
         this.currentDigit = 0;
         
         // Keyboard state: the monitor scans 3 rows x 7 columns, selecting a
@@ -123,6 +142,16 @@ class Amico2000 {
         // Callbacks for UI
         this.onDisplayUpdate = null;
         this.onStateUpdate = null;
+        // Called once per frame with how much of it each phase LED was on
+        // (see takePhaseLEDs), and after a recording made by the real SAVE
+        // routine has been read back (see _stopRecorder).
+        this.onPhaseLEDs = null;
+        this.onTapeRecorded = null;
+        // Called with the outcome of a trapped LOAD or SAVE, as
+        // {operation, record, address} or {operation, error}. This is how a
+        // refused SAVE is made known, since the routine it stands in for has
+        // no status to leave in memory (#41).
+        this.onCassetteTrap = null;
         // Called with the new value whenever `running` changes, from whichever
         // caller changed it. The bench controls are not the only way to start
         // or stop the machine: the user guide's console examples call start()
@@ -193,6 +222,14 @@ class Amico2000 {
     }
 
     _handleCassetteROMEntry(pc) {
+        // With a recorder connected, these three addresses also work its
+        // motor; see _workRecorder(). The monitor's reset entry stops the tape
+        // in either mode, so RES always does.
+        if (this.tape.recorder && (pc === 0xFE22 || pc === 0xFC54 || pc === 0xFBBC) &&
+            (pc === 0xFE22 || !this.cassette.interceptROM)) {
+            this._workRecorder(pc);
+        }
+
         if (!this.cassette.interceptROM) return null;
 
         // Fix for #2: IC10 cassette ROM documented entry points: FBBC = save, FC54 = load.
@@ -210,19 +247,29 @@ class Amico2000 {
         // routines with `JMP $FE22` rather than RTS, so an unconditional pull would
         // corrupt the stack on the JMP path. Covered by
         // tests/cassette-trap-stack.test.js.
+        //
+        // Issue #41: what a trap leaves in page zero is what the routine it
+        // stands in for leaves there, which for SAVE is nothing at all. The
+        // real SAVE has no status to give, not even for a range it will not
+        // save, so an outcome is reported to the page through onCassetteTrap
+        // and never written into the machine's memory. See
+        // saveTapeFromMonitorParams() and loadTapeFromMonitorParams().
         if (pc === 0xFBBC) {
+            let outcome;
             try {
                 this.saveTapeFromMonitorParams();
+                outcome = { operation: 'save', record: this.cassette.lastSavedTape };
             } catch (err) {
-                console.warn('Cassette save failed:', err.message);
-                this.cpu.memory[0x0000] = 0xFF;
+                outcome = { operation: 'save', error: err.message };
             }
+            if (this.onCassetteTrap) this.onCassetteTrap(outcome);
             this.cpu.PC = 0xFE22;
             return 6;
         }
 
         if (pc === 0xFC54) {
-            this.loadTapeFromMonitorParams();
+            const outcome = { operation: 'load', ...this._loadFromCassette() };
+            if (this.onCassetteTrap) this.onCassetteTrap(outcome);
             this.cpu.PC = 0xFE22;
             return 6;
         }
@@ -232,10 +279,14 @@ class Amico2000 {
     
     _readPIA(addr) {
         const port = addr & 0x03;
-        
+
         switch (port) {
             case 0:  // Port A - Keyboard data input
-                return this._scanKeyboard();
+                // Bits 0-6 are the key columns. Bit 7 is not a key: it is the
+                // cassette latch (#20). The monitor never looks at it; its
+                // scan at $FEF6-$FF03 forces the bit with ORA #$80.
+                this._settleTapeLatch();
+                return (this._scanKeyboard() & 0x7F) | (this.tape.latch << 7);
             case 1:  // Port B
                 return this.pia.portB;
             case 2:  // Port C
@@ -248,7 +299,12 @@ class Amico2000 {
     
     _writePIA(addr, value) {
         const port = addr & 0x03;
-        
+
+        // The cassette circuit hangs on these ports. Bring it up to this
+        // moment under the old values before any of them changes.
+        this._settleTapeLatch();
+        this._countPhaseLEDs();
+
         switch (port) {
             case 0:  // Port A - Display segments
                 this.pia.portA = value;
@@ -257,16 +313,201 @@ class Amico2000 {
             case 1:  // Port B - Digit select and control
                 this.pia.portB = value;
                 this._updateDisplay();
+                this._driveTapeOut();
                 break;
             case 2:  // Port C - Expansion
                 this.pia.portC = value;
                 break;
             case 3:  // Control register
                 this.pia.control = value;
+                // A mode word has bit 7 set, and its bit 4 is Port A's
+                // direction. The ROMs are the evidence: the only words they
+                // write are $89 and $99, which differ in that bit alone, $99
+                // before reading the keys or the tape on Port A and $89
+                // before writing segments or LED patterns to it.
+                if (value & 0x80) {
+                    this.pia.portAInput = (value & 0x10) !== 0;
+                }
                 break;
         }
+
+        this.phaseLEDs.on = this._phaseLEDsNow();
     }
-    
+
+    // =========================================================================
+    // Cassette Interface Circuit
+    // =========================================================================
+    //
+    // Issue #20. What the supplement's schematic (page 28) puts between the
+    // 8255 and the recorder, as far as a program can tell it is there:
+    //
+    // - Out. REG IN, the recorder's microphone input, is fed from Port B bits
+    //   5 and 6 through equal resistors, so it has three levels: how many of
+    //   the two are high.
+    // - In. REG OUT, the recorder's speaker output, goes through an amplifier
+    //   and a Schmitt gate and sets a latch made of two gates of IC20. Port A
+    //   bit 7 reads the latch. Port B bit 0 low clears it.
+    // - The four phase LEDs. D4-D7 are each on while Port B bit 7 and one of
+    //   Port A's lines 0-3 are both high.
+    //
+    // Nothing here knows what a tape holds or what the signal means. That is
+    // the PROM's business on one side and the recorder's on the other.
+
+    /**
+     * Wire a recorder to REG IN and REG OUT, or pass null to unplug it.
+     *
+     * A recorder is any object with:
+     * - `state`: 'stopped', 'playing' or 'recording';
+     * - `heard(from, to)`: whether the tape gave a pulse strong enough to set
+     *   the latch between two moments;
+     * - `level(level, time)`: told whenever the board's output changes, with
+     *   the new level, 0 to 2;
+     * - `play(time, programs)`, `record(time)` and `stop(time)`: its motor.
+     *   `stop` returns null, or after a recording what was found on it, as
+     *   `{records, problems}`.
+     *
+     * Times are seconds on the board's own clock, CPU cycles over 1 MHz.
+     * tape-audio.js has the recorder the page uses.
+     */
+    connectRecorder(recorder) {
+        this.tape.recorder = recorder;
+        return recorder;
+    }
+
+    /** Seconds on the board's clock: the unit a recorder is told the time in. */
+    _boardTime() {
+        return this.cpu.cycles / Amico2000.CLOCK_HZ;
+    }
+
+    /**
+     * Bring the latch up to the present.
+     *
+     * A pulse from the tape since the last look sets it. Otherwise Port B
+     * bit 0, if low, clears it. Called before Port B changes and before the
+     * latch is read, which are the only moments its state can matter.
+     */
+    _settleTapeLatch() {
+        const tape = this.tape;
+        const now = this.cpu.cycles;
+        if (tape.recorder && now > tape.heardUpTo &&
+            tape.recorder.heard(tape.heardUpTo / Amico2000.CLOCK_HZ, now / Amico2000.CLOCK_HZ)) {
+            tape.latch = 1;
+        } else if (!(this.pia.portB & 0x01)) {
+            tape.latch = 0;
+        }
+        tape.heardUpTo = now;
+    }
+
+    /** Port B was written: pass a change of the output level to the recorder. */
+    _driveTapeOut() {
+        const portB = this.pia.portB;
+        const level = ((portB >> 5) & 1) + ((portB >> 6) & 1);
+        if (level !== this.tape.outLevel) {
+            this.tape.outLevel = level;
+            if (this.tape.recorder) {
+                this.tape.recorder.level(level, this._boardTime());
+            }
+        }
+    }
+
+    /**
+     * Start and stop the recorder for the user.
+     *
+     * On the board this is a person's job: press the recorder's key, then RUN.
+     * The emulator has no recorder to press keys on, so it takes the cue from
+     * the program counter instead. Entering LOAD at $FC54 rewinds the tape
+     * and plays it, entering SAVE at $FBBC starts a recording, and the
+     * monitor's reset entry at $FE22, where both routines end and where RES
+     * leads, stops the tape. LOAD comes back to $FC54 by itself when the
+     * program it has just read is not the one asked for; the tape is already
+     * playing then and is left to run on.
+     */
+    _workRecorder(pc) {
+        const recorder = this.tape.recorder;
+        const now = this._boardTime();
+        const wanted = pc === 0xFC54 ? 'playing' : pc === 0xFBBC ? 'recording' : 'stopped';
+        if (recorder.state === wanted) return;
+
+        // Whatever it was doing ends first: a recording that is cut off by a
+        // jump into LOAD is still a recording to be read back.
+        if (recorder.state !== 'stopped') this._stopRecorder(now);
+        if (wanted === 'playing') {
+            recorder.play(now, this.cassette.tapes);
+        } else if (wanted === 'recording') {
+            recorder.record(now);
+        }
+    }
+
+    /**
+     * Stop the tape. If it was recording, the recorder says what the real
+     * SAVE routine put on it, and each program goes onto the mock cassette as
+     * the latest save, exactly as a trapped SAVE's does.
+     */
+    _stopRecorder(now) {
+        const recorded = this.tape.recorder.stop(now);
+        if (!recorded) return;
+        for (const record of recorded.records) {
+            try {
+                this.cassette.lastSavedTape = this.addTapeRecord(record);
+            } catch (err) {
+                recorded.problems.push(err.message);
+            }
+        }
+        if (this.onTapeRecorded) {
+            this.onTapeRecorded(recorded);
+        }
+    }
+
+    /**
+     * Which of D4-D7 are on at this moment, as bits 0-3.
+     *
+     * Each LED hangs from +5 V on an open-collector NAND gate of IC21 whose
+     * inputs are Port B bit 7, shared by all four, and one of Port A's lines
+     * 0-3. While Port A is an input the 8255 does not drive those lines; they
+     * are the first four key columns, held high by their pull-up resistors
+     * unless a pressed key pulls one down, which is what a keyboard scan
+     * reads.
+     */
+    _phaseLEDsNow() {
+        if (!(this.pia.portB & 0x80)) return 0;
+        const lines = this.pia.portAInput ? this._scanKeyboard() : this.pia.portA;
+        return lines & 0x0F;
+    }
+
+    /** Add the time since the last change to the LEDs that were on for it. */
+    _countPhaseLEDs() {
+        const leds = this.phaseLEDs;
+        const elapsed = this.cpu.cycles - leds.since;
+        if (elapsed > 0) {
+            leds.counted += elapsed;
+            for (let n = 0; n < 4; n++) {
+                if ((leds.on >> n) & 1) leds.lit[n] += elapsed;
+            }
+        }
+        leds.since = this.cpu.cycles;
+    }
+
+    /**
+     * How much of the time since the last call each phase LED was on, D4 to
+     * D7, as numbers from 0 to 1.
+     *
+     * The cassette routines switch the LEDs far faster than a screen can
+     * show. SAVE has them on for all but the low half of each pulse; LOAD
+     * only flashes them, for about a quarter of each bit. What the eye gets
+     * is the average, so that is what this reports, and the page draws a
+     * frame from it. With no time gone by, it is simply which are on.
+     */
+    takePhaseLEDs() {
+        this._countPhaseLEDs();
+        const leds = this.phaseLEDs;
+        const share = leds.lit.map((cycles, n) => (
+            leds.counted > 0 ? cycles / leds.counted : (leds.on >> n) & 1
+        ));
+        leds.lit.fill(0);
+        leds.counted = 0;
+        return share;
+    }
+
     // =========================================================================
     // Display Emulation
     // =========================================================================
@@ -297,6 +538,7 @@ class Amico2000 {
         // ghosting, but we want persistence of vision in the emulator
         if (digitIndex >= 0 && digitIndex < 6 && segmentPattern !== 0) {
             this.display[digitIndex] = segmentPattern;
+            this.displayDriven[digitIndex] = this.cpu.cycles;
             this.currentDigit = digitIndex;
         }
 
@@ -307,18 +549,43 @@ class Amico2000 {
     }
     
     /**
-     * Get current display state
-     * @returns {Array} Array of 6 segment patterns
+     * What the six displays show at this moment.
+     *
+     * The board has no display latch. A digit is alight only while its
+     * transistor is on, and the monitor keeps all six visible by driving each
+     * in turn every 4 ms or so. Anything that stops scanning lets them go
+     * dark: a user program that does not call the monitor's display routine,
+     * and the cassette routines, of which the manual says "il display
+     * indirizzi e dati del calcolatore si spegne" (#20). This used to return
+     * the last pattern each digit was ever given, so a display that would be
+     * dark on the board stayed frozen on the page.
+     *
+     * A digit counts as lit if it was driven within the last tenth of a
+     * second of CPU time, or is the one being driven now, which covers a
+     * program that selects a digit and leaves it on. The monitor's longest
+     * pause between scans, while it waits out a key's bounce, is 31 ms, so
+     * the tenth of a second never blanks a display the eye would still see;
+     * it also hides that 31 ms blink, which the page has never drawn.
+     *
+     * @returns {Array} Array of 6 segment patterns, 0 for a dark digit
      */
     getDisplay() {
-        return [...this.display];
+        const now = this.cpu.cycles;
+        const portB = this.pia.portB;
+        // The digit selected at this moment, by the test _updateDisplay() uses.
+        const driven = (portB & 0x01) && (this.pia.portA & 0x7F) ? ((portB >> 1) & 0x0F) - 4 : -1;
+        return this.display.map((pattern, digit) => (
+            digit === driven || now - this.displayDriven[digit] <= Amico2000.DISPLAY_PERSISTENCE_CYCLES
+                ? pattern
+                : 0x00
+        ));
     }
     
     /**
      * Convert display to hex string (for debugging)
      */
     getDisplayHex() {
-        return this.display.map(d => d.toString(16).padStart(2, '0')).join(' ');
+        return this.getDisplay().map(d => d.toString(16).padStart(2, '0')).join(' ');
     }
     
     // =========================================================================
@@ -655,9 +922,49 @@ class Amico2000 {
     }
 
     /**
-     * Export a previously imported or saved tape record as a browser-downloadable binary image.
+     * Put a program on the mock cassette for a later LOAD through the IC10
+     * trap, as loadTape() does for an .amtape image. This is the way in for a
+     * record that did not come from one, such as a block decoded from a sound
+     * recording of a tape (#20).
+     *
+     * The record is checked here rather than trusted, because a LOAD copies it
+     * into memory without looking at it again: the block has to lie inside the
+     * 16-bit address space, and it has to fit the 16-bit byte count of the
+     * .amtape format, or it could be loaded but never exported.
+     *
+     * @param {{id: number, start: number, data: Uint8Array|number[]}} record
+     * @returns {object} The stored record, in the form the traps use
      */
-    exportTape(id = null) {
+    addTapeRecord({ id, start, data }) {
+        const bytes = Uint8Array.from(data);
+        if (!Number.isInteger(id) || id < 0 || id > 0xFF) {
+            throw new Error(`Tape program identifier must be a byte, not ${id}`);
+        }
+        if (bytes.length < 1 || bytes.length > 0xFFFF) {
+            throw new Error(`A tape record holds 1 to 65535 bytes, not ${bytes.length}`);
+        }
+        if (!Number.isInteger(start) || start < 0 || start + bytes.length > this.cpu.memory.length) {
+            throw new Error('Tape record does not fit in the address space');
+        }
+
+        const record = {
+            id,
+            start,
+            end: start + bytes.length - 1,
+            checksum: bytes.reduce((sum, value) => (sum + value) & 0xFF, id),
+            data: bytes
+        };
+        this.cassette.tapes = this.cassette.tapes.filter(existing => existing.id !== id);
+        this.cassette.tapes.push(record);
+        return record;
+    }
+
+    /**
+     * The record an export should use: the one with this identifier, or with
+     * no identifier the most recent SAVE, or failing that the tape imported
+     * last.
+     */
+    findTape(id = null) {
         const record = id === null
             ? (this.cassette.lastSavedTape || this.cassette.tapes[this.cassette.tapes.length - 1])
             : this.cassette.tapes.find(tape => tape.id === (id & 0xFF));
@@ -666,12 +973,31 @@ class Amico2000 {
             throw new Error('No matching tape record is available');
         }
 
-        return this._makeTapeImage(record);
+        return record;
+    }
+
+    /**
+     * Export a previously imported or saved tape record as a browser-downloadable binary image.
+     */
+    exportTape(id = null) {
+        return this._makeTapeImage(this.findTape(id));
     }
 
     /**
      * Save RAM using IC10 cassette ROM parameters:
      * $0000/$0001 = start, $0002/$0003 = end, $0004 = program id.
+     *
+     * Issue #41: like the routine at $FBBC, this writes nothing to the
+     * machine's memory. The real SAVE never stores into page zero, so its
+     * parameters are still there afterwards and a second SAVE needs nothing
+     * keyed again. This used to clear $0000/$0001 on success and put $FF in
+     * $0000 on failure, a status the real routine does not have: given an end
+     * address before the start it simply returns to the monitor. A range that
+     * cannot be saved is therefore reported by throwing, for the trap to pass
+     * on to the page, and the parameters are left as they were either way.
+     *
+     * @returns {Uint8Array} The saved record as an .amtape image
+     * @throws {Error} If the range cannot be saved
      */
     saveTapeFromMonitorParams() {
         const start = this._readWord(0x0000);
@@ -679,8 +1005,7 @@ class Amico2000 {
         const id = this.cpu.memory[0x0004] & 0xFF;
 
         if (end < start) {
-            this.cpu.memory[0x0000] = 0xFF;
-            throw new Error('Cassette save end address is before start address');
+            throw new Error('the end address is before the start address');
         }
 
         // The .amtape header holds the byte count in 16 bits, so the one range
@@ -689,11 +1014,13 @@ class Amico2000 {
         // never be loaded back. That range also covers the ROMs and the PIA,
         // which no program on a 2KB board needs, so refuse it like an inverted
         // range rather than change the file format and break existing tapes.
+        // The real routine does not refuse it; it has a fault of its own that
+        // ends such a block after one page. See blockOffsets() in
+        // tape-audio.js.
         const length = end - start + 1;
         if (length > 0xFFFF) {
-            this.cpu.memory[0x0000] = 0xFF;
             throw new Error(
-                `Cassette save of ${length} bytes exceeds the tape image limit of 65535`
+                `${length} bytes is more than a tape image can hold, which is 65535`
             );
         }
 
@@ -704,8 +1031,6 @@ class Amico2000 {
         this.cassette.tapes.push(record);
         this.cassette.lastSavedTape = record;
 
-        // The original routine returns to the monitor with 0000 on success.
-        this._writeWord(0x0000, 0x0000);
         return this._makeTapeImage(record);
     }
 
@@ -714,19 +1039,44 @@ class Amico2000 {
      * $0000 = program id, $0001/$0002 = override start, high byte $FF = use recorded start.
      */
     loadTapeFromMonitorParams() {
+        return !this._loadFromCassette().error;
+    }
+
+    /**
+     * The work of a trapped LOAD. Returns `{record, address}` for a program
+     * loaded at `address`, or `{error}` saying why none was.
+     *
+     * Issue #41: a successful LOAD writes the program and nothing else. The
+     * routine at $FC54 leaves $0000-$0002 alone, so the identifier and the
+     * address the user asked for are still there afterwards. This used to
+     * overwrite $0001/$0002 with the address it had loaded at.
+     *
+     * A LOAD that cannot be done puts $FF in $0000, as before. That one is
+     * the emulator's convention and is kept on purpose. $FF there is the only
+     * status either real routine ever writes, when a checksum does not match,
+     * and the manual shows it as the sign that a read went wrong. The real
+     * LOAD has no other failure to report: asked for a program that is not on
+     * the tape it goes on searching until RES, and a trap, which has no tape
+     * running, has to come back with something. Cassette: Real time gives the
+     * real routine's behaviour.
+     */
+    _loadFromCassette() {
         const id = this.cpu.memory[0x0000] & 0xFF;
         const override = this._readWord(0x0001);
         const record = this.cassette.tapes.find(tape => tape.id === id);
+        const hex = (value, digits) => value.toString(16).toUpperCase().padStart(digits, '0');
+        const refuse = (error) => {
+            this.cpu.memory[0x0000] = 0xFF;
+            return { error };
+        };
 
         if (!record) {
-            this.cpu.memory[0x0000] = 0xFF;
-            return false;
+            return refuse(`program ${hex(id, 2)} is not on the cassette`);
         }
 
         const loadAddress = this.cpu.memory[0x0002] === 0xFF ? record.start : override;
         if (loadAddress + record.data.length > this.cpu.memory.length) {
-            this.cpu.memory[0x0000] = 0xFF;
-            return false;
+            return refuse(`program ${hex(id, 2)} would run past $FFFF from $${hex(loadAddress, 4)}`);
         }
 
         // Fix for #31: the destination comes from guest RAM ($0001/$0002) or
@@ -735,15 +1085,13 @@ class Amico2000 {
         // Refuse it with the routine's own error convention ($0000 = $FF)
         // rather than throwing: this runs inside the trapped IC10 entry point,
         // where the monitor expects a status byte back, not an exception.
-        if (this._findROMOverlap(loadAddress, record.data.length)) {
-            this.cpu.memory[0x0000] = 0xFF;
-            return false;
+        const rom = this._findROMOverlap(loadAddress, record.data.length);
+        if (rom) {
+            return refuse(`program ${hex(id, 2)} at $${hex(loadAddress, 4)} would overlap the ${rom.name}`);
         }
 
         this.cpu.memory.set(record.data, loadAddress);
-        this.cpu.memory[0x0000] = record.id;
-        this._writeWord(0x0001, loadAddress);
-        return true;
+        return { record, address: loadAddress };
     }
     
     // =========================================================================
@@ -823,13 +1171,27 @@ class Amico2000 {
         // Unhalt CPU if it was halted
         this.cpu.halted = false;
 
+        // cpu.reset() restarts the cycle counter, which is the clock the
+        // cassette circuit keeps time by. Close the LEDs' account under the
+        // old clock first, then start everything again from zero. A recorder
+        // that is running is stopped by the monitor's reset entry, a moment
+        // from now; see _workRecorder().
+        this._countPhaseLEDs();
         this.cpu.reset();
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-        this.pia = { portA: 0, portB: 0, portC: 0, control: 0 };
+        this.displayDriven.fill(-Infinity);
+        this.pia = { portA: 0, portB: 0, portC: 0, control: 0, portAInput: true };
+        this.phaseLEDs.on = 0;
+        this.phaseLEDs.since = 0;
+        this.tape.heardUpTo = 0;
+        this.tape.outLevel = 0;
 
         // Update display immediately on reset (user expects visual feedback)
         if (this.onDisplayUpdate) {
-            this.onDisplayUpdate(this.display);
+            this.onDisplayUpdate(this.getDisplay());
+        }
+        if (this.onPhaseLEDs) {
+            this.onPhaseLEDs(this.takePhaseLEDs());
         }
         if (this.onStateUpdate) {
             this.onStateUpdate(this.cpu.getState());
@@ -844,7 +1206,10 @@ class Amico2000 {
         
         // Update display after step (user is single-stepping, wants to see changes)
         if (this.onDisplayUpdate) {
-            this.onDisplayUpdate(this.display);
+            this.onDisplayUpdate(this.getDisplay());
+        }
+        if (this.onPhaseLEDs) {
+            this.onPhaseLEDs(this.takePhaseLEDs());
         }
         if (this.onStateUpdate) {
             this.onStateUpdate(this.cpu.getState());
@@ -921,7 +1286,10 @@ class Amico2000 {
         // The display state is updated internally during CPU execution,
         // but we only render to DOM here at 60fps
         if (this.onDisplayUpdate) {
-            this.onDisplayUpdate(this.display);
+            this.onDisplayUpdate(this.getDisplay());
+        }
+        if (this.onPhaseLEDs) {
+            this.onPhaseLEDs(this.takePhaseLEDs());
         }
         
         // Update state display
@@ -978,6 +1346,14 @@ class Amico2000 {
 }
 
 Amico2000.TAPE_MAGIC = new Uint8Array([0x41, 0x4D, 0x49, 0x43, 0x4F, 0x54, 0x41, 0x50, 0x45]);
+
+// The board's crystal: one CPU cycle is a microsecond. The cassette circuit
+// keeps time by the cycle counter and tells a recorder the time in seconds.
+Amico2000.CLOCK_HZ = 1000000;
+
+// How long a digit stays visible after it was last driven, in CPU cycles: a
+// tenth of a second at 1 MHz. See getDisplay().
+Amico2000.DISPLAY_PERSISTENCE_CYCLES = 100000;
 
 // Read-only regions of the AMICO memory map (#31). The monitor PROM at IC9 is
 // always fitted; the cassette PROM at IC10 is optional, but the region is

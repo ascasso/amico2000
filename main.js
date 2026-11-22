@@ -146,6 +146,7 @@ const CASSETTE_ROM = new Uint8Array([
 
 let amico = null;
 let display = null;
+let recorder = null;
 
 // ============================================================================
 // Initialization
@@ -172,7 +173,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Connect state callback
     amico.onStateUpdate = (state) => {
         updateStatusDisplay(state);
+        updateTapeStatus();
     };
+
+    // The cassette recorder, wired to the board's interface. It runs only
+    // while the real LOAD and SAVE routines do, which is the Cassette: Real
+    // time setting; the phase LEDs D4-D7 are lit by the same routines (#20).
+    recorder = amico.connectRecorder(AmicoTapeAudio.createRecorder());
+    amico.onPhaseLEDs = updatePhaseLEDs;
+    amico.onTapeRecorded = reportRecording;
+    amico.onCassetteTrap = reportTrap;
+    setupCassetteMode();
 
     // The machine owns its run state; the bench controls only reflect it, so
     // a console start() or stop() updates the label and the run lamp as well.
@@ -307,6 +318,145 @@ function setupDisplayLook() {
     });
 }
 
+// How cassette LOAD and SAVE run (#20). 'instant' is the trap: the emulator
+// does the routine's job itself, at once. 'realtime' leaves the IC10 PROM to
+// do it, on the recorder's tape, in the time the board takes, with the
+// displays dark and the phase LEDs lit as the manual describes. Instant is the
+// default because a real LOAD is thirteen seconds at the least. The choice is
+// remembered like the display look, and for the same reason may not be.
+const CASSETTE_MODE_KEY = 'amico2000.cassetteMode';
+const CASSETTE_MODES = ['instant', 'realtime'];
+
+function setupCassetteMode() {
+    const buttons = document.querySelectorAll('.tape-btn');
+
+    const apply = (mode) => {
+        // A routine that is already running is not interrupted: the trap acts
+        // only at the two entry points, and the tape runs until the routine
+        // hands back to the monitor or RES is pressed.
+        amico.cassette.interceptROM = mode !== 'realtime';
+        buttons.forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.tape === mode));
+        });
+    };
+
+    let saved = null;
+    try {
+        saved = localStorage.getItem(CASSETTE_MODE_KEY);
+    } catch (err) {
+        // Storage blocked: keep the default.
+    }
+    apply(CASSETTE_MODES.includes(saved) ? saved : CASSETTE_MODES[0]);
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+            apply(button.dataset.tape);
+            try {
+                localStorage.setItem(CASSETTE_MODE_KEY, button.dataset.tape);
+            } catch (err) {
+                // Storage blocked: the choice lasts until the page is reloaded.
+            }
+        });
+    });
+}
+
+// The phase LEDs D4-D7. The machine reports how much of the last frame each
+// was on. SAVE has its two on nearly all the time; LOAD flashes its two for
+// about a quarter of it, which reads as lit but dimmer. A class is changed
+// only when the look changes, so a steady LED costs nothing.
+const PHASE_LED_IDS = ['led-d4', 'led-d5', 'led-d6', 'led-d7'];
+const phaseLEDLooks = ['', '', '', ''];
+
+function updatePhaseLEDs(share) {
+    share.forEach((on, n) => {
+        const look = on < 0.04 ? '' : on < 0.6 ? 'dim' : 'on';
+        if (look === phaseLEDLooks[n]) return;
+        phaseLEDLooks[n] = look;
+        const led = document.getElementById(PHASE_LED_IDS[n]);
+        led.classList.toggle('on', look !== '');
+        led.classList.toggle('dim', look === 'dim');
+    });
+}
+
+// What the recorder is doing, in words beside the Cassette buttons. This is
+// the emulator's own indicator, like the run lamp: the board has none, and a
+// user of the real machine watches the recorder. Called every frame; the text
+// changes at most once a second.
+let tapeStatusText = '';
+let tapeStatusNote = '';   // the outcome of the last recording, shown while stopped
+let tapeWasPlaying = false;
+
+function updateTapeStatus() {
+    const playing = recorder.state === 'playing';
+    if (playing && !tapeWasPlaying && recorder.skipped.length) {
+        recorder.skipped.forEach(({ id, reason }) => {
+            console.warn(`Program ${hexByte(id)} was left off the tape. ${reason}`);
+        });
+    }
+    tapeWasPlaying = playing;
+
+    let text = tapeStatusNote;
+    if (recorder.state !== 'stopped') {
+        tapeStatusNote = '';
+        const at = Math.floor(recorder.position(amico.cpu.cycles / Amico2000.CLOCK_HZ));
+        if (recorder.state === 'recording') {
+            text = `Recording, ${at} s`;
+        } else if (recorder.length === 0) {
+            text = 'The cassette is empty. Press RES.';
+        } else if (at >= recorder.length) {
+            text = 'End of tape. Press RES.';
+        } else {
+            text = `Playing, ${at} s of ${Math.ceil(recorder.length)} s`;
+        }
+    }
+    if (text !== tapeStatusText) {
+        tapeStatusText = text;
+        document.getElementById('tape-status').textContent = text;
+    }
+}
+
+// A recording made by the real SAVE routine has been read back and its
+// programs put on the cassette. Say what they were, and what was not readable,
+// which is all there is after a RES in the middle of a SAVE.
+function reportRecording(result) {
+    result.records.forEach((record) => {
+        const end = record.start + record.data.length - 1;
+        console.log(
+            `Saved program ${hexByte(record.id)}: $${hexWord(record.start)}-$${hexWord(end)}, ` +
+            `${record.data.length} bytes` + (record.note ? ` (${record.note})` : '')
+        );
+    });
+    result.problems.forEach((problem) => console.warn(`Not saved. ${problem}`));
+
+    if (result.records.length) {
+        tapeStatusNote = 'Saved program ' + result.records.map((record) => hexByte(record.id)).join(', ');
+    } else {
+        tapeStatusNote = 'Nothing was saved';
+    }
+}
+
+// An instant LOAD or SAVE has been done, or could not be. The routines these
+// stand in for leave nothing in memory to say how a SAVE went, and the traps
+// now do the same (#41), so this line and the console are where a user finds
+// out that a range was not saved, and why.
+function reportTrap(outcome) {
+    const done = outcome.operation === 'save' ? 'saved' : 'loaded';
+    if (outcome.error) {
+        tapeStatusNote = `Not ${done}: ${outcome.error}`;
+        console.warn(tapeStatusNote);
+        return;
+    }
+    const record = outcome.record;
+    const size = `${record.data.length} byte${record.data.length === 1 ? '' : 's'}`;
+    if (outcome.operation === 'save') {
+        tapeStatusNote = `Saved program ${hexByte(record.id)}`;
+        console.log(`${tapeStatusNote}: $${hexWord(record.start)}-$${hexWord(record.end)}, ${size}`);
+    } else {
+        tapeStatusNote = `Loaded program ${hexByte(record.id)} at $${hexWord(outcome.address)}`;
+        console.log(`${tapeStatusNote}, ${size}`);
+    }
+}
+
 function setupControls() {
     // Run/Stop button
     document.getElementById('btn-run').addEventListener('click', () => {
@@ -339,6 +489,49 @@ function setupControls() {
 // a loader would accept.
 const MAX_LOAD_BYTES = 2 * 0x10000;
 
+// A sound recording of a tape is far larger than what it holds: a 1KB program
+// is about 37 seconds, some 3 MB as 16-bit mono at 44.1 kHz. This allows about
+// twelve minutes of that, or six in stereo. The decoder works on the whole
+// recording in memory, at a few times the file's size, so a whole cassette
+// side is refused here and has to be cut into pieces first.
+const MAX_RECORDING_BYTES = 64 * 1024 * 1024;
+
+const hexByte = (value) => value.toString(16).padStart(2, '0').toUpperCase();
+const hexWord = (value) => value.toString(16).padStart(4, '0').toUpperCase();
+
+/**
+ * Put the programs decoded from a sound recording on the mock cassette and
+ * say what was found, in the words the load alert shows (#20).
+ *
+ * A recording with nothing readable on it is an error. One with some programs
+ * read and others damaged is not: the good ones are kept and the damage is
+ * listed under them.
+ */
+function importTapeRecording(name, result) {
+    const length = `${result.duration.toFixed(1)} s at ${result.sampleRate} Hz`;
+    if (result.records.length === 0) {
+        throw new Error(
+            `No AMICO 2000 program could be read from ${name} (${length}).` +
+            (result.problems.length ? '\n' + result.problems.join('\n') : '')
+        );
+    }
+
+    const lines = result.records.map((decoded) => {
+        const record = amico.addTapeRecord(decoded);
+        return `  ${hexByte(record.id)}: $${hexWord(record.start)}-$${hexWord(record.end)}, ` +
+            `${record.data.length} bytes, at ${decoded.time.toFixed(1)} s` +
+            (decoded.note ? `\n      (${decoded.note})` : '');
+    });
+    const count = result.records.length;
+    let summary = `Read ${count} program${count === 1 ? '' : 's'} from ${name} (${length}):\n` +
+        lines.join('\n') +
+        '\nTo load one, put its number in $0000 and run from $FC54.';
+    if (result.problems.length) {
+        summary += '\n\nNot read:\n' + result.problems.map((problem) => '  ' + problem).join('\n');
+    }
+    return summary;
+}
+
 function setupFileLoader() {
     document.getElementById('rom-file').addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -349,7 +542,18 @@ function setupFileLoader() {
             // oversized file anyway, but only after FileReader had pulled all
             // of it into memory, and a multi-gigabyte file picked by mistake
             // could stall the tab first.
-            if (file.size > MAX_LOAD_BYTES) {
+            const lowerName = file.name.toLowerCase();
+            // A sound recording is told by its extension alone, and first, so
+            // that a file called tape.wav is not taken for an .amtape image.
+            const isRecording = lowerName.endsWith('.wav');
+            if (isRecording && file.size > MAX_RECORDING_BYTES) {
+                throw new Error(
+                    `${file.name} is ${Math.round(file.size / (1024 * 1024))} MB; the largest ` +
+                    `recording that can be read is ${MAX_RECORDING_BYTES / (1024 * 1024)} MB. ` +
+                    'Cut it into shorter pieces, or save it as mono.'
+                );
+            }
+            if (!isRecording && file.size > MAX_LOAD_BYTES) {
                 throw new Error(
                     `${file.name} is ${file.size} bytes; the largest file the ` +
                     `AMICO 2000 can load is ${MAX_LOAD_BYTES} bytes`
@@ -358,11 +562,13 @@ function setupFileLoader() {
 
             const data = await readFileAsArrayBuffer(file);
             const rom = new Uint8Array(data);
-            
-            // Determine ROM type based on size and name
-            const lowerName = file.name.toLowerCase();
+            let summary = `Loaded: ${file.name} (${rom.length} bytes)`;
 
-            if (lowerName.endsWith('.amtape') || lowerName.includes('tape')) {
+            // Determine ROM type based on size and name
+            if (isRecording) {
+                summary = importTapeRecording(file.name, AmicoTapeAudio.decodeWav(rom));
+                console.log(summary);
+            } else if (lowerName.endsWith('.amtape') || lowerName.includes('tape')) {
                 const record = amico.loadTape(rom);
                 console.log(`Tape image loaded: ${file.name} (program ${record.id}, $${record.start.toString(16).padStart(4, '0').toUpperCase()}-$${record.end.toString(16).padStart(4, '0').toUpperCase()})`);
             } else if (lowerName.includes('ic9') ||
@@ -390,7 +596,7 @@ function setupFileLoader() {
                 console.log('Program loaded at $0000:', file.name);
             }
 
-            alert(`Loaded: ${file.name} (${rom.length} bytes)`);
+            alert(summary);
         } catch (err) {
             console.error('Error loading file:', err);
             alert('Error loading file: ' + err.message);
@@ -593,5 +799,26 @@ window.debug = {
         const suffix = id === null ? 'last' : id.toString(16).padStart(2, '0').toUpperCase();
         downloadBytes(`amico-${suffix}.amtape`, bytes);
         console.log(`Exported tape image (${bytes.length} bytes)`);
+    },
+
+    // Export a tape record as the sound the board would put on tape for it: a
+    // WAV file a recorder could play back to a real AMICO 2000 (#20).
+    saveTapeAudio: (id = null) => {
+        const record = amico.findTape(id);
+        const bytes = AmicoTapeAudio.encodeWav(record);
+        // The board's own SAVE routine drops the last byte of some blocks, and
+        // the sound is what that routine would send. Say so, because the
+        // .amtape export of the same record keeps every byte.
+        const kept = AmicoTapeAudio.bytesKept(record.data.length);
+        if (kept < record.data.length) {
+            console.warn(
+                `This block is ${record.data.length} bytes, 1 more than a whole number of ` +
+                'pages. The AMICO 2000 SAVE routine does not record the last byte of such ' +
+                `a block, so the recording holds ${kept} of them.`
+            );
+        }
+        downloadBytes(`amico-${hexByte(record.id)}.wav`, bytes, 'audio/wav');
+        const seconds = (bytes.length - 44) / 2 / 44100;
+        console.log(`Exported program ${hexByte(record.id)} as sound (${seconds.toFixed(1)} s, ${bytes.length} bytes)`);
     }
 };

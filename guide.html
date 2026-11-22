@@ -136,7 +136,7 @@
             for example with a modified monitor.</p>
         <p>Choose <strong>Load ROM or tape</strong> on the home page. The picker
             offers <code>.bin</code>, <code>.rom</code>, <code>.ic9</code>,
-            <code>.ic10</code>, and <code>.amtape</code> files.</p>
+            <code>.ic10</code>, <code>.amtape</code>, and <code>.wav</code> files.</p>
         <p><strong>ROM and program files are raw binary bytes</strong>, without
             a header or an embedded load address. A text file containing
             <code>A9 42</code>, an assembly listing, or an Intel HEX file must
@@ -144,6 +144,10 @@
         <table>
             <thead><tr><th scope="col">File</th><th scope="col">How the loader handles it</th></tr></thead>
             <tbody>
+                <tr><td><code>.wav</code></td><td>Reads it as a sound recording of an
+                    AMICO 2000 cassette and imports every program it finds, for a later
+                    LOAD. It does not immediately copy a program into RAM. See
+                    <a href="#tape-sound">Tapes as sound</a>.</td></tr>
                 <tr><td><code>.amtape</code></td><td>Imports an emulator cassette record
                     for a later LOAD. It does not immediately copy the program into RAM.</td></tr>
                 <tr><td>Name contains <code>ic9</code> or <code>monitor</code></td>
@@ -164,7 +168,7 @@
         </table>
         <p>Names are matched without regard to case, in the order above.
             A name containing <code>tape</code> is also treated as a tape image
-            before any ROM or size checks. Use names such as
+            before any ROM or size checks, unless it ends in <code>.wav</code>. Use names such as
             <code>prom.ic9</code>, <code>prom.ic10</code>, or <code>program.bin</code>
             to avoid accidental classification. Short ROM files are accepted as
             partial writes, so use a complete 512-byte dump to replace a PROM.</p>
@@ -190,18 +194,28 @@ amico.start();</code></pre>
         <h2>Cassette LOAD and SAVE</h2>
         <p>An <code>.amtape</code> is the emulator's binary cassette format,
             containing a program identifier, recorded address range, program bytes,
-            and checksum. It is produced by this emulator; it is not a WAV/MP3
-            recording or a raw ROM dump. Audio recordings need a separate decoding
-            step before they can be used here.</p>
+            and checksum. It is produced by this emulator; it is not a sound
+            recording or a raw ROM dump. A sound recording of a tape is a
+            <code>.wav</code> file, and the emulator reads and writes those too:
+            see <a href="#tape-sound">Tapes as sound</a>.</p>
         <p>The cassette PROM is fitted when the page opens, so <code>$FBBC</code>
             and <code>$FC54</code> hold the original routines, as on a board built
-            with the cassette interface. When you RUN from either address, the
-            emulator intercepts it and reads or writes an <code>.amtape</code>
-            file instead of sound. Either way it returns to the monitor
-            afterwards.</p>
+            with the cassette interface. How they run is your choice, with the
+            <strong>Cassette</strong> buttons under Bench controls:</p>
+        <ul>
+            <li><strong>Instant</strong>, the default: when you RUN from either
+                address the emulator steps in and does the routine's job at
+                once, reading or writing its own store of programs.</li>
+            <li><strong>Real time</strong>: the original routines run, on an
+                emulated recorder, and take as long as the real machine did.
+                See <a href="#tape-real-time">The cassette in real time</a>.</li>
+        </ul>
+        <p>Either way the programs are the same ones, and control returns to
+            the monitor afterwards. The steps below describe Instant.</p>
         <h3>LOAD an imported tape</h3>
         <ol>
-            <li>Choose the <code>.amtape</code> with <strong>Load ROM or tape</strong>.
+            <li>Choose the <code>.amtape</code> file, or a <code>.wav</code>
+                recording, with <strong>Load ROM or tape</strong>.
                 Its identifier and recorded addresses are logged in the browser console.</li>
             <li>Enter its identifier at <code>$0000</code>. For the recorded load
                 address, put <code>00</code> at <code>$0001</code> and <code>FF</code>
@@ -220,8 +234,10 @@ amico.writeMemory(0x0002, 0xFF);
 amico.cpu.PC = 0xFC54;
 amico.start();</code></pre>
         <p>A missing identifier or a destination overlapping ROM causes LOAD to
-            fail with <code>FF</code> at <code>$0000</code>. Inspect the destination
-            bytes before starting the program.</p>
+            fail with <code>FF</code> at <code>$0000</code>, and the line beside the
+            Cassette buttons says why. A LOAD that works leaves <code>$0000-$0002</code>
+            as you keyed them and says where the program went. Inspect the
+            destination bytes before starting the program.</p>
         <h3>SAVE and download a tape</h3>
         <p>Enter the start address's low/high bytes at <code>$0000/$0001</code>,
             the inclusive end address's low/high bytes at <code>$0002/$0003</code>,
@@ -232,9 +248,16 @@ amico.start();</code></pre>
             <code>debug.saveTape()</code> in the browser console to download an
             <code>.amtape</code> file. SAVE alone keeps the record only in the
             current page session; download it before closing or reloading the page.</p>
+        <p>SAVE leaves the addresses and the identifier at
+            <code>$0000-$0004</code> as you keyed them, as the real routine
+            does, so you can change the program and SAVE it again without
+            keying them a second time.</p>
         <p>An end address before the start address, or the whole
             <code>$0000-$FFFF</code> range, which is more than a tape image can
-            hold, causes SAVE to fail with <code>FF</code> at <code>$0000</code>.</p>
+            hold, is not saved. The real routine has no way to say so and
+            neither has this one: it returns to the monitor with nothing
+            changed. The line beside the Cassette buttons, and the browser
+            console, say that nothing was saved and why.</p>
         <p>To save the example program through the console, after loading it at
             <code>$0200</code>:</p>
         <pre><code>amico.stop();
@@ -247,6 +270,80 @@ amico.writeMemory(0x0004, 0x01);
 amico.cpu.PC = 0xFBBC;
 amico.start();</code></pre>
         <p>Then run <code>debug.saveTape()</code> to download the result.</p>
+        <h3 id="tape-real-time">The cassette in real time</h3>
+        <p>Set <strong>Cassette</strong> to <strong>Real time</strong> and LOAD
+            and SAVE are the board's own routines, working on a tape. You key
+            the same parameters and RUN from the same addresses. What follows
+            is what the manual describes:</p>
+        <ul>
+            <li>The six displays go dark, because the routine does not refresh
+                them, and the keys do nothing except RES.</li>
+            <li>The four LEDs at the top of the board show the phase. During
+                SAVE, D6 (recording) is lit throughout, with D4 (leader) for
+                six seconds, then D5 (text) while the program goes out, then
+                D4 again. During LOAD it is D7 (reading), dimmer, with D4 and
+                then D5.</li>
+            <li>It takes time: about thirteen seconds for a short program plus
+                a second for every 41 bytes. LOAD always starts from the
+                beginning of the tape and passes over every program before the
+                one you asked for, each in its own full time.</li>
+            <li>A line beside the Cassette buttons says what the recorder is
+                doing. The emulator presses its keys for you: it plays when
+                LOAD starts, records when SAVE starts, and stops when the
+                routine hands back to the monitor.</li>
+        </ul>
+        <p>The tape holds the programs the emulator has: everything saved or
+            imported in this page session, in that order.</p>
+        <p>The real routines behave a little differently from the instant ones:</p>
+        <ul>
+            <li>LOAD for a program that is not on the tape never gives up. It
+                waits for more tape, as the real machine does, and the status
+                line says <em>End of tape</em>. Press RES.</li>
+            <li>The only error status is <code>FF</code> at <code>$0000</code>
+                after a LOAD whose checksum did not match.</li>
+            <li>A LOAD aimed at a ROM stores what RAM will take and loses the
+                rest, with no error. The instant LOAD refuses it.</li>
+            <li>A block one byte longer than a whole number of 256-byte pages
+                loses its last byte; see the end of this section. A SAVE of
+                the whole <code>$0000-$FFFF</code> range saves only its first
+                256 bytes.</li>
+        </ul>
+        <p>In everything else the two agree, including what they leave at
+            <code>$0000-$0004</code>.</p>
+        <p>RES during a SAVE abandons it: nothing is put on the tape.</p>
+        <h3 id="tape-sound">Tapes as sound</h3>
+        <p>The real machine kept programs on audio cassettes. The emulator can
+            read a recording of such a cassette, and write a program out as the
+            sound the board would have sent to the recorder.</p>
+        <p><strong>To read a recording</strong>, choose the <code>.wav</code>
+            file with <strong>Load ROM or tape</strong>. Every program found in
+            it is imported, and the message lists each one's identifier,
+            addresses and where in the recording it starts. Then LOAD the one
+            you want as above. A program whose checksum does not match, or
+            whose recording breaks off, is listed as not read; the others are
+            still imported.</p>
+        <p>The file must be an uncompressed WAV, of any usual sample rate
+            from 11 kHz up, mono or stereo, and no larger than 64 MB. Convert
+            an MP3 or FLAC first, cut a long recording into pieces, and leave
+            noise reduction and other processing off. Include the steady
+            ticking before each program: that is the leader, which the reader
+            needs.</p>
+        <p><strong>To write one</strong>, SAVE the program as above and then run
+            <code>debug.saveTapeAudio()</code> in the browser console. It
+            downloads a <code>.wav</code> file about thirteen seconds long plus
+            a second for every 41 bytes. <code>debug.saveTapeAudio(0x13)</code>
+            picks a program by its identifier.</p>
+        <p class="callout">The sound format was worked out from the cassette
+            ROM and the circuit diagram, and checked against the ROM's own
+            routines running in the emulator. It has not yet been tried on a
+            recording of a real tape, or played to a real AMICO 2000.</p>
+        <p>One oddity comes with the format. The board's own routines do not
+            record the last byte of a block that is one byte longer than a
+            whole number of 256-byte pages, such as <code>$0200-$0300</code>.
+            A sound file made here behaves the same way, so that it is what
+            the board would have written, and so does a SAVE with Cassette set
+            to Real time. An instant SAVE and an <code>.amtape</code> file
+            keep every byte.</p>
     </section>
 
     <section id="troubleshooting">
@@ -257,9 +354,16 @@ amico.start();</code></pre>
                 reach all keys.</li>
             <li><strong>A program is stuck:</strong> press RES. If the monitor still
                 fails, Cold reset restores its RAM setup and clears your program.</li>
+            <li><strong>The displays went dark:</strong> a program is running that
+                does not refresh them. The monitor lights the digits by scanning
+                them many times a second; once your program has control, they stay
+                dark unless it does the same, exactly as on the real board. The
+                CPU line under Processor state still says running. Press RES to
+                return to the monitor.</li>
             <li><strong>A file does not load:</strong> read the error alert and check
                 its name, byte count, and format. A 512-byte program uses the ROM
-                fallback; a renamed audio or text file is not a binary tape or ROM.</li>
+                fallback; a renamed audio or text file is not a binary tape or ROM.
+                A sound recording must be an uncompressed <code>.wav</code>.</li>
             <li><strong>Need to inspect memory:</strong> in the browser console, use
                 <code>debug.mem(0x0200, 16)</code> or <code>debug.state()</code>.</li>
             <li><strong>Work disappeared after a reload:</strong> RAM and imported

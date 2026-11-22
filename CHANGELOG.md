@@ -8,6 +8,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added the cassette interface circuit to the machine layer (#20), so that
+  the real IC10 routines have something to work against when the traps are
+  off (`amico.cassette.interceptROM = false`). Port A bit 7 now reads the
+  interface's latch, which a pulse from the tape sets and Port B bit 0 low
+  clears; Port B bits 5 and 6 are the level sent to the recorder; and the four
+  phase LEDs D4-D7 follow Port B bit 7 and Port A's lines 0-3, as the
+  supplement's schematic wires them. `amico.connectRecorder()` plugs in
+  anything that can say when the tape gave a pulse and take note of the
+  output level, and the board works its motor: entering LOAD plays the tape,
+  entering SAVE records, and the monitor's reset entry, where both routines
+  end and RES leads, stops it. `amico.takePhaseLEDs()` reports how much of
+  the time each LED was on, since the routines switch them far faster than a
+  screen can show. Run for real, SAVE lights D4 and D6, then D5 and D6, then
+  D4 and D6 again, and LOAD flashes D4 and D7, then D5 and D7, as the manual
+  describes. Nothing on the page uses this yet, and with the traps on, which
+  is the default, LOAD and SAVE behave as before.
+- Added `tests/build-stamp.test.js`, which checks the home page's build date
+  against the date of the latest commit as git records it, in the time zone
+  the commit was made in (review of PR #47). The rule was written down in
+  `AGENTS.md` but could only be checked by hand, and checking it from a time
+  that GitHub shows, which is in UTC, gives the wrong day for an evening
+  commit made west of Greenwich.
+- Added `docs/amtape-format.md`, a reference for the `.amtape` file the
+  emulator saves programs in (#19): the magic, the version byte, the
+  identifier, the start and end addresses, the checksum and what it covers,
+  the length, the data, a worked example, what a reader refuses and what it
+  lets through, the limits, and what a future version must keep. Until now
+  the format was defined only by the code that reads and writes it.
+  `tests/amtape-format-doc.test.js` reads the document and checks its example
+  and its table against what the emulator writes. The README links to it.
+- Added a **Cassette** setting under Bench controls: **Instant**, the
+  default, is LOAD and SAVE as they have always been here, done at once by
+  the emulator; **Real time** runs the board's own routines from the cassette
+  PROM against an emulated recorder (#20). In real time the page shows what
+  the manual describes: the six displays go dark, the phase LEDs D4-D7 light
+  in turn, D6 with D4 then D5 then D4 during SAVE and D7, dimmer, with D4
+  then D5 during LOAD, and the routine takes about thirteen seconds for a
+  short program. LOAD starts from the beginning of the tape and passes over
+  the programs before the one asked for. A status line beside the buttons
+  says what the recorder is doing. The page remembers the choice. The user
+  guide has a new section, The cassette in real time, which also lists where
+  the real routines behave differently from the instant ones.
+- Added a cassette recorder, `AmicoTapeAudio.createRecorder()`, to plug into
+  the board's interface (#20). With it connected and the traps off, LOAD and
+  SAVE are the real IC10 routines working on a tape, in the time the board
+  takes: about 13 seconds for a short program, more for a long one or for one
+  further along the tape. Playing, the recorder lays out the programs on the
+  emulator's cassette one after another as the pulses SAVE would have made;
+  recording, it notes the board's pulses and reads the programs back out of
+  them when it stops. Run this way the emulator keeps the PROM's own
+  behaviour where the traps differ from it: SAVE leaves its parameters in
+  `$0000-$0004` alone, a LOAD for a program that is not on the tape waits
+  until RES, and a block one byte longer than whole pages loses its last
+  byte. The page does not offer this yet.
+- Added `tape-audio.js`, a codec between tape records and the sound the
+  board's cassette interface puts on tape (#20). It writes a record as a WAV
+  file and reads the records back out of a WAV recording of a tape. No
+  recording of a real tape was available, so the format is taken from the
+  cassette PROM and the supplement's schematic of the interface, and
+  `tests/tape-audio.test.js` holds the codec to the PROM itself: the bytes and
+  pulse timing it writes are compared with the real SAVE routine running in
+  the emulator, the real LOAD routine has to load a WAV file it wrote, and it
+  has to read the signal the real SAVE routine produces. The decoder is also
+  run against simulated tape faults: inverted polarity, band-limiting, hum,
+  hiss, wow, wrong tape speed, dropouts and cut recordings. Those are guesses
+  at what a deck does; the first real recording may still call for tuning.
+  This entry adds the codec only; the page does not use it yet.
+- Added `amico.addTapeRecord()` and `amico.findTape()` (#20). The mock
+  cassette could be filled only by a SAVE or by an `.amtape` image; a program
+  decoded from a sound recording is neither. `addTapeRecord()` takes a program
+  identifier, a start address and the bytes, checks that the block fits the
+  address space and the `.amtape` byte count, and puts it where the trapped
+  LOAD will find it. `findTape()` returns the record an export should use,
+  by the rule `exportTape()` already followed. `exportTape()` itself is
+  unchanged.
+- Added reading and writing of cassette tapes as sound on the page (#20).
+  **Load ROM or tape** now takes a `.wav` recording of an AMICO 2000 cassette
+  and imports every program it finds, ready for LOAD at `$FC54`; the message
+  lists each program's identifier, addresses and place in the recording, and
+  names any that could not be read and why. `debug.saveTapeAudio()` in the
+  browser console downloads the most recent SAVE, or a program chosen by
+  identifier, as the sound the board would have sent to the recorder. The
+  recording must be uncompressed WAV and at most 64 MB. The user guide has a
+  new section, Tapes as sound. The format has not yet been tried on a
+  recording of a real tape or played to a real board; see the codec's entry
+  above. The trapped LOAD and SAVE are unchanged and still instant.
 - Added a choice of how the six displays are drawn, under Bench controls:
   **Readable**, now the default, keeps each segment solid with only a narrow
   glow and dims the unlit segments, so digits read easily at the size a page
@@ -152,6 +238,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Changed the `AGENTS.md` guidance on pushing. An agent used to need an
+  explicit request before every `git push`, so finished work sat as commits
+  on one machine until somebody asked. The final step after any commit, or
+  the series of commits that makes up a piece of work, is now a push of the
+  branch to the remote branch it tracks. Forcing a push is ruled out, and a
+  rejected one is reported. Opening or merging a pull request, and every
+  other change to GitHub state except closing an issue, still needs a request.
+- Changed what an instant cassette LOAD or SAVE leaves in memory, to match
+  the real routines in the cassette PROM (#41). SAVE no longer writes
+  anything: it used to clear the start address at `$0000/$0001` when it
+  worked and put `$FF` in `$0000` when it did not, and the real routine does
+  neither. The addresses and identifier you keyed are still there afterwards,
+  so a program can be changed and saved again without keying them a second
+  time. A range that cannot be saved, an end address before the start or the
+  whole `$0000-$FFFF`, now returns to the monitor with memory untouched, as
+  the real routine does for the first of those. LOAD no longer overwrites
+  `$0001/$0002` with the address it loaded at. What happened is shown beside
+  the **Cassette** buttons and in the browser console instead: "Saved
+  program 13", "Loaded program 13 at $0200", or "Not saved" and why.
+  A LOAD that cannot be done still answers at once with `$FF` in `$0000`;
+  that is the emulator's own convention and is kept, since the real routine
+  would search for the program until RES. `amico.onCassetteTrap` is the hook
+  the page uses. Anything that read `$FF` at `$0000` after a refused SAVE
+  will no longer find it.
 - The home page's "board photographs on ComputerHistory.it" link points at
   the live article again, `https://computerhistory.it/computer/asel/amico-2000`,
   instead of a Wayback Machine snapshot taken while the site was down.
@@ -392,6 +502,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed the sound decoder returning nothing from a recording in which one
+  program's length was damaged (review of PR #47). A block is as long as its
+  own byte count says, and a spoiled count can claim thousands of bytes the
+  block does not have. The decoder read on through the programs that
+  followed, found the recording short, and then carried on searching from
+  where that had left it, which was the end. It now looks again from just
+  past the damaged block's start byte, as it already did after a checksum
+  mismatch, so the programs after the damage are still read.
+- Fixed the displays staying lit when nothing was refreshing them (#20). The
+  board has no display latch: a digit is alight only while it is driven, and
+  the monitor keeps all six visible by scanning them every few milliseconds.
+  The emulator kept the last pattern each digit was ever given, so under a
+  program that does not scan the displays, or during the cassette routines,
+  the page showed a frozen readout where the real board is dark. A digit is
+  now shown only if it was driven within the last tenth of a second of
+  processor time, or is being driven at that moment. With the monitor
+  running nothing looks different. Pausing with **Stop** still freezes the
+  picture, since the processor's clock stops with it.
 - Fixed the keypad map, which sent the wrong codes to the monitor for `0`, AD,
   RUN and REG. Typing `0` reset the address instead of entering a zero; AD ran
   the program at the displayed address; RUN and HLT acted as DA; and REG ran
