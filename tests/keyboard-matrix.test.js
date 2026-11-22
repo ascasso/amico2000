@@ -71,10 +71,12 @@ test('a pressed key can be scanned outside a browser', () => {
     amico.keyDown('5');
     amico.cpu.write(PORT_B, 0x01);  // select row 0, as the monitor does
 
-    // Active-low: the pressed key clears its column bit, every other bit reads high.
+    // Active-low: the pressed key clears its column bit, and every other
+    // column reads high. Bit 7 is not a column. It is the cassette latch
+    // (#20), low here because nothing is playing a tape into it.
     const [row, col] = amico.keyMap['5'];
     assert.equal(row, 0);
-    assert.equal(amico.cpu.read(PORT_A), 0xFF & ~(1 << col));
+    assert.equal(amico.cpu.read(PORT_A), 0x7F & ~(1 << col));
 });
 
 test('every key decodes in the monitor to the code its function needs', () => {

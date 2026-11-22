@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added the cassette interface circuit to the machine layer (#20), so that
+  the real IC10 routines have something to work against when the traps are
+  off (`amico.cassette.interceptROM = false`). Port A bit 7 now reads the
+  interface's latch, which a pulse from the tape sets and Port B bit 0 low
+  clears; Port B bits 5 and 6 are the level sent to the recorder; and the four
+  phase LEDs D4-D7 follow Port B bit 7 and Port A's lines 0-3, as the
+  supplement's schematic wires them. `amico.connectRecorder()` plugs in
+  anything that can say when the tape gave a pulse and take note of the
+  output level, and the board works its motor: entering LOAD plays the tape,
+  entering SAVE records, and the monitor's reset entry, where both routines
+  end and RES leads, stops it. `amico.takePhaseLEDs()` reports how much of
+  the time each LED was on, since the routines switch them far faster than a
+  screen can show. Run for real, SAVE lights D4 and D6, then D5 and D6, then
+  D4 and D6 again, and LOAD flashes D4 and D7, then D5 and D7, as the manual
+  describes. Nothing on the page uses this yet, and with the traps on, which
+  is the default, LOAD and SAVE behave as before.
 - Added `tape-audio.js`, a codec between tape records and the sound the
   board's cassette interface puts on tape (#20). It writes a record as a WAV
   file and reads the records back out of a WAV recording of a tape. No

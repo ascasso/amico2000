@@ -3,13 +3,14 @@
 // Runs the real cassette routines of the IC10 PROM against a signal, for the
 // checks that hold the sound codec to the board (#20).
 //
-// SAVE needs nothing but the PIA: what it would put on tape is read off Port B.
-// LOAD needs the tape to answer, so this file stands in for the input circuit
-// of the supplement's schematic (page 28): the recorder's output sets a latch
-// made of two gates of IC20, the routine reads the latch on Port A bit 7, and
-// it clears it by taking Port B bit 0 low. The stand-in is as small as that
-// description. It knows when the signal is strong enough to set the latch and
-// nothing about what the signal means; all the decoding is done by the PROM.
+// SAVE needs nothing but the PIA: what it would put on tape is read off Port B
+// here, independently of the machine layer's own account of that line.
+// LOAD needs the tape to answer. The machine layer has the input circuit of
+// the supplement's schematic (page 28), a latch that the recorder's output
+// sets, that the routine reads on Port A bit 7 and clears with Port B bit 0.
+// This file plays a signal into it, as a recorder that says only when the
+// signal is strong enough to set the latch. It knows nothing about what the
+// signal means; all the decoding is done by the PROM.
 
 const { CASSETTE_ROM, MONITOR_RESET, bootedMachine } = require('./machine');
 
@@ -39,8 +40,9 @@ const tapeLevel = (portB) => ((portB >> 5) & 1) + ((portB >> 6) & 1);
  * handed to the bit-shifting routine. `memory` may hold `[address, bytes]` pairs to place besides the
  * block itself. With `trailer: false` the run stops once the checksum is out,
  * which saves the six seconds of trailer where a check does not need them.
+ * `watch`, if given, is called with the machine before every instruction.
  */
-function realSave({ id, start, data, memory = [], trailer = true }) {
+function realSave({ id, start, data, memory = [], trailer = true, watch = null }) {
     const amico = machineWithCassettePROM();
     const cpu = amico.cpu;
     for (const [address, bytes] of memory) cpu.memory.set(bytes, address);
@@ -59,6 +61,7 @@ function realSave({ id, start, data, memory = [], trailer = true }) {
     while (cpu.PC !== MONITOR_RESET && !cpu.halted) {
         if (cpu.PC === WRITE_BYTE) bytes.push(cpu.memory[0xF1]);
         if (!trailer && cpu.PC === SEND_TRAILER) break;
+        if (watch) watch(amico);
         cpu.step();
         const now = tapeLevel(amico.pia.portB);
         if (now !== level) {
@@ -78,10 +81,12 @@ function realSave({ id, start, data, memory = [], trailer = true }) {
  * it loads where the tape says. RAM from $0200 up is first filled with
  * `filler`, so a check can tell which bytes the routine stored.
  *
+ * `watch`, if given, is called with the machine before every instruction.
+ *
  * Returns `done`, whether the routine left through the monitor's reset entry
  * before the signal ran out; `status`, what it left in $0000; and `memory`.
  */
-function realLoad(fire, { id, at = null, filler = 0xEE }) {
+function realLoad(fire, { id, at = null, filler = 0xEE, watch = null }) {
     const amico = machineWithCassettePROM();
     const cpu = amico.cpu;
     cpu.memory.fill(filler, 0x0200, 0x0800);
@@ -94,38 +99,29 @@ function realLoad(fire, { id, at = null, filler = 0xEE }) {
     }
 
     const origin = cpu.cycles;
-    let latch = 0;
-    let clearLine = 1;      // Port B bit 0: low clears the latch
     let next = 0;           // first interval not yet wholly in the past
-    let seen = 0;           // the cycle the latch was last brought up to date
-    // Bring the latch up to the present. A set wins over a clear, as it does
-    // in a latch of two NAND gates whose set input is the one being driven.
-    const settle = () => {
-        const now = cpu.cycles - origin;
-        while (next < fire.length && fire[next][1] <= seen) next++;
-        if (next < fire.length && fire[next][0] < now) {
-            latch = 1;
-        } else if (!clearLine) {
-            latch = 0;
+    amico.connectRecorder({
+        // Already running, so the board leaves its motor alone at $FC54.
+        state: 'playing',
+        heard(from, to) {
+            const since = from * 1e6 - origin;
+            const until = to * 1e6 - origin;
+            while (next < fire.length && fire[next][1] <= since) next++;
+            return next < fire.length && fire[next][0] < until;
+        },
+        level() {},
+        play() {},
+        record() {},
+        stop() {
+            this.state = 'stopped';
+            return null;
         }
-        seen = now;
-    };
-    // Port A's other seven lines are the key columns, pulled up.
-    cpu.readCallbacks.set(0xFD00, () => {
-        settle();
-        return (latch << 7) | 0x7F;
-    });
-    cpu.writeCallbacks.set(0xFD01, (address, value) => {
-        settle();
-        amico.pia.portB = value;
-        clearLine = value & 1;
-        settle();
     });
 
     cpu.PC = LOAD_ENTRY;
     const limit = (fire.length ? fire[fire.length - 1][1] : 0) + 1000000;
     while (cpu.PC !== MONITOR_RESET && !cpu.halted && cpu.cycles - origin < limit) {
-        settle();
+        if (watch) watch(amico);
         cpu.step();
     }
     return { done: cpu.PC === MONITOR_RESET, status: cpu.memory[0x0000], memory: cpu.memory };

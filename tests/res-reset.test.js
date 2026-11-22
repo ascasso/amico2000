@@ -174,8 +174,9 @@ test('RES resets the PIA and blanks the display, and reports both to the UI (#30
 
     amico.res();
 
-    // The 8255's RESET pin sits on the same line as the CPU's.
-    assert.deepEqual(amico.pia, { portA: 0, portB: 0, portC: 0, control: 0 });
+    // The 8255's RESET pin sits on the same line as the CPU's. Its data sheet
+    // has a reset clear the control register and leave every port an input.
+    assert.deepEqual(amico.pia, { portA: 0, portB: 0, portC: 0, control: 0, portAInput: true });
     assert.deepEqual(amico.display, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
     assert.equal(displayUpdates, 1, 'the UI needs immediate feedback that RES landed');
     assert.equal(stateUpdates, 1);
