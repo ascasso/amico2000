@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added the guide in Italian, `guida.html`: all of `guide.html`, for the
+  people who used this board around 1980, many of whom do not read English.
+  It uses the manual's own words where the manual has them, "locazione",
+  "passo singolo", "coda" for the leader, "lettura" and "registrazione" for
+  LOAD and SAVE, and speaks to the reader as "voi", as the manual does. Each
+  guide has a link to the other at its top and names it to search engines
+  with `hreflang`, and `sitemap.xml` lists both. The Italian guide's links
+  back to the emulator carry `?lang=it`. `tests/guide-languages.test.js`
+  holds the two files to the same sections, anchors, listings and code, so
+  that one is not changed without the other.
 - Added a description, a canonical address and Open Graph and Twitter tags to
   `index.html` and `guide.html`, plus `SoftwareApplication` data on the home
   page, and gave the home page a longer title naming the 6502 and the 1978

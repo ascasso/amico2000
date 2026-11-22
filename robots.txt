@@ -1,5 +1,6 @@
 # Everything on the site is public and meant to be found. The sitemap lists
-# the two pages; the rest of the repository is not served as pages.
+# the pages: the emulator, and its guide in English and in Italian. The rest
+# of the repository is not served as pages.
 User-agent: *
 Allow: /
 

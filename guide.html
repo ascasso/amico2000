@@ -8,9 +8,16 @@
     <title>How to use the AMICO 2000</title>
     <meta name="description" content="How to use the AMICO 2000 emulator: keying in and running programs on the hex keypad, the monitor, HLT and single step, the cassette, the LEDs, and the file formats.">
     <link rel="canonical" href="https://ascasso.github.io/amico2000/guide.html">
+    <!-- The guide in Italian is guida.html. tests/guide-languages.test.js
+         holds the two in step: the same sections, ids, listings and code.
+         Change them together. -->
+    <link rel="alternate" hreflang="en" href="https://ascasso.github.io/amico2000/guide.html">
+    <link rel="alternate" hreflang="it" href="https://ascasso.github.io/amico2000/guida.html">
+    <link rel="alternate" hreflang="x-default" href="https://ascasso.github.io/amico2000/guide.html">
     <!-- Social previews. No og:image: the only pictures of the board are
          private photographs that are not in the repository. -->
     <meta property="og:type" content="website">
+    <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="AMICO 2000 Emulator">
     <meta property="og:title" content="How to use the AMICO 2000">
     <meta property="og:description" content="How to use the AMICO 2000 emulator: keying in and running programs on the hex keypad, the monitor, HLT and single step, the cassette, the LEDs, and the file formats.">
@@ -30,12 +37,15 @@
         }
         main { max-width: 54rem; margin: auto; padding: clamp(1.25rem, 4vw, 3rem);
             background: var(--paper); box-shadow: 0 6px 18px rgba(40, 26, 12, 0.28); }
-        h1, h2, h3, code, kbd, .back { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        h1, h2, h3, code, kbd, .back, .lang { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
         h1 { font-size: clamp(1.5rem, 4vw, 2.25rem); line-height: 1.25; margin: 1rem 0; }
         h2 { font-size: 1.3rem; line-height: 1.35; margin: 0 0 1rem; }
         h3 { font-size: 1rem; margin-top: 1.5rem; }
         a { color: var(--green); text-underline-offset: 0.18em; }
         a:focus-visible { outline: 2px solid #8a6a2f; outline-offset: 3px; }
+        /* The link to the guide in the other language, on the back link's
+           line and at its far end. */
+        .lang { float: right; margin-left: 1.25rem; }
         .intro { font-size: 1.1rem; }
         nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin: 1.5rem 0; }
         section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #c4b8a4; scroll-margin-top: 1rem; }
@@ -56,6 +66,7 @@
 <main>
     <header>
         <a class="back" href="index.html">Back to the emulator</a>
+        <a class="lang" href="guida.html" lang="it" hreflang="it">Italiano</a>
         <h1>How to use the AMICO 2000</h1>
         <p class="intro">A keypad, six red digits, and 6502 machine code. The monitor
             is the small built-in program that lets you inspect memory, enter bytes,
