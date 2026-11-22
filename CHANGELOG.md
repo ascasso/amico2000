@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a description, a canonical address and Open Graph and Twitter tags to
+  `index.html` and `guide.html`, plus `SoftwareApplication` data on the home
+  page, and gave the home page a longer title naming the 6502 and the 1978
+  ASEL Milano machine, so a search result says what the page is. There is no
+  preview image: the only pictures of the board are private photographs.
 - Added `robots.txt` and `sitemap.xml` at the site root, so search engines are
   told plainly that the page may be crawled and where its two pages are
   (`index.html`'s address and `guide.html`). Nothing on the site blocked
