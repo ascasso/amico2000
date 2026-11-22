@@ -854,6 +854,156 @@
             .bench { grid-template-columns: 1fr; }
         }
 
+        /* ================================================================
+           Handheld layout: a phone held upright.
+
+           The board is three times as wide as it is tall, and drawn at a
+           size where its keys are about 30 px, so on a phone held upright
+           it cannot be shown whole and usable at once. In that case only,
+           main.js moves the parts a person works, the displays, the four
+           LEDs, the NOR/SS switch and the keys, into .handheld-panel above
+           the board, in one column with keys sized for a thumb, and leaves
+           inert pictures of them in the drawing, which then shrinks to the
+           width of the screen as a picture of the whole board.
+
+           "Upright phone" is the media query in main.js: narrow, portrait
+           and a coarse pointer. A desktop window of any shape never
+           matches, because a mouse is a fine pointer; nothing here applies
+           to it. Every rule below is scoped to .handheld-panel or to
+           html.handheld, the class main.js sets while the layout is on, and
+           tests/handheld-layout.test.js holds that.
+
+           The parts were sized in cqw of the board. In the panel cqw means
+           the panel's width, so each length that was in cqw is restated in
+           --u, the length one board cqw has to stand for to keep the parts
+           in proportion to the larger keys.
+           ================================================================ */
+
+        /* handheld:begin */
+        .handheld-panel,
+        .board-caption { display: none; }
+
+        html.handheld .masthead { padding: 0.8rem 1rem 0.7rem; }
+        html.handheld .masthead h1 { font-size: 1.55rem; }
+        html.handheld .masthead p { font-size: 0.6rem; letter-spacing: 0.1em; }
+
+        html.handheld .handheld-panel {
+            display: grid;
+            justify-items: center;
+            container-type: inline-size;
+            margin: 0 12px 1.4rem;
+            padding: 16px 12px 18px;
+            border-radius: 6px;
+            background:
+                radial-gradient(120% 60% at 10% -10%, rgba(140, 235, 190, 0.17) 0%, rgba(140, 235, 190, 0.05) 42%, rgba(0, 0, 0, 0) 64%),
+                linear-gradient(168deg, rgba(0, 0, 0, 0) 52%, rgba(0, 18, 10, 0.30) 100%),
+                var(--pcb-green);
+            box-shadow:
+                0 6px 14px rgba(40, 26, 12, 0.55),
+                inset 0 0 0 1px var(--pcb-edge),
+                inset 1px 1px 2px rgba(190, 255, 225, 0.16);
+            /* Four keys across, no wider than a fifth of the panel each and
+               no taller than 9% of the smallest viewport height, which is
+               what is left with the browser's toolbars showing, so that
+               on a usual phone the title, the displays and every key fit
+               on the first screen together. */
+            --key-pitch: min(19.5cqw, 9svh);
+            --u: calc(var(--key-pitch) / 4.36);
+        }
+
+        html.handheld .handheld-panel .part { position: static; }
+
+        /* Spacing between the blocks, as margins on them rather than a gap
+           on the panel: lengths in cqw resolve against the nearest
+           container above the element that uses them, which for the
+           panel's own properties is the viewport, but for its children is
+           the panel. */
+        html.handheld .handheld-panel > * + * { margin-top: calc(0.3 * var(--key-pitch)); }
+
+        /* The maker's mark at the foot, right-aligned as it is on the
+           board's edge, and at the board's own scale: 22 mm is 7.33 cqw. */
+        html.handheld .handheld-panel .handheld-mark {
+            display: block;
+            justify-self: end;
+            width: calc(7.33 * var(--u));
+            height: auto;
+            overflow: visible;
+        }
+
+        /* The displays take the panel's width: readability first. */
+        html.handheld .handheld-panel .display-block {
+            width: 100% !important;
+            max-width: 30rem;
+        }
+
+        html.handheld .handheld-panel .led-slot { width: calc(2.56 * var(--u)); }
+        html.handheld .handheld-panel .led {
+            width: calc(1.56 * var(--u));
+            height: calc(1.56 * var(--u));
+            box-shadow:
+                calc(0.07 * var(--u)) calc(0.12 * var(--u)) calc(0.18 * var(--u)) rgba(0, 0, 0, 0.55),
+                inset 0 0 0 calc(0.06 * var(--u)) rgba(50, 0, 6, 0.5);
+        }
+        html.handheld .handheld-panel .led.on {
+            box-shadow:
+                0 0 calc(0.45 * var(--u)) calc(0.12 * var(--u)) rgba(255, 31, 69, 0.9),
+                0 0 calc(1.7 * var(--u)) calc(0.45 * var(--u)) rgba(255, 31, 69, 0.42),
+                inset 0 0 0 calc(0.06 * var(--u)) rgba(120, 0, 20, 0.3);
+        }
+        html.handheld .handheld-panel .led.on.dim {
+            box-shadow:
+                0 0 calc(0.3 * var(--u)) calc(0.06 * var(--u)) rgba(255, 31, 69, 0.6),
+                0 0 calc(0.9 * var(--u)) calc(0.2 * var(--u)) rgba(255, 31, 69, 0.22),
+                inset 0 0 0 calc(0.06 * var(--u)) rgba(120, 0, 20, 0.3);
+        }
+        html.handheld .handheld-panel .led-slot b {
+            margin-top: calc(0.22 * var(--u));
+            font-size: calc(0.74 * var(--u));
+        }
+
+        html.handheld .handheld-panel .keycell::before {
+            border-width: calc(0.07 * var(--u));
+            border-radius: calc(0.06 * var(--u));
+        }
+        html.handheld .handheld-panel .key {
+            box-shadow: calc(0.1 * var(--u)) calc(0.17 * var(--u)) calc(0.24 * var(--u)) rgba(0, 0, 0, 0.6);
+            /* A finger on a key may scroll the page (main.js presses the
+               key only on a tap), but must not zoom it on a second tap, nor
+               bring up the long-press menu or select the legend. */
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        html.handheld .handheld-panel .key:active,
+        html.handheld .handheld-panel .key[style*="translateY"] {
+            box-shadow: calc(0.03 * var(--u)) calc(0.05 * var(--u)) calc(0.09 * var(--u)) rgba(0, 0, 0, 0.65);
+        }
+        html.handheld .handheld-panel .key:focus-visible {
+            outline-width: calc(0.2 * var(--u));
+            outline-offset: calc(0.06 * var(--u));
+        }
+        html.handheld .handheld-panel .slide-switch {
+            border-radius: calc(0.08 * var(--u));
+            box-shadow: calc(0.07 * var(--u)) calc(0.11 * var(--u)) calc(0.17 * var(--u)) rgba(0, 0, 0, 0.55);
+            touch-action: manipulation;
+        }
+        html.handheld .handheld-panel .slide-switch::before { border-radius: calc(0.07 * var(--u)); }
+
+        /* The board itself becomes a picture of the whole board, the width
+           of the screen, with nothing in it to press. */
+        html.handheld .board-scroll { overflow: hidden; padding: 0 12px 1.25rem; }
+        html.handheld .pcb { min-width: 0; }
+        html.handheld .board-caption {
+            display: block;
+            margin: 0.7rem 0.25rem 0;
+            font-size: 0.68rem;
+            line-height: 1.55;
+            text-align: center;
+            color: #4e3f2e;
+        }
+        /* handheld:end */
+
         @media (prefers-reduced-motion: reduce) {
             * { transition-duration: 0ms !important; animation: none !important; }
         }
@@ -865,6 +1015,24 @@
         <h1>AMICO 2000</h1>
         <p>Advanced MIcro COmputer &middot; A.S.E.L. Milano &middot; 1978</p>
     </header>
+
+    <!-- The handheld layout: on a phone held upright, main.js moves the
+         displays, lamps, switch and keys out of the board drawing into this
+         panel and leaves pictures of them behind in the drawing. Empty and
+         hidden everywhere else. See "Handheld layout" in the styles. -->
+    <section class="handheld-panel" id="handheld-panel" aria-label="Displays and keys">
+        <!-- The board's maker's mark, as printed up its right-hand edge (see
+             .silk in the board drawing), here upright at the panel's foot. -->
+        <svg class="handheld-mark" viewBox="0 0 22 10" aria-hidden="true" focusable="false">
+            <g class="silk">
+                <rect class="silk-line" x="0.375" y="0.375" width="6.07" height="5.28" stroke-width="0.75"/>
+                <path class="silk-line" d="M1.15,1.03 H4.55 V4.7 H5.6" stroke-width="0.6"/>
+                <text x="2.5" y="5.12" font-size="4.5" text-anchor="middle" textLength="2.2" lengthAdjust="spacingAndGlyphs">S</text>
+                <text x="7.63" y="5.43" font-size="5.3" textLength="14.05" lengthAdjust="spacingAndGlyphs">A.S.EL</text>
+                <text x="1.7" y="9.36" font-size="3.3" textLength="19.28" lengthAdjust="spacingAndGlyphs">AMICO 2000</text>
+            </g>
+        </svg>
+    </section>
 
     <div class="board-scroll">
       <div class="pcb">
@@ -1372,6 +1540,11 @@
         </div>
 
       </div>
+      <p class="board-caption">
+          The whole board, drawn from photographs of surviving ones. Its displays,
+          lamps, switch and keys are the ones above, brought together where a
+          thumb can reach them.
+      </p>
     </div>
 
     <main class="bench">
@@ -1470,7 +1643,7 @@
             <a href="https://github.com/ascasso/amico2000" target="_blank" rel="noopener">Source code on GitHub</a> &middot;
             <a href="https://computerhistory.it/computer/asel/amico-2000" target="_blank" rel="noopener">board photographs on ComputerHistory.it</a>
             <!-- Committed stamp: keep the date aligned with the commit, even when opened offline. -->
-            <p class="build-stamp">Build <time id="build-date" datetime="2026-11-21">20261121</time></p>
+            <p class="build-stamp">Build <time id="build-date" datetime="2026-11-22">20261122</time></p>
         </div>
 
     </main>

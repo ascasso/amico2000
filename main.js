@@ -205,6 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setupControls();
     setupFileLoader();
 
+    // After the keys have their handlers: the pictures of them that this
+    // leaves in the board drawing must not get any.
+    setupHandheldLayout();
+
     // The Run/Stop label and the run lamp beside the registers were already
     // set by onRunStateChange when start() ran.
 
@@ -269,15 +273,47 @@ function setupKeyboard() {
             button.style.transform = '';
         });
         
-        // Touch support
+        // Touch support. On the board as drawn a key presses the moment it is
+        // touched, as it always has. In the handheld layout the keypad fills
+        // most of the screen, and a thumb that starts a swipe on it would
+        // type instead of scrolling the page, so there a key presses when
+        // the finger lifts having not moved: a touch that moves is a scroll.
+        // The press shows from the first touch either way.
+        let touchStart = null;
         button.addEventListener('touchstart', (e) => {
+            button.style.transform = 'translateY(3px)';
+            if (!handheldLayoutOn()) {
+                e.preventDefault();
+                amico.pressKey(key);
+                return;
+            }
+            // A touch event made by a script may carry no touch point.
+            const touch = e.touches && e.touches[0];
+            touchStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
+        });
+
+        button.addEventListener('touchmove', (e) => {
+            const touch = e.touches && e.touches[0];
+            if (!touchStart || !touch) return;
+            if (Math.hypot(touch.clientX - touchStart.x, touch.clientY - touchStart.y) > TAP_SLOP_PX) {
+                touchStart = null;
+                button.style.transform = '';
+            }
+        });
+
+        button.addEventListener('touchcancel', () => {
+            touchStart = null;
+            button.style.transform = '';
+        });
+
+        button.addEventListener('touchend', (e) => {
+            button.style.transform = '';
+            if (!touchStart) return;
+            touchStart = null;
+            // Stops the browser sending the mouse events it makes up after a
+            // touch, which would press the key a second time.
             e.preventDefault();
             amico.pressKey(key);
-            button.style.transform = 'translateY(3px)';
-        });
-        
-        button.addEventListener('touchend', () => {
-            button.style.transform = '';
         });
     });
 }
@@ -383,12 +419,115 @@ function setupSingleStepSwitch() {
         button.setAttribute('aria-checked', String(toSS));
         button.title = SWITCH_TITLES[toSS];
         // The class goes on the cell, because the printed slot beside the
-        // switch changes sides with it.
-        button.parentElement.classList.toggle('ss', toSS);
+        // switch changes sides with it. Every cell: on a phone the board
+        // drawing holds a picture of the switch as well, which follows it.
+        document.querySelectorAll('.switch-cell').forEach((cell) => cell.classList.toggle('ss', toSS));
     };
 
     button.addEventListener('click', () => move(!amico.singleStep));
     move(false);
+}
+
+// ============================================================================
+// Handheld layout: a phone held upright
+// ============================================================================
+
+// The board is drawn three times as wide as it is tall, with keys about 30 px
+// across at its smallest, so a phone held upright can show it whole or show
+// it usable, not both. On such a screen the parts a person works are moved
+// out of the drawing into one column above it, sized for a thumb, and inert
+// pictures of them are left in the drawing, which shrinks to a picture of the
+// whole board. The styles are under "Handheld layout" in index.html.
+//
+// The query is deliberately narrow. Width and orientation alone would also
+// catch a desktop window dragged tall and thin, and the desktop layout is
+// meant to stay exactly as it is; a mouse is a fine pointer, a finger a
+// coarse one, so requiring a coarse pointer leaves every desktop alone.
+// Landscape on a phone keeps the board as drawn, which then fits the width.
+const HANDHELD_QUERY = '(max-width: 640px) and (orientation: portrait) and (pointer: coarse)';
+
+// How far a finger may drift on a key in the handheld layout and still count
+// as a tap rather than the start of a scroll.
+const TAP_SLOP_PX = 10;
+
+function handheldLayoutOn() {
+    return document.documentElement.classList.contains('handheld');
+}
+
+// What moves, in the order the panel shows it: the displays at the top, then
+// the four LEDs, then the function keys with the NOR/SS switch, and the hex
+// keys at the bottom, nearest the thumb. Each block keeps its own arrangement
+// from the board.
+const HANDHELD_PARTS = ['.display-block', '.led-bank', '.keyfield.func', '.keyfield.hex'];
+
+function setupHandheldLayout() {
+    const panel = document.getElementById('handheld-panel');
+    const root = document.documentElement;
+    const query = window.matchMedia(HANDHELD_QUERY);
+    // Each live part with the picture that stands in for it in the drawing,
+    // kept for every switch, so that a part always goes back to exactly
+    // where it came from. The pictures are taken now, at startup, whatever
+    // the screen: the board is unlit and no key is down, which is what a
+    // picture should show. Taken on the first switch instead, they would
+    // keep whatever happened to be lit or pressed at that moment.
+    const parts = HANDHELD_PARTS.map((selector) => {
+        const live = document.querySelector(`.pcb > .part${selector}`);
+        return { live, picture: pictureOf(live) };
+    });
+
+    const apply = () => {
+        const wanted = query.matches;
+        if (wanted === handheldLayoutOn()) return;
+        // Taking an element out of the page loses its focus; give it back.
+        const focused = document.activeElement;
+        if (wanted) {
+            // Above the maker's mark, which stays at the panel's foot.
+            const mark = panel.querySelector('.handheld-mark');
+            for (const { live, picture } of parts) {
+                live.replaceWith(picture);
+                panel.insertBefore(live, mark);
+            }
+        } else {
+            for (const { live, picture } of parts) {
+                picture.replaceWith(live);
+            }
+        }
+        root.classList.toggle('handheld', wanted);
+        if (focused && focused !== document.activeElement && parts.some(({ live }) => live.contains(focused))) {
+            focused.focus({ preventScroll: true });
+        }
+    };
+
+    // Rotating the phone, or a split screen on a tablet, moves them back and
+    // forth. The event handlers and the elements display.js and the rest of
+    // this file hold references to are the same elements throughout. Safari
+    // before 14 has only the older addListener().
+    if (query.addEventListener) {
+        query.addEventListener('change', apply);
+    } else {
+        query.addListener(apply);
+    }
+    apply();
+}
+
+// A copy of a part for the board drawing, as a picture: nothing in it can be
+// pressed, focused or read out, and it carries no id or data-key, so that
+// getElementById() and the key lookups in this file still find only the live
+// part. It is taken at startup, so the displays and LEDs in it are unlit; it
+// is not kept up to date, except for the switch, which setupSingleStepSwitch()
+// moves with the real one.
+function pictureOf(live) {
+    const picture = live.cloneNode(true);
+    for (const element of [picture, ...picture.querySelectorAll('*')]) {
+        element.removeAttribute('id');
+        element.removeAttribute('data-key');
+        element.removeAttribute('title');
+    }
+    // The press of a key is an inline style; a picture shows every key up.
+    picture.querySelectorAll('.key').forEach((button) => button.removeAttribute('style'));
+    picture.setAttribute('inert', '');
+    picture.setAttribute('aria-hidden', 'true');
+    return picture;
 }
 
 // The phase LEDs D4-D7. The machine reports how much of the last frame each

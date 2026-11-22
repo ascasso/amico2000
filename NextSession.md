@@ -15,7 +15,7 @@ hardware over convenience abstractions. Priority order:
 5. Large conformance or test-framework projects, only after core behavior is
    trustworthy.
 
-## Where Things Stand (2026-11-21)
+## Where Things Stand (2026-11-22)
 
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
@@ -26,7 +26,7 @@ hardware over convenience abstractions. Priority order:
   after it, the ComputerHistory.it links and this file's own update, is on
   `develop` and waits for the next pull request.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 188
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 193
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -35,6 +35,7 @@ hardware over convenience abstractions. Priority order:
   go dark when nothing is scanning them, as on the board.
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
   PROM (IC10).
+- **Phones:** held upright, the page uses a handheld layout; see item 1.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
   which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
   executes one instruction.
@@ -44,44 +45,30 @@ hardware over convenience abstractions. Priority order:
   time** the PROM's own routines run against an emulated recorder, with the
   phase LEDs lit (`#20`, closed).
 - **Open issues:** none.
-- **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-21.
+- **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-22.
 
 ## Outstanding
 
 In rough priority order. None of it is started.
 
-1. **Make the emulator usable on a phone held upright. The owner's priority.**
-   The owner uses a phone in portrait, with rotation locked, so portrait is
-   the case to design for and to judge by. Today it is nearly unusable
-   there. `.pcb` has `min-width: 760px`, so on a 390 px screen the board
-   keeps its size and the first view is its left half: the regulator, the
-   CPU and the ROMs. The displays and the whole keypad, which are the parts a
-   visitor needs, are off screen to the right behind a sideways pan that
-   nothing points to. Checked 2026-11-21 in headless Chrome at 390 x 844 with
-   `Emulation.setDeviceMetricsOverride` set to `mobile: true`; the keys were
-   30 px across at that width.
-   - Three ways were put to the owner, who had not chosen when this was
-     written. **Handheld layout**, recommended: below some width the live
-     parts regroup into one vertical column, six digits, LEDs, keypad with
-     keys near 50 px, the NOR/SS switch, then the bench controls, with the
-     board drawing still on the page further down. **Rotate the board** 90
-     degrees: true layout and large keys, but the lettering lies sideways.
-     **Open panned to the keypad**: cheapest, keys near 36 px, still relies
-     on a sideways scroll. Ask which first.
-   - The desktop view must not change. Landscape and wide windows stay
-     exactly as photographed.
-   - What makes the handheld layout cheaper than it looks: the keys
-     (`.keyfield`), the LEDs (`.led-bank`) and the switch are HTML placed in
-     percent of the board over the SVG, and the displays are SVG drawn by
-     `display.js` into `#display`. Moving them is mostly CSS in a media query.
-     What the scripts look up by id and class is listed in Board Artwork in
-     `AGENTS.md`; keep all of it.
-   - Check it in portrait by clicking real keys and reading the display, as
-     the other browser checks do, not only by looking. Tap targets want to be
-     about 44 px or more, and the page must not scroll sideways. Touch
-     support already exists in `main.js` (`touchstart` on the keys).
-   - Only Chrome has been used so far. A phone's own browser is the real test;
-     ask the owner to try it.
+1. **Try the phone layout on a real phone.** The owner asked for the page to
+   work on a phone held upright, the way the owner uses one, and left the
+   choice of how to the agent. The handheld layout was built on 2026-11-22
+   (`AGENTS.md`, Handheld Layout): on an upright touch screen the displays,
+   LEDs, switch and keys move into one column above a picture of the board.
+   It was checked only in headless Chrome with touch emulation. Ask the owner
+   how it is on the owner's own phone, and fix what that shows. Known rough
+   edges, none of them blocking:
+   - On the smallest common screen, an iPhone SE with Safari's toolbars, the
+     last key row ends 2 px from the bottom and the maker's mark is below it.
+   - Turned to landscape, a phone gets the board as drawn, and the title
+     pushes the bottom rows of keys below the fold. The owner keeps rotation
+     locked, so this was left; a compact title for short landscape screens
+     would be the fix.
+   - The pictures left in the board drawing are static: they do not light up
+     with the real displays and LEDs.
+   - Tablets in portrait wider than 640 px keep the board as drawn, at about
+     the size a desktop window shows it.
 2. **Two interrupt decisions are the owner's to confirm.** HLT and the
    NOR/SS single-step switch both work now (`AGENTS.md`, HLT and the NMI
    Line). Both go through the NMI vector at `$03FC/$03FD`, which the board
