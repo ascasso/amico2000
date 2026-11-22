@@ -116,9 +116,8 @@ In rough priority order. None of it is started.
      instructions by hand, keys everything in and runs it. The manual gives
      codes for A, S, E and L only on that page, and says the way to control
      single segments is explained in the hardware part of its next chapter;
-     look there before drawing letters of our own. A Z is
-     the same segments as a 2. In the owner's own program it came out as a
-     y, and it should here.
+     look there before drawing letters of our own. A Z can only be given
+     the segments of a 2, and the guide should say so.
    - **Second program: text sliding across the displays**, a reconstruction.
      The owner remembers writing one that slid a name of two words, thirteen
      characters, across the six displays, and is fairly sure that it slid
@@ -126,10 +125,15 @@ In rough priority order. None of it is started.
      is to be written again as a real program for the board and labelled a
      reconstruction. Whatever waits between steps has to keep calling
      `$FF7E`: nothing else keeps the displays alight, and an idle delay loop
-     darkens them, on the board as in the emulator. The name in it was a
-     private person's. It stays out of the repository and off the site; the
-     catalog's version slides the visitor's own text, or something neutral
-     such as AMICO 2000.
+     darkens them, on the board as in the emulator. Two things about its
+     letters, from the owner on 2026-11-22. The Z in the name was shown as a
+     y: of that the owner is certain, without remembering why, since the
+     segments of a 2 would have served. The rebuilt program should show a Z
+     as a y too, as its one quirk, unless the owner says otherwise. And the
+     capital G may have been a small g, drawn like a 9; of that the owner is
+     not sure. The name in it was a private person's. It stays out of the
+     repository and off the site; the catalog's version slides the visitor's
+     own text, or something neutral such as AMICO 2000.
    - **Then, one at a time:** the LED counter from the guide, written for
      this site; the manual's HLT example, which `tests/hlt-nmi.test.js`
      already runs as printed; the 1979 clock, whose transcription is
