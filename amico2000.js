@@ -38,8 +38,12 @@ class Amico2000 {
             interceptROM: true
         };
         
-        // Display state (6 digits, each 8 segments including DP)
+        // Display state (6 digits, each 8 segments including DP): the pattern
+        // each digit was last driven with, and the CPU cycle it was driven at.
+        // A digit is only alight while something keeps driving it; see
+        // getDisplay().
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        this.displayDriven = new Array(6).fill(-Infinity);
         this.currentDigit = 0;
         
         // Keyboard state: the monitor scans 3 rows x 7 columns, selecting a
@@ -297,6 +301,7 @@ class Amico2000 {
         // ghosting, but we want persistence of vision in the emulator
         if (digitIndex >= 0 && digitIndex < 6 && segmentPattern !== 0) {
             this.display[digitIndex] = segmentPattern;
+            this.displayDriven[digitIndex] = this.cpu.cycles;
             this.currentDigit = digitIndex;
         }
 
@@ -307,18 +312,43 @@ class Amico2000 {
     }
     
     /**
-     * Get current display state
-     * @returns {Array} Array of 6 segment patterns
+     * What the six displays show at this moment.
+     *
+     * The board has no display latch. A digit is alight only while its
+     * transistor is on, and the monitor keeps all six visible by driving each
+     * in turn every 4 ms or so. Anything that stops scanning lets them go
+     * dark: a user program that does not call the monitor's display routine,
+     * and the cassette routines, of which the manual says "il display
+     * indirizzi e dati del calcolatore si spegne" (#20). This used to return
+     * the last pattern each digit was ever given, so a display that would be
+     * dark on the board stayed frozen on the page.
+     *
+     * A digit counts as lit if it was driven within the last tenth of a
+     * second of CPU time, or is the one being driven now, which covers a
+     * program that selects a digit and leaves it on. The monitor's longest
+     * pause between scans, while it waits out a key's bounce, is 31 ms, so
+     * the tenth of a second never blanks a display the eye would still see;
+     * it also hides that 31 ms blink, which the page has never drawn.
+     *
+     * @returns {Array} Array of 6 segment patterns, 0 for a dark digit
      */
     getDisplay() {
-        return [...this.display];
+        const now = this.cpu.cycles;
+        const portB = this.pia.portB;
+        // The digit selected at this moment, by the test _updateDisplay() uses.
+        const driven = (portB & 0x01) && (this.pia.portA & 0x7F) ? ((portB >> 1) & 0x0F) - 4 : -1;
+        return this.display.map((pattern, digit) => (
+            digit === driven || now - this.displayDriven[digit] <= Amico2000.DISPLAY_PERSISTENCE_CYCLES
+                ? pattern
+                : 0x00
+        ));
     }
     
     /**
      * Convert display to hex string (for debugging)
      */
     getDisplayHex() {
-        return this.display.map(d => d.toString(16).padStart(2, '0')).join(' ');
+        return this.getDisplay().map(d => d.toString(16).padStart(2, '0')).join(' ');
     }
     
     // =========================================================================
@@ -872,11 +902,12 @@ class Amico2000 {
 
         this.cpu.reset();
         this.display = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        this.displayDriven.fill(-Infinity);
         this.pia = { portA: 0, portB: 0, portC: 0, control: 0 };
 
         // Update display immediately on reset (user expects visual feedback)
         if (this.onDisplayUpdate) {
-            this.onDisplayUpdate(this.display);
+            this.onDisplayUpdate(this.getDisplay());
         }
         if (this.onStateUpdate) {
             this.onStateUpdate(this.cpu.getState());
@@ -891,7 +922,7 @@ class Amico2000 {
         
         // Update display after step (user is single-stepping, wants to see changes)
         if (this.onDisplayUpdate) {
-            this.onDisplayUpdate(this.display);
+            this.onDisplayUpdate(this.getDisplay());
         }
         if (this.onStateUpdate) {
             this.onStateUpdate(this.cpu.getState());
@@ -968,7 +999,7 @@ class Amico2000 {
         // The display state is updated internally during CPU execution,
         // but we only render to DOM here at 60fps
         if (this.onDisplayUpdate) {
-            this.onDisplayUpdate(this.display);
+            this.onDisplayUpdate(this.getDisplay());
         }
         
         // Update state display
@@ -1025,6 +1056,10 @@ class Amico2000 {
 }
 
 Amico2000.TAPE_MAGIC = new Uint8Array([0x41, 0x4D, 0x49, 0x43, 0x4F, 0x54, 0x41, 0x50, 0x45]);
+
+// How long a digit stays visible after it was last driven, in CPU cycles: a
+// tenth of a second at 1 MHz. See getDisplay().
+Amico2000.DISPLAY_PERSISTENCE_CYCLES = 100000;
 
 // Read-only regions of the AMICO memory map (#31). The monitor PROM at IC9 is
 // always fitted; the cassette PROM at IC10 is optional, but the region is

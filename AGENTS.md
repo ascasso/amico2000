@@ -114,6 +114,13 @@ Machine emulation layer that connects CPU to hardware:
   - $FD02 (Port C): Expansion port (unused)
   - $FD03: Control register
 - Display updates are decoupled from PIA writes for performance - buffered and updated once per frame
+- The board has no display latch, so neither has the emulator: `getDisplay()`
+  shows a digit only if it was driven within `DISPLAY_PERSISTENCE_CYCLES`, a
+  tenth of a second of CPU time, or is being driven now. The monitor scans
+  each digit every 4 ms and pauses 31 ms at most, while a key bounces. Under a
+  program that does not scan, and during the real cassette routines, the
+  displays go dark, as on the board. `amico.display` still holds the last
+  pattern each digit was given. Covered by `tests/display-persistence.test.js`
 - Keyboard scanning matches the ROM's timing expectations (port B values: 1, 3, 5 for rows 0, 1, 2)
 
 ### 3. display.js (~440 lines)

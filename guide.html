@@ -296,6 +296,12 @@ amico.start();</code></pre>
                 reach all keys.</li>
             <li><strong>A program is stuck:</strong> press RES. If the monitor still
                 fails, Cold reset restores its RAM setup and clears your program.</li>
+            <li><strong>The displays went dark:</strong> a program is running that
+                does not refresh them. The monitor lights the digits by scanning
+                them many times a second; once your program has control, they stay
+                dark unless it does the same, exactly as on the real board. The
+                CPU line under Processor state still says running. Press RES to
+                return to the monitor.</li>
             <li><strong>A file does not load:</strong> read the error alert and check
                 its name, byte count, and format. A 512-byte program uses the ROM
                 fallback; a renamed audio or text file is not a binary tape or ROM.

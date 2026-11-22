@@ -424,6 +424,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed the displays staying lit when nothing was refreshing them (#20). The
+  board has no display latch: a digit is alight only while it is driven, and
+  the monitor keeps all six visible by scanning them every few milliseconds.
+  The emulator kept the last pattern each digit was ever given, so under a
+  program that does not scan the displays, or during the cassette routines,
+  the page showed a frozen readout where the real board is dark. A digit is
+  now shown only if it was driven within the last tenth of a second of
+  processor time, or is being driven at that moment. With the monitor
+  running nothing looks different. Pausing with **Stop** still freezes the
+  picture, since the processor's clock stops with it.
 - Fixed the keypad map, which sent the wrong codes to the monitor for `0`, AD,
   RUN and REG. Typing `0` reset the address instead of entering a zero; AD ran
   the program at the displayed address; RUN and HLT acted as DA; and REG ran
