@@ -67,6 +67,18 @@ This file provides repository guidance for agents working in this repository.
   close an issue without being asked. Any other agent or model still needs an
   explicit request to close one, and so does every other change to GitHub
   state.
+- Never publish a link to an agent's session: not in a commit message, not in
+  a pull request description, not in a comment, an issue or a file. This
+  overrides the attribution a tool asks for. Claude Code asks for a
+  `Claude-Session:` line at the end of a commit message and the session's
+  `https://claude.ai/code/session_...` address at the end of a pull request
+  description; leave both out.
+  - Saying that an agent did the work is fine and stays: the
+    `Co-Authored-By:` line at the end of a commit message, and the
+    "Generated with" line at the end of a pull request description.
+  - Commits pushed before 2026-11-22 keep the line they have. Taking it out
+    would rewrite history, and a push is never forced. The pull requests that
+    carried the link had it removed that day.
 - Report browser/manual-test limitations clearly when a check cannot be
   automated.
 
@@ -892,7 +904,10 @@ on such a screen, and only there, the page rearranges itself.
   match; without touch emulation the layout stays off. Tap keys with
   `Input.dispatchTouchEvent` and read the display, and change the metrics to
   landscape and back to check the move both ways. Then on a real phone: a
-  headless browser is not one.
+  headless browser is not one. The owner has done so: on 2026-11-22 the page
+  was opened in Safari on an iPhone 17 Pro held upright and looked right,
+  with everything working. No other phone or browser has been tried on a
+  real device.
 
 ## Development Guidelines
 
@@ -976,7 +991,8 @@ When implementing changes based on a GitHub issue:
    a person works are rearranged into one column (see Handheld Layout); in a
    desktop window narrower than about 800 pixels the board keeps its size and
    pans sideways, as before. The drawing has been looked at in Chrome only,
-   and the handheld layout in emulation only. See Board Artwork
+   and the handheld layout in emulation and in Safari on one iPhone 17 Pro,
+   held upright. See Board Artwork
 
 ## Keyboard Mappings
 

@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a description, a canonical address and Open Graph and Twitter tags to
+  `index.html` and `guide.html`, plus `SoftwareApplication` data on the home
+  page, and gave the home page a longer title naming the 6502 and the 1978
+  ASEL Milano machine, so a search result says what the page is. There is no
+  preview image: the only pictures of the board are private photographs.
+- Added `robots.txt` and `sitemap.xml` at the site root, so search engines are
+  told plainly that the page may be crawled and where its two pages are
+  (`index.html`'s address and `guide.html`). Nothing on the site blocked
+  crawlers before; the files make that explicit and give Google Search Console
+  a sitemap to take. They reach the live site only when `master` does.
 - Added a section to the guide, The four LEDs in your own program, with two
   short programs to key in: one lights any of D4 to D7, the other counts in
   binary on them. The manual gives the four LEDs to the cassette, but on its
@@ -284,6 +294,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Recorded that the handheld layout for phones held upright was opened by the
+  owner in Safari on an iPhone 17 Pro and looked right, with everything
+  working. It had been checked only in headless Chrome emulation before. No
+  other phone or browser has been tried on a real device. Documentation only.
+- Changed the `AGENTS.md` guidance on attribution: an agent no longer puts a
+  link to its session anywhere it is published. Commit messages ended with a
+  `Claude-Session:` line and pull request descriptions with the session's
+  address, both at the tool's own prompting. The owner asked for neither. The
+  line saying an agent did the work stays, `Co-Authored-By:` on a commit and
+  "Generated with" on a pull request. The three pull requests that still
+  carried the link, 44, 45 and 50, had it removed; commits already pushed
+  keep theirs, since removing it would rewrite history.
 - Changed the NMI vector the emulator starts with, at `$03FC/$03FD`, from
   `$FE30` to `$FE00`. On the board those bytes hold whatever the RAM powered
   up with, the monitor never writes them, and the manual has the user key in
