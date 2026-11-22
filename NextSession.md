@@ -129,9 +129,10 @@ In rough priority order. None of it is started.
      letters, from the owner on 2026-11-22. The Z in the name was shown as a
      y: of that the owner is certain, without remembering why, since the
      segments of a 2 would have served. The rebuilt program should show a Z
-     as a y too, as its one quirk, unless the owner says otherwise. And the
-     capital G may have been a small g, drawn like a 9; of that the owner is
-     not sure. The name in it was a private person's. It stays out of the
+     as a y too, as its one quirk, unless the owner says otherwise. And its
+     G was a capital, `3D`, not a small g drawn like a 9: the owner was not
+     sure until shown both on the emulated displays, and then recognised the
+     capital at once. The name in it was a private person's. It stays out of the
      repository and off the site; the catalog's version slides the visitor's
      own text, or something neutral such as AMICO 2000.
    - **Then, one at a time:** the LED counter from the guide, written for
