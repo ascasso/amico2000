@@ -1300,6 +1300,104 @@ When implementing changes based on a GitHub issue:
 - Include the issue reference in relevant code comments (e.g., `// Fix for #42: Handle edge case when...`)
 - This maintains traceability between issues, code changes, and release notes
 
+### A Review by Several Agents
+
+On 2026-11-23 the owner had the compiler checked "with subagents with
+different models" and one Codex instance, and afterwards asked that what
+worked be written here for the sessions to come. What that check found is in
+`NextSession.md`, item 13. This is how it was run, and how to run the next.
+
+**What was done.** One session ran the review and took none of the angles
+itself. It wrote a brief, one plain file that every reviewer read first, and
+started five reviewers at once, in the background, each with one angle and
+each on a different model:
+
+| Reviewer | Angle | Came back with | Took |
+| --- | --- | --- | --- |
+| Claude Opus | Differential testing: an interpreter written from the README alone, a random generator of valid programs, each run on the emulated board | No finding, and the tester | 5 min |
+| Claude Fable | The front end read line by line, every suspicion tried on the board, and oracles that try every small program | The two findings that took knowledge of the machine | 33 min |
+| Claude Sonnet | The back end and the command line: opcodes, the edges of a branch, the limits, listing against binary | Two small points | 5 min |
+| Claude Haiku | The README sentence by sentence: true, false, or could not check | One loosely worded sentence | 7 min |
+| Codex on Astra | The whole compiler, as a generalist | Six findings, the most of any | 9 min |
+
+While they ran, the session did what none of them could: it followed the
+README on the page as served, in headless Chrome. When they came back it
+reproduced every finding before passing any on.
+
+**What made it work.**
+
+- **One angle to a reviewer, a different model for each.** They found
+  different things. Where two met the same fault, the second had gone
+  further: Sonnet and Codex both tried a file with CR-only line endings, and
+  Codex found that it can lose statements without a word.
+- **The model fitted to the job.** The strongest reasoner had the open
+  reading, a middle one the bounded checks, the cheapest the audit of
+  claims, and another maker's model was the generalist, since it does not
+  share the others' habits.
+- **The brief carried everything.** A subagent starts with nothing: not the
+  conversation, not the session's memory. The brief said what the code is;
+  the rules; what is deliberate and so not a finding; what was already
+  known; how to run things, as snippets that work when pasted; and the form
+  of the report.
+- **Read-only was enforced, not only asked.** Each reviewer had a scratch
+  directory of its own outside the repository. Codex ran with its sandbox
+  open for writing in that directory alone, so it could not have changed
+  the repository.
+- **Reports were made to be reproduced.** For each finding: its kind, the
+  smallest source that shows it, what happens and what should, the script
+  that shows it, the lines responsible. Then what was found sound and what
+  was not covered. The brief said that no finding is better than a doubtful
+  one.
+- **Nothing was passed on unreproduced.** Reproducing also settled the one
+  disagreement. One reviewer found the key helper to do what the README
+  says and another found a case where it does not; both were right, about
+  different cases, and only running them showed it. Reproduce; do not count
+  votes.
+- **The tester was tested.** Five defects were planted in scratch copies of
+  the compiler. The random tester caught three. Of the two it missed, one
+  cannot show in a test of valid programs, and is what the oracle is for;
+  the other needed loops of a shape its generator does not make, and six
+  programs written by hand then covered it. A tester that reports nothing
+  has proved only what it was able to see.
+- **The harnesses were kept.** A scratch directory does not outlive its
+  session. The two best harnesses went into `tests/`.
+
+**What went wrong.**
+
+- The brief called any exception that is not a "Line N:" error a crash, so
+  the compiler's two deliberate messages about size came back as crashes.
+  Name what is deliberate.
+- 64tass was not installed, and three reviewers each spent time finding
+  that out. Say in the brief which tools there are.
+- A reviewer's headline is not always the number that matters. One
+  reported 38,000 programs; 26,000 of them had fitted in memory and run.
+  Read a count before repeating it, and say what it counts.
+
+**For the next one.**
+
+- **When.** To check a body of code or a document before building on it or
+  releasing it. It costs several times what one session costs, so it is for
+  the owner to ask for, or to be offered.
+- **For building, one author.** Several agents writing the same files have
+  nothing to keep them apart. Let one session write, in small commits, and
+  give the finished series to reviewers on other models before it is
+  pushed, with the same kind of brief and the same form of report.
+- **The owner's Codex.** One instance at a time. Its prompt is plain ASCII,
+  the owner's rule for anything handed to another tool, kept in a file and
+  given on standard input. The run of 2026-11-23, with the model the
+  owner's Codex was set to that day:
+
+  ```sh
+  codex exec -m gpt-6.2-astra -s workspace-write --skip-git-repo-check \
+      -C "$SCRATCH" -o "$SCRATCH/REPORT.md" - < "$SCRATCH/PROMPT.txt"
+  ```
+
+- **Afterwards.** Findings go where the next session will look: what is
+  open in `NextSession.md`, how it was found in the log. A harness worth
+  having goes into `tests/`. No link to any agent's session is published,
+  as everywhere (Agent Operating Contract); saying which agents did the
+  work is fine.
+
 ## Known Limitations
 
 1. **Browser Tab Throttling**: Modern browsers throttle `requestAnimationFrame` when tabs are backgrounded, causing the emulator to pause/slow down

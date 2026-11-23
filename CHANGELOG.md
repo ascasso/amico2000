@@ -366,6 +366,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Recorded what a check of the compiler found, in `NextSession.md`, item 13:
+  no ordinary program compiles to wrong code, and a short list of faults at
+  the edges, each reproduced. The owner had it run by five reviewers on
+  five models, four Claude subagents and one Codex instance. `AGENTS.md`
+  has a new section, A Review by Several Agents, on how that was done,
+  what made it work and how to run the next one, which the owner asked
+  for. Nothing in the compiler changed.
 - Named the compiler's language Amico, the owner's decision, and said in both
   READMEs that it is new: written for this project in 2026, not ASEL's
   software and never part of the machine. They called it "the AMICO's

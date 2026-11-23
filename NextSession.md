@@ -606,9 +606,85 @@ on 2026-11-23 and its place is the owner's to give.
       each kind of statement, which will not stretch to `and` or to rows of
       bytes, so a small tokenizer comes before the loops. One unit to a
       commit, each with its test.
-    - **Before any of it, a check of the compiler as it stands**, read only,
-      which the owner asked for on 2026-11-23 and which was under way when
-      this was written. Its findings are not here.
+    - **A check of the compiler as it stands**, read only, which the owner
+      asked for on 2026-11-23 before anything was built on it. Five
+      reviewers, each with its own angle and its own model: four Claude
+      subagents, on Opus, Sonnet, Haiku and Fable, and one Codex instance on
+      Astra. `AGENTS.md`, A Review by Several Agents, has how it was run.
+      The session that ran them reproduced every finding below. **No
+      ordinary program was found to compile to wrong code.** What turned up
+      is at the edges:
+      1. **A program of exactly 257 bytes cannot be loaded by the board's
+         own LOAD routine.** The PROM loses the last byte of a block one
+         byte longer than whole pages (`AGENTS.md`, Cassette Sound Format),
+         so `$0300` keeps what it had and the closing `JMP $FE22` becomes
+         `JMP $0022`. The trap, Cassette: Instant, hides it.
+      2. **A source file with CR-only line endings**, as old Macs wrote
+         them, is read as one line. With a `#` comment in it, everything
+         after the comment is dropped and the compile succeeds. Without one
+         the error is "Unknown statement", with the whole file in it.
+      3. **After HLT, the RUN that resumes the program comes back from
+         `keypad.press()` as a key**, `$13`. The helper waits for release
+         only when it is called, and a halted program is nearly always
+         inside it. The RUN that starts a program is ignored, as designed.
+         The matchstick game is safe because it discards codes above 3.
+      4. **When one key directly replaces another**, with no scan between
+         them that shows no key, `keypad.press()` wants four samples of the
+         new key where the README says three: the sample that showed the
+         change is thrown away. About 4 ms.
+      5. **Messages and gaps in the README.**
+         - The right side of a comparison must be a single value. `if a ==
+           b + 1` is refused with a message naming the operator that is
+           already there, and the README does not give the rule.
+         - The words of the language cannot be names: `byte`, `in`, `table`,
+           `display`, `keypad` and the rest. The README does not list them,
+           and the message is "Invalid byte variable".
+         - A table declared twice gets that same message. A misspelt `end`
+           after `stop` is called unreachable. `keypad.read ()` with a space
+           is refused, where spacing is free everywhere else. A table's
+           first index must be the character `0`, and `$0` is refused.
+         - A file with no statement in it is reported at a line past its
+           end.
+         - The README says "The square table occupies 40 bytes", which is
+           the whole program, 16 of them the table. It never says to press
+           RES to leave `squares`, which runs for ever.
+
+      Found sound, by the reviewers' own counts:
+      - Some 26,000 random programs, each run on the emulated board with its
+        registers and flags randomised, decimal mode among them, and
+        compared with an interpreter written from the README alone: no
+        mismatch, and no write outside the program's variables and the
+        display bytes.
+      - The rule that a name is assigned on every path before it is read,
+        against an independent control-flow oracle over 5.7 million small
+        programs.
+      - What the accumulator is taken to hold: 116,000 programs against a
+        copy of the compiler with that shortcut off, and a program halted
+        at every instruction and resumed.
+      - Port A's direction at every key read, in 402,000 programs.
+      - 700,000 malformed sources, none of which made the compiler throw
+        anything but a "Line N:" error.
+      - The opcodes, the 127 and 128-byte edge of a branch, the 508-byte
+        limit, the 96 variables, and the listing against the binary on
+        1,102 programs.
+      - Every checkable claim in the README but the one above.
+      - The README's own instructions on the page as served, in headless
+        Chrome: the tape through the file picker, the LOAD and the RUN
+        keyed on the board, 64 for A and E1 for F, and the game played
+        through to `DEAD 01`. The log had this down as not tried.
+
+      Not verified: that 64tass accepts the listing, since it is not
+      installed. Codex reports that a copy it had built assembled three
+      listings to the compiler's bytes; the session that ran the check did
+      not run it. Nor a real board, and with it a real 8255A, which clears
+      its output latches when a mode word is written, where the emulator
+      does not.
+
+      The owner's decisions on it, the same day: record this; bring the
+      random-program tester and the oracle into `tests/`, as a net under
+      the front end before it is reworked; fix findings 1, 2 and 5, each in
+      its own commit with a test; and give finding 3 a note in the README.
+      Finding 4 is left as it is.
 
 ## Cassette Work (Secondary)
 
