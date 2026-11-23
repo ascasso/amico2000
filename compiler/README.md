@@ -63,7 +63,9 @@ contain lowercase letters, digits and underscores. The words of the language
 cannot be names: `if`, `else`, `end`, `loop`, `stop`, `const`, `table`, `byte`,
 `in`, `display` and `keypad`. A `#` begins a comment.
 All values are unsigned bytes. Write decimal literals as `21` or hex as
-`$15`. Arithmetic wraps modulo 256.
+`$15`. Leading zeros change nothing, so `021` is 21 and not an octal number,
+and hex digits may be capitals or small letters: `$0f`, `$0F` and `15` are
+one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 
 | Source | Effect |
 | --- | --- |

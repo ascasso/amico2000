@@ -321,3 +321,22 @@ test('after HLT, the RUN that resumes a program comes back from keypad.press() a
     press(m, '7');
     assert.equal(m.cpu.memory[0xfa], 0x07);
 });
+
+test('a number may have leading zeros, and hex digits of either case', () => {
+    // The value a literal is given, read back from the LDA # it becomes.
+    const valueOf = (text) => compile('display.data = ' + text).binary[2];
+    for (const [text, value] of [
+        ['21', 21], ['021', 21], ['0021', 21], ['$15', 21],
+        ['$0f', 15], ['$0F', 15], ['$f', 15], ['$F', 15], ['15', 15],
+        ['0255', 255], ['$00ff', 255], ['$FF', 255]
+    ]) assert.equal(valueOf(text), value, text);
+    for (const text of ['256', '0256', '$100']) {
+        assert.throws(() => valueOf(text), /^Error: Line 1: Byte literal out of range/, text);
+    }
+    // Neither of the two usual other ways of writing hex or a power of ten.
+    for (const text of ['0x15', '1e2', '$']) assert.throws(() => valueOf(text), /^Error: Line 1: Expected a byte literal/, text);
+    // The README says so; the reference interpreter was written from it.
+    const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8').replace(/\n/g, ' ');
+    assert.match(readme, /Leading zeros change nothing, so `021` is 21 and not an octal number/);
+    assert.match(readme, /`\$0f`, `\$0F` and `15` are one value/);
+});

@@ -384,6 +384,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `compiler/README.md` now says how a number may be spelt: leading zeros
+  change nothing, so `021` is 21 and not octal, and hex digits may be of
+  either case. The compiler already read them so, and so did the reference
+  interpreter the tests hold it to, but the README, which that interpreter
+  is meant to be written from, said nothing, so the two could have been
+  wrong together. A test holds the spellings and the sentence.
 - Raised the floors in `tests/compiler-differential.test.js` to what its
   comment says they are, about half of what the generator makes; the one
   for table reads was under a third. Corrected the header of
