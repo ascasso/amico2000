@@ -158,8 +158,9 @@ SAVE routine to download the most recent mock tape image.
 
 Under Bench controls, **Cassette: Real time** turns the interception off. LOAD
 and SAVE are then the original routines working on an emulated recorder, in the
-time the real machine took, about thirteen seconds for a short program, with
-the displays dark and the phase LEDs D4-D7 lit as the manual describes.
+time the real machine took, about seven seconds to LOAD a short program and
+thirteen to SAVE one, with the displays dark and the phase LEDs D4-D7 lit as
+the manual describes.
 **Instant** is the default.
 
 The four LEDs are not only the cassette's. A program of your own can light

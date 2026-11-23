@@ -39,8 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   people who used this board around 1980, many of whom do not read English.
   It uses the manual's own words where the manual has them, "locazione",
   "passo singolo", "coda" for the leader, "lettura" and "registrazione" for
-  LOAD and SAVE, and speaks to the reader as "voi", as the manual does. Each
-  guide has a link to the other at its top and names it to search engines
+  LOAD and SAVE, and speaks in the manual's voice, its "noi" (at first it
+  gave orders to "voi"; see under Changed). Each guide has a link to the
+  other at its top and names it to search engines
   with `hreflang`, and `sitemap.xml` lists both. The Italian guide's links
   back to the emulator carry `?lang=it`. `tests/guide-languages.test.js`
   holds the two files to the same sections, anchors, listings and code, so
@@ -331,6 +332,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Corrected `NextSession.md`, which still said the Italian was not live after
+  pull request 53 had put it on the site. Documentation only.
+- The Italian now speaks as the manual does, in "noi". The supplement does
+  at the keys what it describes, together with its reader: "Premiamo quindi i
+  tasti", "non ci resta altro che indicare al nostro Amico 2000 l'indirizzo
+  nel quale inizia il programma". The site gave orders to "voi", which the
+  manual also does, but less. The owner asked for the "noi", and wherever
+  the site teaches or walks through something it is now that:
+  - All of `guida.html`: "Premiamo RES, poi AD e le quattro cifre
+    dell'indirizzo", "A questo punto possiamo esaminare il contenuto di
+    qualsiasi registro", "il nostro programma". Cautions are the author's
+    "Avvertiamo che", "Consigliamo", "Attenzione:" or an impersonal "va
+    lasciato", as in the manual. Five headings follow, among them
+    "Introduciamo un piccolo programma", after the manual's "Introduciamo
+    un primo programma". Every address, listing, key and link is where it
+    was; only the prose changed.
+  - On the home page, the notes under the board ("quello che abbiamo scritto
+    in RAM", "Portiamolo su SS con un clic") and the tooltips of the LEDs
+    ("può accenderlo anche un nostro programma").
+  - The line at the end of the alert after a recording is read: "scriviamo
+    il suo numero in $0000 e FF in $0002, poi facciamo partire il programma
+    di lettura da $FC54", which is the manual's own sentence.
+  - "Voi" stays in two kinds of place, as it does in the manual: a prompt at
+    the moment something has to be done, "Premete RES." on the tape's status
+    line, and the advice in an error about a file of the reader's own.
+  - The English is unchanged. `tests/languages.test.js` fails if a "voi"
+    comes back into the guide or onto the home page, and `AGENTS.md` has the
+    rule under Two Languages.
+- Wrote down in `AGENTS.md` how the Italian is to be written, after the owner
+  asked that it keep the style and tone of the original documentation and
+  not only its words: build each sentence on the manual's own sentence for
+  the same thing, how the manual sounds, the kinds of English carried across
+  word for word that a second agent's review found on the site, and that a
+  reviewer's Italian points at a passage without being the text to use. The
+  table of the Italian's words gains the program's number, the two cassette
+  routines and the halves of an address, each with its page. `NextSession.md`
+  records the review, a question it leaves for the owner, and something
+  noticed on the way and left alone: a LOAD takes about seven seconds where
+  the page says thirteen, in both languages. Documentation only.
 - Recorded that the handheld layout for phones held upright was opened by the
   owner in Safari on an iPhone 17 Pro and looked right, with everything
   working. It had been checked only in headless Chrome emulation before. No
@@ -626,6 +666,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Corrected how long the page says a LOAD takes with **Cassette: Real
+  time**, in English and in Italian. The tooltip of **Real time** promised
+  "thirteen seconds or more" and both guides "about thirteen seconds for a
+  short program", for LOAD and SAVE alike. Thirteen is a SAVE. A LOAD of the
+  first program on the tape is done in about seven, because the routine
+  returns to the monitor once the program has been read and does not wait
+  for the leader that closes it, as the manual says: "Quando la lettura del
+  testo è finita sul display appare 0000 01". The tooltip, the two guides
+  and the README now give both figures, and `tests/tape-recorder.test.js`
+  holds the guides to what the routines take: about 12.5 s for a SAVE and
+  6.8 s for a LOAD, each plus a second for every 41 bytes.
+- Fixed the message shown after a sound recording is read, which told its
+  reader how to LOAD a program in a way that put it at the wrong address, in
+  English and in Italian alike. It said to put the program's number in
+  `$0000` and run from `$FC54`. The LOAD routine loads at the address in
+  `$0001/$0002` unless `$0002` holds `FF`, and after a cold reset both are
+  zero, so a program recorded at `$0200` went to `$0000`, on top of the
+  number just keyed. The message now says to put `FF` in `$0002` as well,
+  which loads the program where it was recorded, as the manual has it and as
+  the guide already said. Found by a second agent's review of the Italian.
+  `tests/languages.test.js` now follows the message's own keys on a board
+  just switched on.
+- Corrected three passages of the Italian that said something the English
+  beside them does not, found by the same review:
+  - The tooltip of **Tempo reale** promised "i quattro LED accesi", all four
+    lit. They are never lit together: two at a time, as the guide describes.
+    It now says that the LEDs show the phase.
+  - The Italian guide said a ROM file shorter than 512 bytes is "scritto in
+    parte", written in part, as if some of the file were dropped. Every byte
+    of it is copied; it is the ROM that is only partly replaced, and the
+    guide now says that.
+  - A WAV file without its data was said to "contain no sound", which reads
+    as a silent recording. A silent recording is read like any other. The
+    message now says the file has no audio data.
+- Reworded Italian that was correct in what it meant but did not read as
+  Italian, most of it English carried across word for word. Three passages
+  are the review's and four turned up when the rest was read again for the
+  same faults:
+  - The tooltips of the LEDs D4-D7 joined "si accende durante..." to "oppure
+    da un vostro programma", which Italian grammar does not allow. Each now
+    ends "può accenderlo anche un vostro programma".
+  - In the guide, "Guardatevi intorno" for "Look around" is now the manual's
+    own way of saying it, "A questo punto potete esaminare il contenuto di
+    qualsiasi registro o locazione di memoria"; and "Comprendete il
+    ticchettio", which reads first as "understand the ticking", is
+    "Conservate il ticchettio".
+  - Also in the guide: "RES vi rimedia" and "reintroducetevi", where "vi"
+    can be read as "you"; and two sentences that had the reader "start an
+    address" with RUN.
+- The Italian now calls the NOR/SS switch "interruttore", the manual's word
+  for it, on the home page, in its tooltip and in the guide. It said
+  "commutatore", which is a fair name for a two-way slide switch but appears
+  nowhere in the manual: the parts list has "SS, interruttore unipolare",
+  the assembly instructions "l'interruttore SS", and the chapter on single
+  step "l'interruttore del single step". Likewise a program on the home page
+  "gira in un loop", as the manual and the guide say, and is no longer
+  "chiuso in un ciclo". The table of the Italian's words in `AGENTS.md` has
+  both.
 - Corrected what the page and the documentation said about the LEDs D4-D7:
   that they light only with **Cassette: Real time**. They light for any
   program that drives them, at either setting. What is true is that the

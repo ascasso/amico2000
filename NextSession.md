@@ -46,17 +46,16 @@ below, each marked as coming from it.
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
-  merged on request. Pull request 52,
-  `https://github.com/ascasso/amico2000/pull/52`, took everything up to the
-  page's search tags into `master` on 2026-11-22, so that much is live.
-  **The Italian is not live.** It was committed to `develop` later the same
-  day, with the review's additions to this file, and reaches the site with
-  the next pull request.
+  merged on request. Pull request 52 took everything up to the page's search
+  tags into `master` on 2026-11-22, and pull request 53 the Italian, so both
+  are live. What was done to the Italian afterwards that day (a second
+  agent's review, the "noi", the corrected LOAD time) is on `develop` and
+  reaches the site with the next pull request.
 - **Attribution:** no link to an agent's session in a commit message, a pull
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 227
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 231
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -244,16 +243,40 @@ done but for the ends listed there.
    what the page says while it is used, down to the reasons the machine
    gives for a refusal (`AGENTS.md`, Two Languages). The changelog, the logs
    and the other documents stay in English, as the owner said. What is left:
-   - **The owner has not read the Italian.** Nobody has but the sessions that
-     wrote it. It follows the manual's vocabulary and addresses the reader
-     as "voi"; whether it sounds right to someone who read *Sperimentare* is
-     for the owner to say. The words most worth a look are the labels:
+   - **No person is known to have read the Italian through.** The sessions
+     that wrote it have, and on 2026-11-22 a second agent, Codex, reviewed
+     it at the owner's request. Its findings were checked one by one and all
+     held: an alert that sent a program to the wrong address, in English as
+     much as in Italian, three passages that said something else than the
+     English, and three that were English word for word. Reading the rest
+     again against the manual found four sentences more and two words that
+     are not the manual's: the NOR/SS switch is "interruttore" there and was
+     "commutatore" here, and a loop is a "loop", not a "ciclo". All of it is
+     put right (the log of that day). The owner asked then that the Italian
+     keep the manual's style and tone, not only its words; how is under Two
+     Languages in `AGENTS.md`.
+   - **The Italian now says "noi", as the manual does.** Asked whether it
+     should, the owner answered the same day: "I like the 'noi' of the
+     original guide. I want that here too." The whole of `guida.html`, the
+     notes under the board, the LEDs' tooltips and the how-to line of the
+     alert after a recording were rewritten in it: "premiamo", "non ci resta
+     altro che", "il nostro programma". "Voi" was kept on purpose in two
+     kinds of place, a prompt on the tape's status line ("Premete RES.") and
+     the advice in an error about a file of the reader's own, because the
+     manual keeps it there too. If the owner wants those in "noi" as well,
+     they are five strings in `lang.js`. A check fails if a "voi" comes back
+     into the guide or onto the home page.
+   - **What the owner's own reading is still needed for.** The Italian
+     follows the manual's vocabulary and voice; whether it sounds right to
+     someone who read *Sperimentare* is for the owner to say. The words most
+     worth a look are the labels:
      "Comandi dell'emulatore" for Bench controls, "Reset a freddo", "Passo",
      "Display: Leggibili / Autentici", "Cassetta: Immediata / Tempo reale",
      and "in esecuzione", "fermo", "bloccato" beside the run lamp. Changing
      a label means changing it in `index.html` and where `guida.html` quotes
      it; `tests/languages.test.js` names the ones it holds together.
-   - **It is not live** until a pull request takes `develop` to `master`.
+   - **Live in its first form.** Pull request 53 put the Italian on the site;
+     the review's fixes and the "noi" reach it with the next pull request.
    - **The home page has no Italian address.** One address serves both
      languages, so Google and a link pasted into a forum or a chat show the
      English title and description, whatever the reader's language. The

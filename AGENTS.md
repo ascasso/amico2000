@@ -730,6 +730,17 @@ connected, nothing stands in for the PROM:
   user's job: `$FC54` rewinds and plays, `$FBBC` records, and `$FE22`, where
   both routines end and RES leads, stops. That is an emulator convenience.
   Every LOAD therefore starts at the beginning of the tape.
+- How long they take, measured with the routines themselves. A SAVE is about
+  12.5 s plus a second for every 41 bytes: the two leaders are 256 bytes
+  each, and a byte is some 24 ms. A LOAD of the first program on the tape is
+  about 6.8 s plus the same second for every 41 bytes. It is the shorter
+  because `$FC54` leaves for the monitor when the checksum is read, and does
+  not sit through the closing leader, as the manual has it: "Quando la
+  lettura del testo è finita sul display appare 0000 01" (page 46). Each
+  program ahead of the one asked for adds the whole of its length on the
+  tape, its half second of blank included. The page and the guide once gave
+  thirteen seconds for LOAD and SAVE alike; `tests/tape-recorder.test.js`
+  now holds what the guides say to what the routines take.
 - Run this way the emulator has the PROM's behaviour where the traps differ:
   a LOAD for a program that is not on the tape waits until RES, a LOAD over a
   ROM loses bytes without a word, and the last byte of a block one byte
@@ -1010,21 +1021,84 @@ choosing one of your own:
 | the displays; the address digits | i display; display indirizzi | Tabella 6; "display dati" for the other two is ours, by analogy |
 | memory location | locazione di memoria | throughout |
 | single step | passo singolo | 'in "Single Step" o passo singolo' |
+| the NOR/SS switch | interruttore | "l'interruttore SS" (page 25), "l'interruttore del single step" (page 85), "interruttore unipolare" in the parts list (page 33); once "deviatore" (page 14); never "commutatore", which the site had at first |
+| loop | loop | "in questo Loop il programma gira su se stesso" (page 85); "ciclo" is not the manual's word for it |
 | interrupt | interruzione | "genera una interruzione a livello CPU" |
 | cassette recorder; tape | registratore a cassette; nastro | Chapter V |
 | leader; text | coda; testo | Fig. 27, and "i LED relativi alla coda" |
 | LOAD; SAVE | lettura; registrazione | "lettura del nastro", "registrazione sul nastro" |
 | identifier; load address | identificatore; indirizzo di caricamento | Fig. 27 |
+| the program's number | numero del programma | "Numero del programma da caricare" (page 46); the identifier by its other name, "Identificatore (N. del programma)" in Tabella 12 |
+| the LOAD routine; the SAVE routine | programma di lettura; programma di registrazione | "indirizzo di partenza del programma di lettura (indirizzo FC54)" (page 46); "l'inizio del programma di registrazione" (page 47) |
+| low byte, high byte of an address | parte bassa, parte alta | the table of LOAD's parameters (page 46) |
 | checksum | checksum | "parola di controllo (checksum)" |
 | microcomputer | microelaboratore | throughout |
 
 Key names stay as printed on the caps, and LOAD and SAVE stay as names. The
-reader is "voi", as in the manual ("spegnete il registratore"), never "tu" or
-"Lei"; a button's own label is the usual imperative ("Avvia", "Carica"). The
-emulator's controls are "pulsanti", so that "tasto" stays a key of the board,
-and the panel that holds them is "Comandi dell'emulatore". The Italian guide
-quotes the page's labels and status words; `tests/languages.test.js` holds
-the ones it quotes to what the page says.
+voice is the manual's "noi", described below: "premiamo RES", "il nostro
+programma". Never "tu" or "Lei"; a button's own label is the usual
+imperative ("Avvia", "Carica"). The emulator's controls are "pulsanti", so
+that "tasto" stays a key of the board, and the panel that holds them is
+"Comandi dell'emulatore". The Italian guide quotes the page's labels and
+status words; `tests/languages.test.js` holds the ones it quotes to what the
+page says.
+
+**The manual's style and tone, not only its words.** The owner asked on
+2026-11-22 for the Italian to be "written in the same style and tone of the
+original documentation". No reason was given; the one that fits is that the
+people the Italian is for learned the machine from the supplement.
+
+- **Write from the manual's sentence.** For most of what the site says about
+  the board the supplement has a sentence of its own: keying a byte, running
+  a program, LOAD's and SAVE's parameters (pages 46 and 47), what RES
+  recovers from, reading the registers after a halt (pages 85 and 86). Find
+  it and build on it. The alert after a recording is read was made that way,
+  from "scriviamo 04 nella locazione di memoria 0000 e FF [...] nella
+  locazione di memoria 0002", and so was the step after HLT in the guide.
+- **How it sounds.** Plain and patient, a teacher beside the reader. Its
+  turns of phrase are "A questo punto", "basta premere", "per far partire il
+  programma". It keeps the English it already has, such as loop, routine,
+  byte and Program Counter, and adds none.
+- **It says "noi".** The manual does at the keys what it describes, with
+  its reader: "Premiamo quindi i tasti", "Per eseguire il programma non ci
+  resta altro che indicare al nostro Amico 2000 l'indirizzo nel quale
+  inizia" (page 29), "scriviamo 04 nella locazione di memoria 0000" (page
+  46). Asked whether the site should, the owner answered on 2026-11-22: "I
+  like the 'noi' of the original guide. I want that here too." So wherever
+  the site teaches or walks through something it is "noi": the whole of
+  `guida.html`, the notes under the board, the LEDs' tooltips, and the
+  how-to line of the alert after a recording is read. In practice:
+  - A step is "premiamo", "introduciamo", "selezioniamo"; what follows it
+    is "vediamo che", "appare", "apparirà"; the reader's program is "il
+    nostro programma", and the machine once or twice "il nostro AMICO 2000".
+  - A caution is the author's "noi" or no person at all, as in the manual:
+    "Avvertiamo che" ("Avvertiamo infine che se carichiamo un numero di
+    programma non previsto sul nastro..."), "Consigliamo", "Attenzione:",
+    "Si badi che", or "va lasciato", "non va fatto".
+  - The manual mixes in the impersonal "si" ("Si porta ora sul display
+    indirizzi la locazione di partenza") and so may the site.
+  - "Voi" is kept for the two places where the page turns to the reader at
+    the moment something has to be done: a prompt on the tape's status line
+    ("Premete RES.") and the advice in an error about a file of the
+    reader's own ("Tagliatela in pezzi più corti"). The manual does the
+    same about the reader's own recorder and cassettes: "spegnete il
+    registratore", "Cambiate ora cassetta mettendone una delle vostre".
+  - The English is "you" throughout and is not changed by this.
+
+  `tests/languages.test.js` fails if a "voi" comes back into the guide or
+  onto the home page.
+- **English carried across word for word** is what a review of 2026-11-22
+  found, and each of these was on the site. A passive participle turned
+  into "si" with its "da" left hanging: "si accende [...] da un vostro
+  programma". "Vi" for "there" or "to it", in a text that then said "voi" to
+  its reader: "RES vi rimedia". A verb whose first meaning is another:
+  "comprendete" for
+  "include". An idiom word for word: "Guardatevi intorno". A loose English
+  made exact and false: "the phase LEDs lit" as "i quattro LED accesi".
+  Read the Italian on its own, as a reader with no English beside it does.
+- **A reviewer's Italian points at the passage; it is not the text to
+  use.** Check what it says is wrong against the code or the page, then
+  write the replacement from the manual.
 
 **Not translated, on purpose:** the masthead, which is the machine's name;
 the legends on the board and on the keys; register names; and everything in
@@ -1057,8 +1131,12 @@ says what the English says; that has to be read. In headless Chrome,
 browser Italian. When a change touches the page's layout, compare the English
 page with the page before the change: same boxes, same height.
 
-The Italian was written on 2026-11-22 and has been read by the sessions that
-wrote it. No other Italian reader had read it when this was written.
+The Italian was written on 2026-11-22 and read by the sessions that wrote
+it. The same day a second agent, Codex, reviewed it at the owner's request;
+what it found was checked and put right, and the whole was read again
+against the manual, which found the switch's name and a few sentences more
+(the log of that day, A Second Agent's Review of the Italian). No person is
+known to have read it through when this was written, the owner included.
 
 ## Development Guidelines
 
@@ -1149,8 +1227,9 @@ When implementing changes based on a GitHub issue:
    its English; only the guide has an Italian address. The Italian of a
    machine's refusal is found by the shape of the English message, so a
    message nobody listed is shown in English. The browser console is English
-   only. The Italian has not been read by anyone but the sessions that wrote
-   it, and the language link has been tried in Chrome only. See Two Languages
+   only. The Italian has been read by the sessions that wrote it and
+   reviewed by a second agent, and by no person that is known; and the
+   language link has been tried in Chrome only. See Two Languages
 
 ## Keyboard Mappings
 

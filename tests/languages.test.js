@@ -73,7 +73,8 @@ test('t() fills in the values, in the language asked for', () => {
     assert.equal(AmicoLang.t('tape.playing', { at: 3, length: 14 }, 'it'), 'Lettura, 3 s di 14 s');
     // A dollar sign in a string is a hex prefix and is left alone.
     assert.equal(AmicoLang.t('tape.loaded', { id: '01', address: '0200' }, 'it'), 'Programma 01 caricato a $0200');
-    assert.equal(AmicoLang.t('recording.howToLoad', {}, 'en'), 'To load one, put its number in $0000 and run from $FC54.');
+    assert.equal(AmicoLang.t('recording.howToLoad', {}, 'en'),
+        'To load one at its recorded address, put its number in $0000 and FF in $0002, then run from $FC54.');
     assert.throws(() => AmicoLang.t('no.such.string'), /No string called/);
 });
 
@@ -95,6 +96,58 @@ test('the guide quotes these words, so they are held to what it says', () => {
         assert.match(page, new RegExp(`content: "${word}"`), `the CPU line can say ${word}`);
         assert.match(guida, new RegExp(`<em>${word}</em>`), 'and the guide says what it means');
     }
+});
+
+test('the Italian calls the NOR/SS switch what the manual calls it', () => {
+    // "Interruttore": "SS, interruttore unipolare" in the parts list, and
+    // "l'interruttore del single step" in the chapter on it. The site first
+    // said "commutatore", a word the manual never uses. See the table under
+    // Two Languages in AGENTS.md before choosing a word of one's own.
+    const guida = fs.readFileSync(path.join(ROOT, 'guida.html'), 'utf8');
+    for (const [name, text] of [['index.html', page], ['guida.html', guida], ['lang.js', langSource]]) {
+        const withoutComments = text.replace(/\/\/.*$/gm, '');   // lang.js tells this story in one
+        assert.ok(!/commutatore/i.test(withoutComments), `${name} does not say "commutatore"`);
+    }
+    assert.match(AmicoLang.t('switch.nor', {}, 'it'), /^Interruttore NOR \/ SS, su NOR:/);
+    assert.match(AmicoLang.t('switch.ss', {}, 'it'), /^Interruttore NOR \/ SS, su SS:/);
+    assert.match(page, /L&rsquo;interruttore a slitta sopra RES/, 'the home page names it');
+    assert.match(guida, /L'interruttore a slitta sopra il tasto RES/, 'and so does the guide');
+});
+
+test('where the Italian teaches, it speaks as the manual does, in "noi"', () => {
+    // The owner's decision of 2026-11-22. The guide, the notes under the
+    // board and the how-to line of the recording alert walk through things
+    // as the supplement does: "premiamo quindi i tasti", "il nostro
+    // programma". "Voi" is left to a prompt at the moment something has to
+    // be done, "Premete RES.", and to the advice in an error about a file of
+    // the reader's own.
+    //
+    // These are the forms the "voi" took before the change, so that a
+    // sentence added in the old voice is noticed. They prove nothing about a
+    // sentence written in neither.
+    const voi = /\b(voi|vostr[oaie]|potete|avete|volete|dovete|siete|premete|introducete|selezionate|scegliete|eseguite|usatel[oaie]|fatel[oaie])\b/i;
+    const text = (html) => html.replace(/<pre>[\s\S]*?<\/pre>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+    const guida = fs.readFileSync(path.join(ROOT, 'guida.html'), 'utf8');
+    const guide = text(guida.slice(guida.indexOf('<main>')));
+    assert.equal(voi.exec(guide), null, 'the Italian guide has no "voi"');
+    for (const turn of ['Premiamo', 'introduciamo', 'non ci resta altro che', 'A questo punto', 'Avvertiamo che', 'un nostro programma']) {
+        assert.ok(guide.includes(turn), `the guide has the manual's "${turn}"`);
+    }
+
+    // The home page: its notes and labels, then its tooltips.
+    const pieces = [...page.matchAll(/<(span|p) data-lang="it" lang="it">([\s\S]*?)<\/\1>/g)].map((match) => text(match[2]))
+        .concat([...page.matchAll(/data-it-(?:title|aria-label)="([^"]*)"/g)].map((match) => match[1]));
+    assert.ok(pieces.length > 50, `the home page's Italian was found (${pieces.length} pieces)`);
+    for (const piece of pieces) {
+        assert.equal(voi.exec(piece), null, `no "voi" on the home page: ${piece.slice(0, 60)}`);
+    }
+    assert.ok(pieces.some((piece) => piece.includes('quello che abbiamo scritto in RAM')), 'the notes under the board say "noi"');
+
+    // What scripts say: the how-to is "noi", the prompts keep their "voi".
+    assert.match(AmicoLang.t('recording.howToLoad', {}, 'it'), /scriviamo il suo numero .* facciamo partire il programma di lettura/);
+    assert.match(AmicoLang.t('tape.end', {}, 'it'), /Premete RES\.$/);
+    assert.match(AmicoLang.t('tape.empty', {}, 'it'), /Premete RES\.$/);
 });
 
 test('a number is written with the language\'s own decimal mark', () => {
@@ -271,6 +324,44 @@ test('a message lang.js does not know is shown as it is', () => {
     assert.equal(AmicoLang.message('Block at 12.3 s: the recording breaks off inside the header', 'it'),
         'Blocco a 12,3 s: la registrazione si interrompe dentro l’intestazione');
     assert.equal(AmicoLang.message('program 55 is not on the cassette', 'it'), 'il programma 55 non è sulla cassetta');
+});
+
+// ---------------------------------------------------------------------------
+// What the page tells its reader to do
+// ---------------------------------------------------------------------------
+
+test('the alert after a recording gives a LOAD that lands where the tape says', () => {
+    // What the alert has its reader key, in either language: the program's
+    // number in $0000, FF in $0002, and a start from $FC54.
+    for (const language of ['en', 'it']) {
+        const text = AmicoLang.t('recording.howToLoad', {}, language);
+        assert.match(text, /\$0000/, `${language}: where the number goes`);
+        assert.match(text, /\bFF in \$0002/, `${language}: FF in $0002`);
+        assert.match(text, /\$FC54/, `${language}: where LOAD starts`);
+    }
+
+    // A board just switched on, a program recorded at $0200 on its cassette,
+    // and these bytes keyed before an instant LOAD.
+    const program = [0xA9, 0x42, 0x85, 0x20, 0x4C, 0x22, 0xFE];
+    const loadAfterKeying = (keyed) => {
+        const amico = machineWithCassettePROM();
+        amico.cassette.interceptROM = true;
+        amico.addTapeRecord({ id: 0x01, start: 0x0200, data: program });
+        for (const [address, value] of keyed) amico.cpu.memory[address] = value;
+        runRoutine(amico, LOAD_ENTRY);
+        return amico.cpu.memory;
+    };
+
+    const asTold = loadAfterKeying([[0x0000, 0x01], [0x0002, 0xFF]]);
+    assert.deepEqual([...asTold.subarray(0x0200, 0x0207)], program, 'the program is where it was recorded');
+    assert.deepEqual([...asTold.subarray(0x0000, 0x0003)], [0x01, 0x00, 0xFF], 'and what was keyed is still there');
+
+    // Why the alert has to say it. Without the FF, $0001/$0002 are an
+    // address, and after a cold reset that address is $0000: the alert once
+    // gave only the number, and the program went on top of it.
+    const numberOnly = loadAfterKeying([[0x0000, 0x01]]);
+    assert.deepEqual([...numberOnly.subarray(0x0000, 0x0007)], program, 'the program lands on its own parameters');
+    assert.equal(numberOnly[0x0200], 0x00, 'and nothing reaches $0200');
 });
 
 // ---------------------------------------------------------------------------

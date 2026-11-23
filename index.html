@@ -1559,10 +1559,10 @@
              others: the PWR, RUN, IRQ, NMI and RW lamps drawn here once
              were invented. -->
         <div class="part led-bank" style="left:49.94%; top:14.1%;">
-            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D4 — coda del nastro. Si accende durante LOAD e SAVE con Cassetta su Tempo reale, oppure da un vostro programma."></div><b>D4</b></div>
-            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D5 — testo del nastro. Si accende durante LOAD e SAVE con Cassetta su Tempo reale, oppure da un vostro programma."></div><b>D5</b></div>
-            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Lit during SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D6 — registrazione sul nastro. Si accende durante SAVE con Cassetta su Tempo reale, oppure da un vostro programma."></div><b>D6</b></div>
-            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Lit during LOAD when Cassette is set to Real time, or by a program of your own." data-it-title="D7 — lettura del nastro. Si accende durante LOAD con Cassetta su Tempo reale, oppure da un vostro programma."></div><b>D7</b></div>
+            <div class="led-slot"><div class="led" id="led-d4" title="D4 — cassette leader. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D4 — coda del nastro. Si accende durante il LOAD e il SAVE con Cassetta su Tempo reale; può accenderlo anche un nostro programma."></div><b>D4</b></div>
+            <div class="led-slot"><div class="led" id="led-d5" title="D5 — cassette text. Lit during LOAD and SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D5 — testo del nastro. Si accende durante il LOAD e il SAVE con Cassetta su Tempo reale; può accenderlo anche un nostro programma."></div><b>D5</b></div>
+            <div class="led-slot"><div class="led" id="led-d6" title="D6 — cassette recording. Lit during SAVE when Cassette is set to Real time, or by a program of your own." data-it-title="D6 — registrazione sul nastro. Si accende durante il SAVE con Cassetta su Tempo reale; può accenderlo anche un nostro programma."></div><b>D6</b></div>
+            <div class="led-slot"><div class="led" id="led-d7" title="D7 — cassette reading. Lit during LOAD when Cassette is set to Real time, or by a program of your own." data-it-title="D7 — lettura del nastro. Si accende durante il LOAD con Cassetta su Tempo reale; può accenderlo anche un nostro programma."></div><b>D7</b></div>
         </div>
 
         <!-- Seven-segment displays: six TIL312 packages, four for the address
@@ -1654,7 +1654,7 @@
           lamps, switch and keys are the ones above, brought together where a
           thumb can reach them.</span>
           <span data-lang="it" lang="it">La scheda intera, disegnata dalle fotografie di esemplari
-          sopravvissuti. I suoi display, i LED, il commutatore e i tasti sono
+          sopravvissuti. I suoi display, i LED, l&rsquo;interruttore e i tasti sono
           quelli qui sopra, riuniti dove il pollice li raggiunge.</span>
       </p>
     </div>
@@ -1677,7 +1677,7 @@
             <div class="look-toggle" role="group" aria-label="How cassette LOAD and SAVE run" data-it-aria-label="Come vengono eseguiti LOAD e SAVE su cassetta">
                 <span class="k"><span data-lang="en">Cassette</span><span data-lang="it" lang="it">Cassetta</span></span>
                 <button class="control-btn tape-btn" data-tape="instant" aria-pressed="true" title="LOAD and SAVE happen at once" data-it-title="LOAD e SAVE avvengono all&rsquo;istante"><span data-lang="en">Instant</span><span data-lang="it" lang="it">Immediata</span></button>
-                <button class="control-btn tape-btn" data-tape="realtime" aria-pressed="false" title="LOAD and SAVE are the board&rsquo;s own routines working on a tape, as on the real machine: thirteen seconds or more, with the displays dark and the phase LEDs lit" data-it-title="LOAD e SAVE sono i programmi originali della scheda al lavoro su un nastro, come sulla macchina vera: tredici secondi o più, con i display spenti e i quattro LED accesi"><span data-lang="en">Real time</span><span data-lang="it" lang="it">Tempo reale</span></button>
+                <button class="control-btn tape-btn" data-tape="realtime" aria-pressed="false" title="LOAD and SAVE are the board&rsquo;s own routines working on a tape, as on the real machine: seven seconds or more for a LOAD and thirteen for a SAVE, with the displays dark and the phase LEDs lit" data-it-title="LOAD e SAVE sono i programmi originali della scheda al lavoro su un nastro, come sulla macchina vera: sette secondi o più per un LOAD e tredici per un SAVE, con i display spenti e i LED che indicano la fase in corso"><span data-lang="en">Real time</span><span data-lang="it" lang="it">Tempo reale</span></button>
                 <span class="tape-status" id="tape-status" role="status"></span>
             </div>
             <!-- Help opens separately so reading it does not discard the current RAM.
@@ -1729,10 +1729,10 @@
             </p>
             <p data-lang="it" lang="it">
                 RES funziona come la linea di reset della scheda vera: ferma
-                qualunque cosa sia in esecuzione &mdash; un programma chiuso in un
-                ciclo, o uno che ha mandato in blocco il processore &mdash; e
+                qualunque cosa sia in esecuzione &mdash; un programma che gira in un
+                loop, o uno che ha mandato in blocco il processore &mdash; e
                 restituisce il controllo al monitor, lasciando intatto quello che
-                avete scritto in RAM. <em>Reset a freddo</em>, fra i Comandi
+                abbiamo scritto in RAM. <em>Reset a freddo</em>, fra i Comandi
                 dell&rsquo;emulatore, è quello più drastico: cancella la RAM,
                 come spegnere e riaccendere la macchina.
             </p>
@@ -1753,9 +1753,9 @@
                 then shows the address of the next.
             </p>
             <p data-lang="it" lang="it">
-                Il commutatore a slitta sopra RES è il passo singolo della
-                scheda. Portatelo su SS con un clic e ogni RUN esegue una sola
-                istruzione del vostro programma, poi mostra l&rsquo;indirizzo della
+                L&rsquo;interruttore a slitta sopra RES è il passo singolo della
+                scheda. Portiamolo su SS con un clic e ogni RUN esegue una sola
+                istruzione del nostro programma, poi mostra l&rsquo;indirizzo della
                 successiva.
             </p>
         </section>

@@ -52,22 +52,29 @@ const AmicoLang = (() => {
      * name. Each entry has both languages; tests/languages.test.js checks that
      * none is missing one and that the two take the same values.
      *
-     * The Italian addresses the reader as "voi", as the manual does, and uses
-     * the manual's words: "registrazione" for SAVE and "lettura" for LOAD.
+     * The Italian uses the manual's words, "registrazione" for SAVE and
+     * "lettura" for LOAD, and the manual's voice. Where it says how to do
+     * something it is "noi", as the manual walks through its examples:
+     * "scriviamo", "facciamo partire". A prompt at the moment something has
+     * to be done, "Premete RES", and the advice in an error about a file of
+     * the reader's own, stay the manual's direct "voi" ("spegnete il
+     * registratore"). See Two Languages in AGENTS.md.
      */
     const STRINGS = {
         // Bench controls
         'run': { en: 'Run', it: 'Avvia' },
         'stop': { en: 'Stop', it: 'Ferma' },
 
-        // The NOR/SS slide switch's tooltip, which says where it stands
+        // The NOR/SS slide switch's tooltip, which says where it stands. The
+        // manual's word for the part is "interruttore": "l'interruttore SS",
+        // "l'interruttore del single step". It never says "commutatore".
         'switch.nor': {
             en: 'NOR / SS switch, at NOR: programs run normally. Click for SS, single step.',
-            it: 'Commutatore NOR / SS, su NOR: i programmi vengono eseguiti normalmente. Un clic per SS, passo singolo.'
+            it: 'Interruttore NOR / SS, su NOR: i programmi vengono eseguiti normalmente. Un clic per SS, passo singolo.'
         },
         'switch.ss': {
             en: 'NOR / SS switch, at SS: RUN executes one instruction and shows the address of the next. Click for NOR.',
-            it: 'Commutatore NOR / SS, su SS: RUN esegue una sola istruzione e mostra l’indirizzo della successiva. Un clic per NOR.'
+            it: 'Interruttore NOR / SS, su SS: RUN esegue una sola istruzione e mostra l’indirizzo della successiva. Un clic per NOR.'
         },
 
         // What a screen reader is told the displays are
@@ -120,9 +127,18 @@ const AmicoLang = (() => {
             en: '  {id}: ${start}-${end}, {bytes} bytes, at {time} s',
             it: '  {id}: ${start}-${end}, {bytes} byte, a {time} s'
         },
+        // FF in $0002 has to be said. The routine loads at the address in
+        // $0001/$0002 unless $0002 holds FF, and after a cold reset those two
+        // are zero: a program recorded at $0200 went to $0000, on top of the
+        // number just keyed there. The Italian is the manual's own sentence
+        // for it, in its own "noi": "scriviamo 04 nella locazione di memoria
+        // 0000 e FF [...] nella locazione di memoria 0002", to load "a partire
+        // dall'indirizzo registrato sul nastro"; then "Facciamo partire il
+        // microelaboratore", with $FC54 the "programma di lettura".
         'recording.howToLoad': {
-            en: 'To load one, put its number in $0000 and run from $FC54.',
-            it: 'Per caricarne uno, mettete il suo numero in $0000 e fate partire da $FC54.'
+            en: 'To load one at its recorded address, put its number in $0000 and FF in $0002, then run from $FC54.',
+            it: 'Per caricarne uno a partire dall’indirizzo registrato sul nastro, scriviamo il suo numero in $0000 ' +
+                'e FF in $0002, poi facciamo partire il programma di lettura da $FC54.'
         },
         'recording.notRead': { en: 'Not read:', it: 'Non letti:' }
     };
@@ -179,8 +195,10 @@ const AmicoLang = (() => {
 
         // --- Load ROM or tape: a sound recording --------------------------
         [pattern('Not a WAV file'), () => 'Non è un file WAV'],
+        // "Dati audio", not "suono": the decoder found no data chunk. A file
+        // of silence has one, and is read, and gets a different message.
         [pattern('WAV file has no format or no sound data'),
-            () => 'Il file WAV non dichiara il suo formato o non contiene suono'],
+            () => 'Il file WAV non dichiara il suo formato o non contiene dati audio'],
         [pattern('Unsupported WAV encoding \\(format (\\d+), (\\d+) bits\\); save it as uncompressed PCM'),
             (m) => `Codifica WAV non prevista (formato ${m[1]}, ${m[2]} bit); salvatelo come PCM non compresso`],
         [pattern('Unsupported WAV file: (\\d+) channels at (\\d+) Hz'),

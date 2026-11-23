@@ -76,6 +76,52 @@ test('the real LOAD routine reads a program off the cassette, passing over the o
     assert.ok(Math.abs(seconds - expected) < 0.2, `in real time: ${seconds.toFixed(1)} s, expected about ${expected.toFixed(1)}`);
 });
 
+test('a SAVE and a LOAD take as long as the guides say they do', () => {
+    // Both guides tell their reader how long to wait: about thirteen seconds
+    // to SAVE a short program, about seven to LOAD the first one on the tape,
+    // and a second more for every 41 bytes. The LOAD is the shorter because
+    // the routine leaves for the monitor once the checksum is read, where a
+    // SAVE still has the closing leader to write. The page and the guides
+    // once gave thirteen seconds for either.
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const said = (file, opening) => {
+        const page = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+        const item = page.match(new RegExp(`<li>${opening}[\\s\\S]*?</li>`));
+        assert.ok(item, `${file} says how long the cassette takes`);
+        return item[0].replace(/\s+/g, ' ');
+    };
+    const english = said('guide.html', 'It takes time');
+    assert.match(english, /A SAVE is about thirteen seconds for a short program, plus a second for every 41 bytes/);
+    assert.match(english, /A LOAD of the first program on the tape is quicker, about seven seconds/);
+    const italian = said('guida.html', 'Ci vuole tempo');
+    assert.match(italian, /SAVE dura circa tredici secondi per un programma breve, più un secondo ogni 41 byte/);
+    assert.match(italian, /LOAD del primo programma del nastro è più rapido, circa sette secondi/);
+
+    const timed = (length) => {
+        const program = pattern(length, 7);
+        const saver = realTimeMachine().amico;
+        saver.cpu.memory.set(program, 0x0200);
+        const saving = save(saver, 0x0200, 0x0200 + length - 1, 0x13);
+        const loader = realTimeMachine().amico;
+        loader.addTapeRecord({ id: 0x13, start: 0x0200, data: program });
+        const loading = load(loader, 0x13);
+        assert.deepEqual(bytes(loader.cpu.memory.slice(0x0200, 0x0200 + length)), bytes(program), 'the LOAD was a whole one');
+        return { saving, loading };
+    };
+    const short = timed(16);
+    assert.ok(Math.abs(short.saving - 13) < 0.5, `a short SAVE is about thirteen seconds: ${short.saving.toFixed(2)}`);
+    assert.ok(Math.abs(short.loading - 7) < 0.5, `a short LOAD is about seven: ${short.loading.toFixed(2)}`);
+    // The difference is the closing leader, 256 bytes, less the half second
+    // of blank tape that a LOAD waits through and a SAVE does not.
+    const closingLeader = 256 * (8 * TIMING.bitCell + TIMING.byteGap);
+    assert.ok(Math.abs(short.saving - short.loading - (closingLeader - 0.5)) < 0.1, 'a LOAD does not wait for the closing leader');
+
+    const longer = timed(16 + 41);
+    assert.ok(Math.abs(longer.saving - short.saving - 1) < 0.05, `41 bytes more are a second more of SAVE: ${(longer.saving - short.saving).toFixed(3)}`);
+    assert.ok(Math.abs(longer.loading - short.loading - 1) < 0.05, `and of LOAD: ${(longer.loading - short.loading).toFixed(3)}`);
+});
+
 test('a program saved for real loads back for real, on another board (#20)', () => {
     const one = realTimeMachine();
     const program = pattern(300, 13);

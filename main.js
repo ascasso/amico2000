@@ -373,8 +373,9 @@ function setupDisplayLook() {
 // does the routine's job itself, at once. 'realtime' leaves the IC10 PROM to
 // do it, on the recorder's tape, in the time the board takes, with the
 // displays dark and the phase LEDs lit as the manual describes. Instant is the
-// default because a real LOAD is thirteen seconds at the least. The choice is
-// remembered like the display look, and for the same reason may not be.
+// default because a real LOAD is seven seconds at the least and a real SAVE
+// thirteen. The choice is remembered like the display look, and for the same
+// reason may not be.
 const CASSETTE_MODE_KEY = 'amico2000.cassetteMode';
 const CASSETTE_MODES = ['instant', 'realtime'];
 
