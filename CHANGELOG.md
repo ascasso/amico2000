@@ -744,6 +744,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed two things `amicoc` refused that it should take. `keypad.read ()`
+  and `display.scan ()`, with a space before the brackets or inside them,
+  were refused, where spaces are free round an operator. And a table's
+  first index had to be the character `0`: `$0` and `00`, which are the
+  same byte, were refused with the general message for a table. A table
+  that starts anywhere else is now told "A table's index starts at 0".
+  Found by the check of the compiler.
 - Fixed `amicoc` calling a misspelt line unreachable when it followed a
   `stop` or a loop: `ennd` after `stop` was "Unreachable statement". A line
   that is no statement is now "Unknown statement" wherever it stands.

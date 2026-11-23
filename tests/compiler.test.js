@@ -250,3 +250,19 @@ test('a line that is no statement is called that, wherever it stands', () => {
     assert.throws(() => compile('a = 1\nif a == 1\nstop\na = 2\nend'), /^Error: Line 4: Unreachable statement/);
     assert.throws(() => compile('stop\ndisplay.scan()'), /^Error: Line 2: Unreachable statement/);
 });
+
+test('a call may have spaces at its brackets, and a table may start at zero however zero is written', () => {
+    const same = (spaced, plain) => assert.deepEqual(compile(spaced).binary, compile(plain).binary);
+    same('display.scan ()\ndisplay.scan( )', 'display.scan()\ndisplay.scan()');
+    same('x = keypad.read ()\ndisplay.data = x', 'x = keypad.read()\ndisplay.data = x');
+    same('display.data = keypad.press ( )', 'display.data = keypad.press()');
+    same('if keypad.read () == 5\nstop\nend', 'if keypad.read() == 5\nstop\nend');
+    // The dot is part of the name, and a call takes nothing in its brackets.
+    assert.throws(() => compile('display . scan()'), /^Error: Line 1: Unknown statement/);
+    assert.throws(() => compile('x = keypad.read(1)'), /^Error: Line 1: Expected a byte literal/);
+
+    const table = (first) => `const t = table byte [i in ${first}..3] = i * 5\nk = display.low\ndisplay.data = t[k]`;
+    for (const zero of ['$0', '00', '$00']) same(table(zero), table('0'));
+    assert.throws(() => compile(table('1')), /^Error: Line 1: A table's index starts at 0, not at 1/);
+    assert.throws(() => compile(table('k')), /^Error: Line 1: A table's index starts at 0, not at k/);
+});

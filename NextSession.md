@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 255
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 256
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -650,7 +650,7 @@ on 2026-11-23 and its place is the owner's to give.
            it is an unknown statement.
          - `keypad.read ()` with a space is refused, where spacing is free
            everywhere else. A table's first index must be the character
-           `0`, and `$0` is refused.
+           `0`, and `$0` is refused. **Fixed:** both are taken.
          - A file with no statement in it is reported at a line past its
            end.
          - The README says "The square table occupies 40 bytes", which is

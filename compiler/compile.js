@@ -8,6 +8,10 @@ const SCAN = 0xff0c;
 const READ_KEY = 0xff57;
 const FIELDS = new Map([['display.data', 0xf9], ['display.low', 0xfa], ['display.high', 0xfb]]);
 const NAME = /^[a-z][a-z0-9_]*$/;
+// A call takes spaces before and inside its brackets, as an operator takes
+// them round it. The dot is part of the name and takes none.
+const SCAN_CALL = /^display\.scan\s*\(\s*\)$/;
+const KEY_CALL = /^keypad\.(read|press)\s*\(\s*\)$/;
 const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
@@ -62,8 +66,9 @@ function compile(source) {
         inA = null;
     }
     function expression(text) {
-        if (text === 'keypad.read()' || text === 'keypad.press()') {
-            if (text === 'keypad.press()') {
+        const call = KEY_CALL.exec(text);
+        if (call) {
+            if (call[1] === 'press') {
                 needsPress = true;
                 emit('JSR', 'abs', 'wait_press');
             } else {
@@ -103,9 +108,11 @@ function compile(source) {
         inA = null;
     }
     function declareTable(text) {
-        const match = /^const\s+(\w+)\s*=\s*table\s+byte\s*\[\s*(\w+)\s+in\s+0\s*\.\.\s*([\w$]+)\s*\]\s*=\s*([\w$]+)(?:\s*([*+-])\s*([\w$]+))?$/.exec(text);
+        const match = /^const\s+(\w+)\s*=\s*table\s+byte\s*\[\s*(\w+)\s+in\s+([\w$]+)\s*\.\.\s*([\w$]+)\s*\]\s*=\s*([\w$]+)(?:\s*([*+-])\s*([\w$]+))?$/.exec(text);
         if (!match) fail('Expected const name = table byte [n in 0..last] = formula');
-        const [, name, index, limit, lhs, op, rhs] = match;
+        const [, name, index, first, limit, lhs, op, rhs] = match;
+        // Zero however it is written: $0 and 00 are the byte the README means.
+        if (number(first) !== 0) fail("A table's index starts at 0, not at " + first);
         if (tables.has(name)) fail('Table declared twice: ' + name);
         variable(name);
         if (!NAME.test(index) || RESERVED.has(index)) fail('Invalid table index name: ' + index);
@@ -159,7 +166,7 @@ function compile(source) {
         // misspelt `end` after `stop` was called unreachable, which it is, and
         // which is not what is wrong with it.
         const assign = /^([\w.]+)\s*=\s*(.+)$/.exec(text);
-        if (!assign && !/^(?:const|if)\b/.test(text) && !['loop', 'stop', 'display.scan()'].includes(text)) {
+        if (!assign && !/^(?:const|if)\b/.test(text) && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text)) {
             fail('Unknown statement: ' + text);
         }
         if (!reachable) fail('Unreachable statement');
@@ -195,7 +202,7 @@ function compile(source) {
         } else if (text === 'stop') {
             emit('JMP', 'abs', 0xfe22);
             reachable = false;
-        } else if (text === 'display.scan()') {
+        } else if (SCAN_CALL.test(text)) {
             scan();
         } else {
             const [, name, value] = assign;
