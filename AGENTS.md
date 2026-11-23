@@ -26,8 +26,8 @@ This file provides repository guidance for agents working in this repository.
   is the committer's local calendar date, in the time zone recorded on the
   commit, which is what `%cs` prints; it is not the UTC date. An evening commit
   in a US time zone is already the next day in UTC, and an automated review
-  that compares the stamp with UTC will report a false mismatch. The
-  managed GitHub Pages/Jekyll build does not refresh this stamp automatically.
+  that compares the stamp with UTC will report a false mismatch. GitHub
+  Pages publishes the files as they are and does not refresh this stamp.
   - To check the stamp, run `node --test tests/build-stamp.test.js`, which
     compares it with `git log -1 --no-merges --format=%cs` and gives the same
     answer in any time zone. Do not work the date out from a timestamp shown
@@ -1163,6 +1163,36 @@ what it found was checked and put right, and the whole was read again
 against the manual, which found the switch's name and a few sentences more
 (the log of that day, A Second Agent's Review of the Italian). No person is
 known to have read it through when this was written, the owner included.
+
+### What the Site Serves and What a Search Engine Reads
+
+GitHub Pages publishes `master` as it is. Checked on the live site on
+2026-11-23 (the log of that day, Checking the Site for Search Engines):
+
+- **`.nojekyll`, an empty file at the root, has to stay.** Without it Pages
+  runs Jekyll over the repository and publishes every Markdown document as a
+  web page of its own, with a title, a canonical address and a description:
+  22 of them were live, this file and `NextSession.md` among them, beside
+  the three pages the site means to have. With it the documents are served
+  as plain files, as the scripts are. Nothing on the site needs Jekyll.
+- **The pages are three**, the home page and the two guides, and
+  `sitemap.xml` lists them. Each names its canonical address, and the two
+  guides name each other with `hreflang`. The home page is linked from the
+  guides as `index.html`, not as `./`, so that the site works from
+  `file://`; its canonical address covers that.
+- **`robots.txt` is not read** by crawlers, since the site is not at the
+  root of its host. The sitemap reaches Google through Search Console, which
+  the owner verified with `google7a632e30a7a507df.html`. That file has to
+  stay too: Google looks for it again from time to time.
+- **Nothing is fetched from elsewhere** and there are no images or fonts, so
+  the home page is about 100 kB on the wire and paints in well under a
+  second on a slow phone. Keep it so: page speed is part of how a page is
+  ranked on a phone.
+- `tests/site-files.test.js` holds `.nojekyll`, the verification file, the
+  sitemap's addresses against the pages' canonical ones, and the guides'
+  `hreflang` pairs.
+
+What it lacks is under item 12 of Outstanding in `NextSession.md`.
 
 ## Development Guidelines
 

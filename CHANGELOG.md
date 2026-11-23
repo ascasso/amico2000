@@ -697,6 +697,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- The site no longer publishes the repository's documents as web pages. A
+  check of the live site for search engines found that GitHub Pages was
+  running Jekyll over the repository and serving every Markdown document as
+  a page of its own, each with a title such as "AGENTS.md | amico2000" and a
+  canonical address: 22 pages, among them the guidance for agents, the
+  session handover, the engineering logs and the text of the 1980
+  supplement, beside the three pages the site means to have. An empty
+  `.nojekyll` at the root turns the Jekyll build off. The home page and the
+  guides were never touched by it and are served as before; the documents
+  stay readable on GitHub and as plain files. `robots.txt` said the rest of
+  the repository "is not served as pages", which is now true.
+  `tests/site-files.test.js` holds `.nojekyll`, Google's verification file,
+  the sitemap's addresses and the guides' `hreflang` pairs.
 - `sitemap.xml` gave 2026-11-22 as the last change to all three pages; the
   tablet layout changed the guides and the home page on 2026-11-23, and
   their `lastmod` now says so. The file was checked against the
