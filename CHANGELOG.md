@@ -332,6 +332,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Corrected `NextSession.md`, which still said the Italian was not live after
+  pull request 53 had put it on the site. Documentation only.
 - The Italian now speaks as the manual does, in "noi". The supplement does
   at the keys what it describes, together with its reader: "Premiamo quindi i
   tasti", "non ci resta altro che indicare al nostro Amico 2000 l'indirizzo
