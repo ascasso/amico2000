@@ -376,7 +376,32 @@ done but for the ends listed there.
     - The display is still drawn once per frame, so a program that animates
       the digits shows only some of its steps.
 11. **Ideas, not started:** a pass on wear and physical irregularity, sound,
-    and a desk scene around the board.
+    and a desk scene around the board. And one the owner raised on
+    2026-11-23 as a nice to have, not for now:
+    - **The cassette through the sound card.** With **Cassette: Real time**,
+      SAVE would play out of the speaker or line out, for a real deck to
+      record, and LOAD would listen to the microphone or line in while a
+      deck plays a tape, as on the board. Feasible, with no change to the
+      board side: a live recorder fits the interface `connectRecorder()`
+      already has, and `renderPulses()` already makes the sound. The work:
+      - **Timing.** `_runFrame()` runs the CPU in bursts and drops cycles
+        when a frame is late, which a real tape cannot survive. During a
+        live LOAD or SAVE the CPU would follow the audio clock, some
+        50-100 ms behind it, with pulses queued. The tab has to stay in
+        front.
+      - **Input.** The browser's echo cancellation, noise suppression and
+        gain control must be off, and `detectPulses()` needs a streaming
+        form. A cable from the deck is safe; a microphone in the room may
+        not be, because an echo arriving 0.78-2.4 ms after a pulse reads as
+        a 1 bit.
+      - **Testing.** Headless Chrome can take a WAV file as its microphone
+        (`--use-fake-device-for-media-stream` with
+        `--use-file-for-fake-audio-capture`), so `encodeWav()` output can go
+        through the whole live path.
+
+      Two smaller steps need none of the timing work and could come first: a
+      button that plays a program from the cassette as sound, and one that
+      records from the microphone until the tape stops and then decodes it.
 
 ## Cassette Work (Secondary)
 
