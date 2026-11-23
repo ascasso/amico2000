@@ -36,6 +36,19 @@ This file provides repository guidance for agents working in this repository.
     21 November, UTC-8, as one of the 22nd, and asked for a stamp that the
     test rejects.
   - A reviewer who finds the test passing has no stamp finding to report.
+- Keep `sitemap.xml` in step with the pages it lists. When a commit changes
+  what a visitor sees on a page, set that page's `<lastmod>` to the commit's
+  date, the same local `%cs` date as the build stamp: the home page for a
+  change to `index.html` or to a script that draws it (`main.js`, `lang.js`,
+  `display.js`), and `guide.html` or `guida.html` for a change to that guide.
+  A change to one guide usually means the other, since they are changed
+  together. Leave the date alone for a change no visitor sees, such as a
+  comment or a test. A new public page gets an entry of its own. Google uses
+  `lastmod` only from sites where it has proved accurate, and nothing checks
+  it, so it is easy to forget: before committing a page, look at the
+  sitemap. The file's own `robots.txt` is not read by crawlers, because the
+  site is not at the root of its host; the sitemap reaches Google through
+  Search Console.
 - Commit in small units. One commit is one unit of work — a single fix, a
   single new test file, a single documented decision, one vendored fixture.
   Prefer several small commits over one large one, and never batch unrelated
