@@ -46,11 +46,11 @@ below, each marked as coming from it.
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
-  merged on request. Pull request 52 took everything up to the page's search
-  tags into `master` on 2026-11-22, and pull request 53 the Italian, so both
-  are live. What was done to the Italian afterwards that day (a second
-  agent's review, the "noi", the corrected LOAD time) is on `develop` and
-  reaches the site with the next pull request.
+  merged on request. Live as of 2026-11-23, by pull requests 55 and 56:
+  everything up to the tablet layout and Google's verification file, the
+  Italian's review and its "noi" included. On `develop` and not yet live:
+  the sitemap's dates, the rule for them, and `.nojekyll`, which takes the
+  repository's documents off the site as pages (item 12).
 - **Attribution:** no link to an agent's session in a commit message, a pull
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
@@ -284,8 +284,8 @@ done but for the ends listed there.
      and "in esecuzione", "fermo", "bloccato" beside the run lamp. Changing
      a label means changing it in `index.html` and where `guida.html` quotes
      it; `tests/languages.test.js` names the ones it holds together.
-   - **Live in its first form.** Pull request 53 put the Italian on the site;
-     the review's fixes and the "noi" reach it with the next pull request.
+   - **Live.** Pull request 53 put the Italian on the site, and pull request
+     55, on 2026-11-23, the review's fixes and the "noi".
    - **The home page has no Italian address.** One address serves both
      languages, so Google and a link pasted into a forum or a chat show the
      English title and description, whatever the reader's language. The
