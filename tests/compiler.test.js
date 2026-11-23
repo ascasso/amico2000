@@ -139,3 +139,28 @@ test('diagnostics identify mistakes and the linker protects the interrupt vector
         ['display.data = 1\n'.repeat(140), /508.*interrupt vectors/]
     ]) assert.throws(() => compile(source), error);
 });
+
+test('the matchstick game plays to both endings on the original board memory map', () => {
+    const source = fs.readFileSync(path.join(__dirname, '../compiler/examples/matches.amico'), 'utf8');
+    const program = compile(source);
+    assert.equal(program.binary.length, 186);
+    for (const [moves, totals, ending] of [
+        ['123333', [0x19, 0x16, 0x12, 0x08, 0x04, 0x01], '5afe01'],
+        ['33333', [0x17, 0x13, 0x09, 0x05, 0x01], 'dead01']
+    ]) {
+        const m = bootedMachine();
+        m.loadProgram(program.binary, program.origin);
+        monitorRun(m, '0200');
+        press(m, '0');
+        press(m, 'f');
+        assert.equal(m.cpu.memory[0xf9], 0x21);
+        for (const [i, key] of [...moves].entries()) {
+            press(m, key);
+            assert.equal(m.cpu.memory[0xf9], totals[i]);
+        }
+        const segments = [...ending].map(n => m.cpu.memory[0xffea + parseInt(n, 16)] & 127);
+        assert.deepEqual(m.getDisplay(), segments);
+        press(m, '1');
+        assert.deepEqual(m.getDisplay(), segments);
+    }
+});

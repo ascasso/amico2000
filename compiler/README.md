@@ -32,6 +32,23 @@ The square table occupies 40 bytes including its 16 constants. Open the
 [example](examples/squares.amico) next to the assembly. The source variable
 `key` stays in A for the comparison and moves to X for the lookup.
 
+## Play 21 fiammiferi
+
+Compile [matches.amico](examples/matches.amico) using the same commands
+and keypad sequence, substituting `matches` for `squares`. Start with 21
+matches. Press 1, 2, or 3 to take that many and leave at least one. The
+AMICO replies. The three display pairs give your move, the board's move,
+and the number left in decimal. The player left with the last match loses.
+The final display reads `5AFE 01` or `DEAD 01`. Use RES and `AD 0200 RUN`
+to play again.
+
+This adaptation of the manual's game opens with a reply of one, giving the
+human player an opening to discover. Subsequent moves aim to leave one match
+modulo four. It responds as soon as a press is confirmed. Its 186-byte image
+includes debouncing, and it uses five more bytes in zero page. The manual's
+transcribed assembly listing occupies 148 bytes and has different timing and
+opponent logic. [Original listing](../docs/manual-extraction/listings/21-fiammiferi-0200.hex)
+
 ## Language
 
 Write one statement per line. Names start with a lowercase letter and may

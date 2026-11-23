@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a playable `21 fiammiferi` compiler example. Its 186-byte program
+  accepts moves at the keypad and shows both players' moves and the number
+  of matches left on the six digits.
 - Added `amicoc`, a byte-oriented cross-compiler for the 1 KB AMICO.
   It produces annotated assembly, raw NMOS 6502 code and loadable cassette
   images. Its 40-byte square-table example runs through the original monitor.
