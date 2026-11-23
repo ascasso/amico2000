@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `docs/monitor-rom-review.md`, a review of the original monitor PROM
+  (IC9) for bugs and security issues, at the owner's request. It finds five
+  bugs in the ROM as ASEL shipped it. RUN restores the status of the last
+  program halted, so an ordinary program can start in decimal mode, even
+  after RES; the manual's first program, which has no `CLD`, then adds 09 and
+  01 to get 10. In decimal mode the key routine at `$FF57` returns 15 for F
+  and for no key alike, where the manual's Tabella 17 promises 21 for no key.
+  Entered at `$FE30` in decimal mode, the main loop scrambles the keypad, so
+  that D acts as RUN. And the branch calculator at `$FF97` overwrites a halted
+  program's saved A and does not debounce its keys. The review also lists
+  where the manual describes the ROM wrongly, smaller faults of the design,
+  what was checked and found sound, and what a tape could do: take over HLT
+  and BRK until the board is switched off, but never start itself. Each
+  finding was reproduced by running the ROM, and the document gives the keys
+  that show it. Nothing in the emulator was changed. Its IRQ vector seed,
+  `$FE30`, is what makes the keypad bug reachable here, which bears on the
+  seed AGENTS.md leaves undecided.
 - Added Italian to the home page. A browser set to Italian now opens the
   page in Italian with nothing to press, and a word in the page's top right
   corner, `Italiano` or `English`, changes it where it stands: nothing is
