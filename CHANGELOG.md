@@ -356,8 +356,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   handheld layout they are 99 px and 480 px. The layout now applies up to
   1100 px wide instead of 640, which takes in every iPad held upright. A
   tablet or phone in landscape, and every desktop, keep the board as drawn.
-  The guides and the README say "phone or tablet". Checked in emulation; the
-  OnePlus 7T, in Chrome, was tried by the owner on a real device and passed.
+  The guides and the README say "phone or tablet". Checked in emulation, and
+  tried by the owner on a real iPad Pro 11" and, for the phone layout, a
+  OnePlus 7T in Chrome: both passed.
 - Corrected `NextSession.md`, which still said the Italian was not live after
   pull request 53 had put it on the site. Documentation only.
 - The Italian now speaks as the manual does, in "noi". The supplement does

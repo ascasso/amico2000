@@ -957,9 +957,10 @@ there, the page rearranges itself.
   headless browser is not one. The owner has done so: on 2026-11-22 the page
   was opened in Safari on an iPhone 17 Pro held upright and looked right,
   with everything working, and on 2026-11-23 in Chrome on a OnePlus 7T, an
-  Android phone, with the same result. Tablets held upright were checked in
-  emulation only, at 744, 834 and 1032 px, when they were brought into the
-  layout; no tablet has been tried on a real device since.
+  Android phone, with the same result. Tablets held upright were brought into
+  the layout on the same day, checked in emulation at 744, 834 and 1032 px,
+  and the owner then tried an iPad Pro 11" held upright: it looked as
+  intended, with a full pass. No other tablet has been tried.
 
 ### Two Languages
 
@@ -1232,8 +1233,8 @@ When implementing changes based on a GitHub issue:
    a person works are rearranged into one column (see Handheld Layout); in a
    desktop window narrower than about 800 pixels the board keeps its size and
    pans sideways, as before. The drawing has been looked at in Chrome only,
-   and the handheld layout in emulation, in Safari on one iPhone 17 Pro and
-   in Chrome on one OnePlus 7T, held upright. See Board Artwork
+   and the handheld layout in emulation, in Safari on one iPhone 17 Pro,
+   in Chrome on one OnePlus 7T and on one iPad Pro 11", held upright. See Board Artwork
 8. **Languages**: the site is in English and Italian and no other. The home
    page has one address for both, so a search engine or a link preview shows
    its English; only the guide has an Italian address. The Italian of a

@@ -228,8 +228,8 @@ done but for the ends listed there.
    looked right and everything worked. On an iPad Pro 11" held upright the
    board as drawn had keys and displays too small, and in landscape it was
    fine, so tablets held upright now get the handheld layout too, up to
-   1100 px. That was checked in emulation only; the owner's iPad has not
-   seen it yet. Whatever item 1 and item 3 add has to fit the same first
+   1100 px. The owner then tried it on the iPad Pro 11" held upright: it
+   looked as intended, a full pass. Whatever item 1 and item 3 add has to fit the same first
    screen. Known rough edges, none of them blocking:
    - On the smallest common screen, an iPhone SE with Safari's toolbars, the
      last key row ends 2 px from the bottom and the maker's mark is below it.
@@ -242,7 +242,7 @@ done but for the ends listed there.
    - On a tablet the handheld layout is the phone's, larger: the title stays
      in its compact phone size, the language link in its two letters, and
      the keys fill a column about half the screen's width. It fits the first
-     screen; whether it looks right on the iPad is for the owner to say.
+     screen, and the owner found it right on the iPad Pro 11".
    - An iPad with a trackpad or mouse attached was not tried. If it reports
      a fine pointer it gets the board as drawn.
 3. **The site in Italian: done, with these ends loose.** The owner asked for
