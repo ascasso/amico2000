@@ -46,16 +46,16 @@ below, each marked as coming from it.
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
   the live site only through a merged pull request, which is still opened and
-  merged on request. Pull request 52 took everything up to the page's search
-  tags into `master` on 2026-11-22, and pull request 53 the Italian, so both
-  are live. What was done to the Italian afterwards that day (a second
-  agent's review, the "noi", the corrected LOAD time) is on `develop` and
-  reaches the site with the next pull request.
+  merged on request. Live as of 2026-11-23, by pull requests 55 and 56:
+  everything up to the tablet layout and Google's verification file, the
+  Italian's review and its "noi" included. On `develop` and not yet live:
+  the sitemap's dates, the rule for them, and `.nojekyll`, which takes the
+  repository's documents off the site as pages (item 12).
 - **Attribution:** no link to an agent's session in a commit message, a pull
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 231
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 237
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -84,6 +84,8 @@ below, each marked as coming from it.
   either Cassette setting, and the guide has two that do (`AGENTS.md`, The
   LEDs D4-D7 Under a Program). Read from the schematic, not tried on a real
   board.
+- **Search engines:** the site is verified in Google Search Console and has
+  a sitemap. See item 12.
 - **Open issues:** none.
 - **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-23.
 
@@ -282,8 +284,8 @@ done but for the ends listed there.
      and "in esecuzione", "fermo", "bloccato" beside the run lamp. Changing
      a label means changing it in `index.html` and where `guida.html` quotes
      it; `tests/languages.test.js` names the ones it holds together.
-   - **Live in its first form.** Pull request 53 put the Italian on the site;
-     the review's fixes and the "noi" reach it with the next pull request.
+   - **Live.** Pull request 53 put the Italian on the site, and pull request
+     55, on 2026-11-23, the review's fixes and the "noi".
    - **The home page has no Italian address.** One address serves both
      languages, so Google and a link pasted into a forum or a chat show the
      English title and description, whatever the reader's language. The
@@ -402,6 +404,46 @@ done but for the ends listed there.
       Two smaller steps need none of the timing work and could come first: a
       button that plays a program from the cassette as sound, and one that
       records from the microphone until the tape stops and then decodes it.
+
+12. **Being found.** The owner asked on 2026-11-23 for the site to be
+    checked for search engines (`AGENTS.md`, What the Site Serves and What a
+    Search Engine Reads; the log of that day). What was wrong is fixed: the
+    repository's documents were being published as 22 web pages, which
+    `.nojekyll` stops once it reaches `master`. The pages' own tags, their
+    speed and their phone layout were in order. What is left, none of it
+    started, and the first three matter most:
+    - **Links to the site.** None is known. A new site that nothing links to
+      is found late and ranked low whatever its tags say. A link from
+      ComputerHistory.it's page on the machine, or from a forum where the
+      people of item 4 are, would do more than everything else here. The
+      repository's own About box on GitHub has no website address and no
+      topics; filling it in is a change to GitHub, so it waits for the
+      owner's word.
+    - **Search Console.** Submit `sitemap.xml` there, since `robots.txt`
+      cannot announce it, and ask for the three addresses to be indexed with
+      URL Inspection. Whether Google has indexed anything was not looked at
+      from here: Search Console is where that is shown.
+    - **No picture for a link preview.** The pages have no `og:image`, so a
+      link pasted into WhatsApp, Facebook or a forum shows text only, and
+      that is how the people of item 4 would pass it on. The head says there
+      is no picture because the photographs are private. A screenshot of the
+      page's own drawing, displays lit, 1200 x 630, is not a photograph and
+      is already public as the page. The owner's call.
+    - **No Italian address for the home page** (item 3). An Italian
+      searching in Italian gets the English title and description. The
+      Italian text of the page is in the HTML Google reads, hidden by the
+      style rule, so the page can still match Italian words.
+    - **The guides' titles are short.** "How to use the AMICO 2000" and
+      "Come si usa l'AMICO 2000" say neither emulator nor guide. A longer
+      `<title>`, the heading left as it is, would say what the page is in a
+      result: the wording is the owner's, in both languages.
+    - **No favicon.** The tab and a bookmark show a blank, and every visit
+      asks for `/favicon.ico` and gets a 404. An SVG file would pass the
+      CSP. Google's results show one icon for a whole host, so a site under
+      `ascasso.github.io/amico2000/` cannot set its own there.
+    - **Not run:** Lighthouse, which needs a download the session was not
+      allowed. Load times were measured by hand instead, in headless Chrome
+      throttled to a slow phone.
 
 ## Cassette Work (Secondary)
 

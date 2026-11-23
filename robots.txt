@@ -1,6 +1,14 @@
 # Everything on the site is public and meant to be found. The sitemap lists
 # the pages: the emulator, and its guide in English and in Italian. The rest
-# of the repository is not served as pages.
+# of the repository is served as plain files and not as pages: .nojekyll at
+# the root keeps GitHub Pages from turning each Markdown document into one.
+#
+# Crawlers read robots.txt only at the root of a host, and this site is
+# served from /amico2000/ under ascasso.github.io, so this file is not read
+# and its Sitemap line does not reach them. ascasso.github.io/robots.txt
+# does not exist, which allows everything. The sitemap is given to Google
+# in Search Console instead. The file stays as a statement of intent and in
+# case the site moves to a host of its own.
 User-agent: *
 Allow: /
 

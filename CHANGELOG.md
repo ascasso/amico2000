@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a picture of the board to the top of the README, at the owner's
+  request: `docs/images/amico2000-board.png`, a screenshot of the emulator's
+  own drawing with the monitor running and `0000 00` on the displays. It
+  links to the live site. It is a drawing and not a photograph; the
+  photographs of real boards stay out of the repository.
 - Added `google7a632e30a7a507df.html` at the site root, the file Google
   Search Console asks for to verify that the owner controls the site. It is
   Google's own one line, committed as downloaded. It is served once it
@@ -697,6 +702,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- The site no longer publishes the repository's documents as web pages. A
+  check of the live site for search engines found that GitHub Pages was
+  running Jekyll over the repository and serving every Markdown document as
+  a page of its own, each with a title such as "AGENTS.md | amico2000" and a
+  canonical address: 22 pages, among them the guidance for agents, the
+  session handover, the engineering logs and the text of the 1980
+  supplement, beside the three pages the site means to have. An empty
+  `.nojekyll` at the root turns the Jekyll build off. The home page and the
+  guides were never touched by it and are served as before; the documents
+  stay readable on GitHub and as plain files. `robots.txt` said the rest of
+  the repository "is not served as pages", which is now true.
+  `tests/site-files.test.js` holds `.nojekyll`, Google's verification file,
+  the sitemap's addresses and the guides' `hreflang` pairs.
+- `sitemap.xml` gave 2026-11-22 as the last change to all three pages; the
+  tablet layout changed the guides and the home page on 2026-11-23, and
+  their `lastmod` now says so. The file was checked against the
+  sitemaps.org schema and each address answers on the live site.
+- `robots.txt` no longer implies that search engines find the sitemap
+  through it. They read `robots.txt` only at the root of a host, and the
+  site is served from `/amico2000/` on `ascasso.github.io`, so its Sitemap
+  line is never read. A comment in the file says so; the sitemap is given
+  to Google in Search Console.
 - Corrected how long the page says a LOAD takes with **Cassette: Real
   time**, in English and in Italian. The tooltip of **Real time** promised
   "thirteen seconds or more" and both guides "about thirteen seconds for a

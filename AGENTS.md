@@ -26,8 +26,8 @@ This file provides repository guidance for agents working in this repository.
   is the committer's local calendar date, in the time zone recorded on the
   commit, which is what `%cs` prints; it is not the UTC date. An evening commit
   in a US time zone is already the next day in UTC, and an automated review
-  that compares the stamp with UTC will report a false mismatch. The
-  managed GitHub Pages/Jekyll build does not refresh this stamp automatically.
+  that compares the stamp with UTC will report a false mismatch. GitHub
+  Pages publishes the files as they are and does not refresh this stamp.
   - To check the stamp, run `node --test tests/build-stamp.test.js`, which
     compares it with `git log -1 --no-merges --format=%cs` and gives the same
     answer in any time zone. Do not work the date out from a timestamp shown
@@ -36,6 +36,19 @@ This file provides repository guidance for agents working in this repository.
     21 November, UTC-8, as one of the 22nd, and asked for a stamp that the
     test rejects.
   - A reviewer who finds the test passing has no stamp finding to report.
+- Keep `sitemap.xml` in step with the pages it lists. When a commit changes
+  what a visitor sees on a page, set that page's `<lastmod>` to the commit's
+  date, the same local `%cs` date as the build stamp: the home page for a
+  change to `index.html` or to a script that draws it (`main.js`, `lang.js`,
+  `display.js`), and `guide.html` or `guida.html` for a change to that guide.
+  A change to one guide usually means the other, since they are changed
+  together. Leave the date alone for a change no visitor sees, such as a
+  comment or a test. A new public page gets an entry of its own. Google uses
+  `lastmod` only from sites where it has proved accurate, and nothing checks
+  it, so it is easy to forget: before committing a page, look at the
+  sitemap. The site's `robots.txt` is not read by crawlers, because the
+  site is not at the root of its host; the sitemap reaches Google through
+  Search Console.
 - Commit in small units. One commit is one unit of work — a single fix, a
   single new test file, a single documented decision, one vendored fixture.
   Prefer several small commits over one large one, and never batch unrelated
@@ -888,6 +901,18 @@ scripts evaluated through the protocol are not subject to the page's CSP, and
 `requestAnimationFrame` fires normally, so the page is checked as served. `tests/display-renderer.test.js` covers the display's
 geometry and nothing else on the board.
 
+**The picture in the README.** `docs/images/amico2000-board.png` is a
+screenshot of this drawing, which the owner asked for on 2026-11-23. It is
+the one picture in the repository, and it is not a photograph: the rule
+about the photographs stands. It shows the English page in a 1400 px
+desktop window at twice the pixel density, cut to `.pcb` with 16 px of the
+bench around it, which stops short of the panels below, the monitor running
+and `0000 00` on the displays in the Readable look: 2304 x 811 pixels.
+Nothing keeps it in step with the drawing, so take it again when the board's
+look changes, in headless Chrome as above (`Page.captureScreenshot` with a
+`clip`). `readme-shot.mjs`, kept with the other browser-check scripts
+outside the repository, does it.
+
 ### Handheld Layout
 
 On a phone held upright the board cannot be both whole and usable: it is
@@ -1150,6 +1175,36 @@ what it found was checked and put right, and the whole was read again
 against the manual, which found the switch's name and a few sentences more
 (the log of that day, A Second Agent's Review of the Italian). No person is
 known to have read it through when this was written, the owner included.
+
+### What the Site Serves and What a Search Engine Reads
+
+GitHub Pages publishes `master` as it is. Checked on the live site on
+2026-11-23 (the log of that day, Checking the Site for Search Engines):
+
+- **`.nojekyll`, an empty file at the root, has to stay.** Without it Pages
+  runs Jekyll over the repository and publishes every Markdown document as a
+  web page of its own, with a title, a canonical address and a description:
+  22 of them were live, this file and `NextSession.md` among them, beside
+  the three pages the site means to have. With it the documents are served
+  as plain files, as the scripts are. Nothing on the site needs Jekyll.
+- **The pages are three**, the home page and the two guides, and
+  `sitemap.xml` lists them. Each names its canonical address, and the two
+  guides name each other with `hreflang`. The home page is linked from the
+  guides as `index.html`, not as `./`, so that the site works from
+  `file://`; its canonical address covers that.
+- **`robots.txt` is not read** by crawlers, since the site is not at the
+  root of its host. The sitemap reaches Google through Search Console, which
+  the owner verified with `google7a632e30a7a507df.html`. That file has to
+  stay too: Google looks for it again from time to time.
+- **Nothing is fetched from elsewhere** and there are no images or fonts, so
+  the home page is about 100 kB on the wire and paints in well under a
+  second on a slow phone. Keep it so: page speed is part of how a page is
+  ranked on a phone.
+- `tests/site-files.test.js` holds `.nojekyll`, the verification file, the
+  sitemap's addresses against the pages' canonical ones, and the guides'
+  `hreflang` pairs.
+
+What it lacks is under item 12 of Outstanding in `NextSession.md`.
 
 ## Development Guidelines
 
