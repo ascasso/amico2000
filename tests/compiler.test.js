@@ -240,3 +240,13 @@ test('a refusal names the mistake that was made', () => {
         assert.throws(() => compile(word + ' = 1'), /word of the language|Unknown|Expected|Unexpected/);
     }
 });
+
+test('a line that is no statement is called that, wherever it stands', () => {
+    // After `stop` nothing can be reached, and a misspelt `end` there was
+    // reported as unreachable: true, and no help in finding the spelling.
+    assert.throws(() => compile('a = 1\nif a == 1\nstop\nennd\nend'), /^Error: Line 4: Unknown statement: ennd/);
+    assert.throws(() => compile('loop\ndisplay.scan()\nend\nend if'), /^Error: Line 4: Unknown statement: end if/);
+    // A real statement in the same place is still unreachable.
+    assert.throws(() => compile('a = 1\nif a == 1\nstop\na = 2\nend'), /^Error: Line 4: Unreachable statement/);
+    assert.throws(() => compile('stop\ndisplay.scan()'), /^Error: Line 2: Unreachable statement/);
+});

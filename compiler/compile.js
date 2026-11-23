@@ -155,6 +155,13 @@ function compile(source) {
             forget();
             return;
         }
+        // A line that is no statement is that before it is anything else. A
+        // misspelt `end` after `stop` was called unreachable, which it is, and
+        // which is not what is wrong with it.
+        const assign = /^([\w.]+)\s*=\s*(.+)$/.exec(text);
+        if (!assign && !/^(?:const|if)\b/.test(text) && !['loop', 'stop', 'display.scan()'].includes(text)) {
+            fail('Unknown statement: ' + text);
+        }
         if (!reachable) fail('Unreachable statement');
         if (/^const\b/.test(text)) {
             if (started) fail('Declare tables before the first statement');
@@ -191,8 +198,6 @@ function compile(source) {
         } else if (text === 'display.scan()') {
             scan();
         } else {
-            const assign = /^([\w.]+)\s*=\s*(.+)$/.exec(text);
-            if (!assign) fail('Unknown statement: ' + text);
             const [, name, value] = assign;
             const address = FIELDS.get(name) ?? variable(name);
             expression(value.trim());

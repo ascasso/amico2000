@@ -744,6 +744,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed `amicoc` calling a misspelt line unreachable when it followed a
+  `stop` or a loop: `ennd` after `stop` was "Unreachable statement". A line
+  that is no statement is now "Unknown statement" wherever it stands.
+  Found by the check of the compiler.
 - Fixed three of `amicoc`'s messages that named the wrong mistake. A
   comparison with an operation on its right, `if a == b + 1`, was told
   which operators exist; it is now told that the right side is a single
