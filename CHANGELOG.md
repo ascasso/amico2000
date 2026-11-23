@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/compiler-differential.test.js`, which holds the Amico compiler
+  to an interpreter written from the README alone. A thousand random
+  programs are compiled, run on the emulated board with registers and
+  flags randomised, and compared with it: the display bytes, every
+  variable, and that nothing else in RAM was written. Six programs written
+  by hand cover the top of a loop, which the random ones cannot. It is the
+  net under the compiler's front end before that is reworked;
+  `AMICO_PROGRAMS=30000` runs more. It comes from the check of the compiler
+  (`NextSession.md`, item 13), where it was one reviewer's harness.
 - Added a playable `21 fiammiferi` compiler example. Its 186-byte program
   accepts moves at the keypad and shows both players' moves and the number
   of matches left on the six digits.

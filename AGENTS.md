@@ -1233,6 +1233,14 @@ under Node on another computer and produces a listing, a binary or an
 - `compiler/README.md` is the language's reference. `tests/compiler.test.js`
   runs compiled programs on the real monitor, through
   `tests/helpers/machine.js`.
+- `tests/compiler-differential.test.js` is the net under the front end. It
+  compiles random programs, runs them on the emulated board and compares
+  them with `tests/helpers/amico-reference.js`, an interpreter written from
+  the README alone, which must go on sharing no code with `compiler/`. Run
+  it with `AMICO_PROGRAMS=30000` before and after changing how the compiler
+  reads a line or what it takes the accumulator to hold. When the language
+  gains a construct, the interpreter and the generator beside it gain it
+  too, or the construct goes untested.
 
 What an agent has to know before touching it:
 
