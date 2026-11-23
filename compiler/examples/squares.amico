@@ -1,0 +1,11 @@
+# The right-hand digits keep the square of the last hex key.
+const squares = table byte [n in 0..15] = n * n
+
+display.data = 0
+loop
+    display.scan()
+    key = keypad.read()
+    if key < 16
+        display.data = squares[key]
+    end
+end

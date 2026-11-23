@@ -22,6 +22,10 @@ The AMICO 2000 lives again. 🇮🇹💾✨
 See [How to use the AMICO 2000](guide.html) for a walkthrough of the controls,
 program entry, supported file formats, and cassette LOAD/SAVE.
 
+You can also [write a program in the AMICO's byte-oriented language](compiler/README.md).
+The Node.js cross-compiler produces a 6502 assembly listing, raw machine code,
+or a cassette image you can load at the keypad.
+
 **In italiano.** Il sito è anche in italiano: un browser impostato sull'italiano
 apre la pagina in italiano, e in alto a destra c'è il collegamento per cambiare
 lingua. La guida è [Come si usa l'AMICO 2000](guida.html).

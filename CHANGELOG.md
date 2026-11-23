@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `amicoc`, a byte-oriented cross-compiler for the 1 KB AMICO.
+  It produces annotated assembly, raw NMOS 6502 code and loadable cassette
+  images. Its 40-byte square-table example runs through the original monitor.
+  Generated programs clear inherited decimal mode and can wait for a debounced
+  keypress while refreshing the six displays.
 - Added a picture of the board to the top of the README, at the owner's
   request: `docs/images/amico2000-board.png`, a screenshot of the emulator's
   own drawing with the monitor running and `0000 00` on the displays. It
