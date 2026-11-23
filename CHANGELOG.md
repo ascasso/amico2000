@@ -751,6 +751,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed three of `amicoc`'s messages that a review of the fixes above found
+  still pointing the wrong way. `if 0 ==`, with nothing on the right, was
+  told which operators exist; `if 0 =< 1+1` was told its right side was
+  too much, when its operator is wrong. `x == 1` and `if.scan()` after a
+  `stop` were unreachable statements, and are no statements at all. And
+  `if = 1` and `const = 1` were read as a comparison and a declaration
+  gone wrong, where `byte = 1` was already told that `byte` is a word of
+  the language.
 - Fixed `amicoc` reporting a file with no statement in it at a line past
   the file's end: a one-line file holding only a comment was wrong at
   "Line 2". It is now refused as a whole, "The program has no statement

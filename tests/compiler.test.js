@@ -214,11 +214,18 @@ test('a refusal names the mistake that was made', () => {
         ['a = 1\nb = 1\nif a == b + 1\nend', /^Error: Line 3: The right side of a comparison is one literal/],
         ['if display.low == keypad.read()\nend', /^Error: Line 1: The right side of a comparison/],
         [table + 'if display.low < t[1]\nend', /^Error: Line 2: The right side of a comparison/],
-        // Here it is the operator.
+        // Nothing on the right at all.
+        ['if 0 ==', /^Error: Line 1: A comparison needs a literal, variable or display field on its right/],
+        ['a = 1\nif a <', /^Error: Line 2: A comparison needs/],
+        // Here it is the operator, also when a `<` can be found inside it.
         ['a = 1\nif a <= 2\nend', /^Error: Line 2: Expected an unsigned comparison using <, >=, == or !=/],
         ['a = 1\nif a > 2\nend', /^Error: Line 2: Expected an unsigned comparison/],
+        ['if 0 =< 1+1', /^Error: Line 1: Expected an unsigned comparison/],
         ['byte = 7', /^Error: Line 1: byte is a word of the language/],
         ['in = keypad.read()', /^Error: Line 1: in is a word of the language/],
+        // These two begin like a statement of their own, and are still names misused.
+        ['if = 1', /^Error: Line 1: if is a word of the language/],
+        ['const = 1', /^Error: Line 1: const is a word of the language/],
         [table + 't = 1', /^Error: Line 2: t is a table, not a variable/],
         [table + table + 'display.data = t[0]', /^Error: Line 2: Table declared twice: t/],
         ['Left = 1', /^Error: Line 1: Invalid byte variable: Left/]
@@ -237,7 +244,7 @@ test('a refusal names the mistake that was made', () => {
     assert.equal(words.length, 11);
     for (const word of words) {
         assert.ok(listed.includes('`' + word + '`'), `the README does not list ${word}`);
-        assert.throws(() => compile(word + ' = 1'), /word of the language|Unknown|Expected|Unexpected/);
+        assert.throws(() => compile(word + ' = 1'), new RegExp(`^Error: Line 1: ${word} is a word of the language`));
     }
 });
 
@@ -246,6 +253,13 @@ test('a line that is no statement is called that, wherever it stands', () => {
     // reported as unreachable: true, and no help in finding the spelling.
     assert.throws(() => compile('a = 1\nif a == 1\nstop\nennd\nend'), /^Error: Line 4: Unknown statement: ennd/);
     assert.throws(() => compile('loop\ndisplay.scan()\nend\nend if'), /^Error: Line 4: Unknown statement: end if/);
+    // Two that look like statements and are none: a comparison with no `if`,
+    // which has the `=` of an assignment in it, and a line that only begins
+    // with `if`.
+    for (const line of ['x == 1', 'if.scan()']) {
+        assert.throws(() => compile(line), new RegExp('^Error: Line 1: Unknown statement: ' + line.replace(/[.()]/g, '\\$&')));
+        assert.throws(() => compile('stop\n' + line), /^Error: Line 2: Unknown statement/);
+    }
     // A real statement in the same place is still unreachable.
     assert.throws(() => compile('a = 1\nif a == 1\nstop\na = 2\nend'), /^Error: Line 4: Unreachable statement/);
     assert.throws(() => compile('stop\ndisplay.scan()'), /^Error: Line 2: Unreachable statement/);

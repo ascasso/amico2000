@@ -165,12 +165,21 @@ function compile(source) {
         // A line that is no statement is that before it is anything else. A
         // misspelt `end` after `stop` was called unreachable, which it is, and
         // which is not what is wrong with it.
-        const assign = /^([\w.]+)\s*=\s*(.+)$/.exec(text);
-        if (!assign && !/^(?:const|if)\b/.test(text) && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text)) {
+        // What the line is goes by its shape alone. An assignment has one `=`
+        // after its name, not the two of a comparison, so `x == 1` is none.
+        // `if` and `const` are whole words with a space after them, so
+        // `if.scan()` is neither.
+        const assign = /^([\w.]+)\s*=(?!=)\s*(.+)$/.exec(text);
+        const isIf = /^if(?:\s|$)/.test(text);
+        const isConst = /^const(?:\s|$)/.test(text);
+        // `if = 1` and `const = 1` assign to a word of the language. Say so
+        // before the line is read as a comparison or a declaration gone wrong.
+        if (assign && RESERVED.has(assign[1])) variable(assign[1]);
+        if (!assign && !isIf && !isConst && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text)) {
             fail('Unknown statement: ' + text);
         }
         if (!reachable) fail('Unreachable statement');
-        if (/^const\b/.test(text)) {
+        if (isConst) {
             if (started) fail('Declare tables before the first statement');
             declareTable(text);
             return;
@@ -181,16 +190,22 @@ function compile(source) {
             blocks.push({ kind: 'loop', start, line });
             mark(start);
             forget();
-        } else if (/^if\b/.test(text)) {
+        } else if (isIf) {
             const test = /^if\s+(.+?)\s*(>=|==|!=|<)\s*([\w.$]+)$/.exec(text);
             if (!test) {
                 // CMP wants the left side in A and the right side as one operand.
                 // When the operator is one of the four and only the right side
                 // is too much, say that: naming the operators again sends the
                 // reader to look at the one thing that is right.
-                const loose = /^if\s+(.+?)\s*(>=|==|!=|<(?!=))\s*(.+)$/.exec(text);
-                if (loose && !/[<>=!]/.test(loose[3])) {
-                    fail('The right side of a comparison is one literal, variable or display field; write an operation, a table read or a key read on the left');
+                // That holds only if what stands before the operator is clean:
+                // in `if 0 =< 2` the `<` is found, and it is the operator that
+                // is wrong.
+                const loose = /^if\s+(.+?)\s*(>=|==|!=|<(?!=))\s*(.*)$/.exec(text);
+                if (loose && !/[<>=!]/.test(loose[1])) {
+                    if (!loose[3]) fail('A comparison needs a literal, variable or display field on its right');
+                    if (!/[<>=!]/.test(loose[3])) {
+                        fail('The right side of a comparison is one literal, variable or display field; write an operation, a table read or a key read on the left');
+                    }
                 }
                 fail('Expected an unsigned comparison using <, >=, == or !=');
             }
