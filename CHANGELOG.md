@@ -697,6 +697,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- `sitemap.xml` gave 2026-11-22 as the last change to all three pages; the
+  tablet layout changed the guides and the home page on 2026-11-23, and
+  their `lastmod` now says so. The file was checked against the
+  sitemaps.org schema and each address answers on the live site.
+- `robots.txt` no longer implies that search engines find the sitemap
+  through it. They read `robots.txt` only at the root of a host, and the
+  site is served from `/amico2000/` on `ascasso.github.io`, so its Sitemap
+  line is never read. A comment in the file says so; the sitemap is given
+  to Google in Search Console.
 - Corrected how long the page says a LOAD takes with **Cassette: Real
   time**, in English and in Italian. The tooltip of **Real time** promised
   "thirteen seconds or more" and both guides "about thirteen seconds for a
