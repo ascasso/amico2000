@@ -206,3 +206,37 @@ test('a line may end with LF, CR LF or a CR alone, and a comment ends with its l
     assert.deepEqual([...commented('\r').slice(1, 9)], [0xa9, 1, 0x85, 0xf9, 0xa9, 2, 0x85, 0xf9]);
     assert.throws(() => compile('v = 1\rw = 256\r'), /^Error: Line 2: Byte literal out of range/);
 });
+
+test('a refusal names the mistake that was made', () => {
+    const table = 'const t = table byte [n in 0..3] = n\n';
+    for (const [source, error] of [
+        // The operator is one of the four; it is the right side that is too much.
+        ['a = 1\nb = 1\nif a == b + 1\nend', /^Error: Line 3: The right side of a comparison is one literal/],
+        ['if display.low == keypad.read()\nend', /^Error: Line 1: The right side of a comparison/],
+        [table + 'if display.low < t[1]\nend', /^Error: Line 2: The right side of a comparison/],
+        // Here it is the operator.
+        ['a = 1\nif a <= 2\nend', /^Error: Line 2: Expected an unsigned comparison using <, >=, == or !=/],
+        ['a = 1\nif a > 2\nend', /^Error: Line 2: Expected an unsigned comparison/],
+        ['byte = 7', /^Error: Line 1: byte is a word of the language/],
+        ['in = keypad.read()', /^Error: Line 1: in is a word of the language/],
+        [table + 't = 1', /^Error: Line 2: t is a table, not a variable/],
+        [table + table + 'display.data = t[0]', /^Error: Line 2: Table declared twice: t/],
+        ['Left = 1', /^Error: Line 1: Invalid byte variable: Left/]
+    ]) assert.throws(() => compile(source), error);
+
+    // What the message asks for works: the same three on the left.
+    for (const source of ['a = 1\nb = 1\nif b + 1 == a\nend', 'if keypad.read() == display.low\nend', table + 'if t[1] < display.low\nend']) {
+        assert.ok(compile(source).binary.length > 4);
+    }
+
+    // The README lists the words that cannot be names; hold it to the compiler's own list.
+    const words = /const RESERVED = new Set\(\[(.*?)\]\)/.exec(fs.readFileSync(path.join(__dirname, '../compiler/compile.js'), 'utf8'))[1]
+        .split(',').map(word => word.trim().replace(/'/g, ''));
+    const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
+    const listed = /cannot be names: ([^.]+)\./.exec(readme.replace(/\n/g, ' '))[1];
+    assert.equal(words.length, 11);
+    for (const word of words) {
+        assert.ok(listed.includes('`' + word + '`'), `the README does not list ${word}`);
+        assert.throws(() => compile(word + ' = 1'), /word of the language|Unknown|Expected|Unexpected/);
+    }
+});

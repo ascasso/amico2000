@@ -57,7 +57,9 @@ opponent logic. [Original listing](../docs/manual-extraction/listings/21-fiammif
 ## Language
 
 Write one statement per line. Names start with a lowercase letter and may
-contain lowercase letters, digits and underscores. A `#` begins a comment.
+contain lowercase letters, digits and underscores. The words of the language
+cannot be names: `if`, `else`, `end`, `loop`, `stop`, `const`, `table`, `byte`,
+`in`, `display` and `keypad`. A `#` begins a comment.
 All values are unsigned bytes. Write decimal literals as `21` or hex as
 `$15`. Arithmetic wraps modulo 256.
 
@@ -65,7 +67,7 @@ All values are unsigned bytes. Write decimal literals as `21` or hex as
 | --- | --- |
 | `left = 21` | Introduce or update a byte. Reading a named variable requires an assignment on every path reaching that read. |
 | `left = left - take` | Compute one binary operation per expression. The operators are `+`, `-`, `&`, `\|`, and `^`. Both operands are literals, variables, or display fields. |
-| `if left >= 10` | Compare bytes using `<`, `>=`, `==`, or `!=`. An optional `else` starts the other arm. Close with `end`. |
+| `if left >= 10` | Compare bytes using `<`, `>=`, `==`, or `!=`. The left side may be an operation, a table read or a key read; the right side is one literal, variable or display field. An optional `else` starts the other arm. Close with `end`. |
 | `loop` | Repeat the enclosed statements. Close with `end`. Blocks can nest. |
 | `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. |
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |

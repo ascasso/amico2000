@@ -38,7 +38,10 @@ function compile(source) {
         return value;
     }
     function variable(name) {
-        if (!NAME.test(name) || RESERVED.has(name) || tables.has(name)) fail('Invalid byte variable: ' + name);
+        // Three different mistakes, and the reader can only mend the one named.
+        if (RESERVED.has(name)) fail(name + ' is a word of the language and cannot be a name');
+        if (tables.has(name)) fail(name + ' is a table, not a variable');
+        if (!NAME.test(name)) fail('Invalid byte variable: ' + name);
         return 'var_' + name;
     }
     function operand(text) {
@@ -103,6 +106,7 @@ function compile(source) {
         const match = /^const\s+(\w+)\s*=\s*table\s+byte\s*\[\s*(\w+)\s+in\s+0\s*\.\.\s*([\w$]+)\s*\]\s*=\s*([\w$]+)(?:\s*([*+-])\s*([\w$]+))?$/.exec(text);
         if (!match) fail('Expected const name = table byte [n in 0..last] = formula');
         const [, name, index, limit, lhs, op, rhs] = match;
+        if (tables.has(name)) fail('Table declared twice: ' + name);
         variable(name);
         if (!NAME.test(index) || RESERVED.has(index)) fail('Invalid table index name: ' + index);
         const last = number(limit);
@@ -165,7 +169,17 @@ function compile(source) {
             forget();
         } else if (/^if\b/.test(text)) {
             const test = /^if\s+(.+?)\s*(>=|==|!=|<)\s*([\w.$]+)$/.exec(text);
-            if (!test) fail('Expected an unsigned comparison using <, >=, == or !=');
+            if (!test) {
+                // CMP wants the left side in A and the right side as one operand.
+                // When the operator is one of the four and only the right side
+                // is too much, say that: naming the operators again sends the
+                // reader to look at the one thing that is right.
+                const loose = /^if\s+(.+?)\s*(>=|==|!=|<(?!=))\s*(.+)$/.exec(text);
+                if (loose && !/[<>=!]/.test(loose[3])) {
+                    fail('The right side of a comparison is one literal, variable or display field; write an operation, a table read or a key read on the left');
+                }
+                fail('Expected an unsigned comparison using <, >=, == or !=');
+            }
             expression(test[1].trim());
             emit('CMP', ...operand(test[3]));
             const otherwise = label();

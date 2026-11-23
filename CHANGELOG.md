@@ -744,6 +744,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed three of `amicoc`'s messages that named the wrong mistake. A
+  comparison with an operation on its right, `if a == b + 1`, was told
+  which operators exist; it is now told that the right side is a single
+  value and the operation goes on the left. A word of the language used as
+  a name, such as `byte` or `in`, and a table declared twice were both
+  "Invalid byte variable"; each now says what it is. The README gives the
+  rule for a comparison's two sides and lists the eleven words. Found by
+  the check of the compiler.
 - Fixed `amicoc` reading a source file with CR-only line endings, as old
   Macs wrote them, as a single line. With a `#` comment in it, every
   statement after the comment was dropped and the compile succeeded;

@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 253
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 254
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -638,14 +638,18 @@ on 2026-11-23 and its place is the owner's to give.
       5. **Messages and gaps in the README.**
          - The right side of a comparison must be a single value. `if a ==
            b + 1` is refused with a message naming the operator that is
-           already there, and the README does not give the rule.
+           already there, and the README does not give the rule. **Fixed:**
+           the message says which side, and the README has the rule.
          - The words of the language cannot be names: `byte`, `in`, `table`,
            `display`, `keypad` and the rest. The README does not list them,
-           and the message is "Invalid byte variable".
-         - A table declared twice gets that same message. A misspelt `end`
-           after `stop` is called unreachable. `keypad.read ()` with a space
-           is refused, where spacing is free everywhere else. A table's
-           first index must be the character `0`, and `$0` is refused.
+           and the message is "Invalid byte variable". **Fixed:** the
+           message says so, and the README lists the eleven; a test holds
+           the list to the compiler's.
+         - A table declared twice gets that same message. **Fixed.**
+         - A misspelt `end` after `stop` is called unreachable.
+         - `keypad.read ()` with a space is refused, where spacing is free
+           everywhere else. A table's first index must be the character
+           `0`, and `$0` is refused.
          - A file with no statement in it is reported at a line past its
            end.
          - The README says "The square table occupies 40 bytes", which is
