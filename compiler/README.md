@@ -24,8 +24,8 @@ node compiler/amicoc.js --tape compiler/examples/squares.amico > squares.amtape
   with **Load ROM or tape**. Key `AD 0000 DA 01 + 00 + FF`, then
   `AD FC54 RUN` to load program 01 at its recorded address. Key `AD 0200 RUN`
   to start it. Press A for `64` or F for `E1` on the two right-hand digits.
-  The ordinary file picker's raw binary load address is `$0000`, so use the
-  tape output for this workflow.
+  The program runs until RES is pressed. The ordinary file picker's raw
+  binary load address is `$0000`, so use the tape output for this workflow.
 - **At a board**, enter the bytes from the listing starting at `$0200` and RUN
   there. The raw binary also starts at `$0200` and has no address header.
 - **At an assembler**, the listing is 64tass source. The comments give the
@@ -33,14 +33,16 @@ node compiler/amicoc.js --tape compiler/examples/squares.amico > squares.amtape
   An independent check is `64tass -b -o check.bin squares.asm` followed by
   `cmp check.bin squares.bin`.
 
-The square table occupies 40 bytes including its 16 constants. Open the
+The square-table program occupies 40 bytes, 16 of them its table. Open the
 [example](examples/squares.amico) next to the assembly. The source variable
 `key` stays in A for the comparison and moves to X for the lookup.
 
 ## Play 21 fiammiferi
 
 Compile [matches.amico](examples/matches.amico) using the same commands
-and keypad sequence, substituting `matches` for `squares`. Start with 21
+and keypad sequence, substituting `matches` for `squares`. If `squares` is
+still running, press RES first: until then the keys go to it and not to the
+monitor. Start with 21
 matches. Press 1, 2, or 3 to take that many and leave at least one. The
 AMICO replies. The three display pairs give your move, the board's move,
 and the number left in decimal. The player left with the last match loses.
@@ -90,6 +92,12 @@ samples of a pressed key. It refreshes the display as it waits. Use it for
 one move per press in a game. The shared routine occupies 46 bytes and two
 temporary zero-page bytes in a program that calls it. RES and HLT retain
 their hardware functions.
+
+After HLT, the RUN that resumes the program is itself returned by
+`keypad.press()`, as `$13`. The helper waits for release when it is called,
+not when a halted program takes up again, and a program waiting for a key is
+nearly always halted inside it. A program should pass over a key it has no
+use for, as the matchstick game passes over everything but 1, 2 and 3.
 
 ## The ROM and the memory budget
 

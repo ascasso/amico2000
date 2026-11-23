@@ -384,6 +384,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Corrected `compiler/README.md` where the check of the compiler found it
+  wrong or silent. "The square table occupies 40 bytes" was the size of
+  the whole program, 16 bytes of it the table. `squares` runs for ever, and
+  nothing said to press RES before keying the LOAD for the next program:
+  until then the keys go to `squares`. And after HLT, the RUN that resumes
+  a program is returned by `keypad.press()` as key `$13`; the README now
+  warns of it, and a test holds the README to the behaviour.
 - Recorded what a check of the compiler found, in `NextSession.md`, item 13:
   no ordinary program compiles to wrong code, and a short list of faults at
   the edges, each reproduced. The owner had it run by five reviewers on

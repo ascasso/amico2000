@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 257
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 258
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -631,6 +631,8 @@ on 2026-11-23 and its place is the owner's to give.
          only when it is called, and a halted program is nearly always
          inside it. The RUN that starts a program is ignored, as designed.
          The matchstick game is safe because it discards codes above 3.
+         **Noted** in the README, as the owner chose; a test pins the
+         behaviour, so that a later fix changes both.
       4. **When one key directly replaces another**, with no scan between
          them that shows no key, `keypad.press()` wants four samples of the
          new key where the README says three: the sample that showed the
@@ -655,7 +657,7 @@ on 2026-11-23 and its place is the owner's to give.
            end. **Fixed:** it is refused as a whole, with no line.
          - The README says "The square table occupies 40 bytes", which is
            the whole program, 16 of them the table. It never says to press
-           RES to leave `squares`, which runs for ever.
+           RES to leave `squares`, which runs for ever. **Fixed.**
 
       Found sound, by the reviewers' own counts:
       - Some 26,000 random programs, each run on the emulated board with its

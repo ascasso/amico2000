@@ -285,3 +285,25 @@ test('a program with nothing to run is refused as a whole, not at a line', () =>
         fs.rmSync(dir, { recursive: true });
     }
 });
+
+// A limit, not a wish: compiler/README.md warns of it under Display and keys.
+// If the helper is ever made to wait for release after a halt, this test and
+// that paragraph change together.
+test('after HLT, the RUN that resumes a program comes back from keypad.press() as a key', () => {
+    const m = bootedMachine();
+    const { origin, binary } = compile('display.low = $ee\nloop\nkey = keypad.press()\ndisplay.low = key\nend');
+    m.loadProgram(binary, origin);
+    monitorRun(m, '0200');
+    tick(m, 200000);
+    assert.equal(m.cpu.memory[0xfa], 0xee); // The RUN that started it is not a key.
+    press(m, '5');
+    assert.equal(m.cpu.memory[0xfa], 0x05);
+    m.hlt();
+    tick(m, 200000);
+    assert.ok(m.cpu.PC >= 0xfe00); // Halted: the monitor is running.
+    press(m, 'Enter');
+    tick(m, 200000);
+    assert.equal(m.cpu.memory[0xfa], 0x13); // The RUN that resumed it is.
+    press(m, '7');
+    assert.equal(m.cpu.memory[0xfa], 0x07);
+});
