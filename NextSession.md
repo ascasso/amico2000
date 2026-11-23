@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 256
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 257
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -652,7 +652,7 @@ on 2026-11-23 and its place is the owner's to give.
            everywhere else. A table's first index must be the character
            `0`, and `$0` is refused. **Fixed:** both are taken.
          - A file with no statement in it is reported at a line past its
-           end.
+           end. **Fixed:** it is refused as a whole, with no line.
          - The README says "The square table occupies 40 bytes", which is
            the whole program, 16 of them the table. It never says to press
            RES to leave `squares`, which runs for ever.

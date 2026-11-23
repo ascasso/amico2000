@@ -224,7 +224,10 @@ function compile(source) {
         if (text) statement(text);
     }
     if (blocks.length) { line = blocks.at(-1).line; fail('Missing end for ' + blocks.at(-1).kind); }
-    if (!started) fail('Expected an executable statement');
+    // No line can be named: none of them is a statement. `line` here is the
+    // number of lines read, which is one past the end of a file that finishes
+    // with a newline, so the message used to point at a line that is not there.
+    if (!started) throw new Error('The program has no statement to run');
     line = 0;
     if (reachable) emit('JMP', 'abs', 0xfe22);
 

@@ -266,3 +266,22 @@ test('a call may have spaces at its brackets, and a table may start at zero howe
     assert.throws(() => compile(table('1')), /^Error: Line 1: A table's index starts at 0, not at 1/);
     assert.throws(() => compile(table('k')), /^Error: Line 1: A table's index starts at 0, not at k/);
 });
+
+test('a program with nothing to run is refused as a whole, not at a line', () => {
+    // Empty, comments only, and tables with nothing that reads them.
+    for (const source of ['', '\n\n', '# only a comment\n', 'const t = table byte [n in 0..3] = n\n']) {
+        assert.throws(() => compile(source), /^Error: The program has no statement to run$/);
+    }
+    const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'amico-'));
+    const file = path.join(dir, 'empty.amico');
+    fs.writeFileSync(file, '# only a comment\n');
+    try {
+        execFileSync(process.execPath, [cli, '--bin', file], { stdio: 'pipe' });
+        assert.fail('the command line accepted a program with no statement');
+    } catch (error) {
+        assert.equal(error.status, 1);
+        assert.equal(String(error.stderr), file + ': The program has no statement to run\n');
+    } finally {
+        fs.rmSync(dir, { recursive: true });
+    }
+});

@@ -744,6 +744,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed `amicoc` reporting a file with no statement in it at a line past
+  the file's end: a one-line file holding only a comment was wrong at
+  "Line 2". It is now refused as a whole, "The program has no statement
+  to run", as a program that is too long is. Found by the check of the
+  compiler.
 - Fixed two things `amicoc` refused that it should take. `keypad.read ()`
   and `display.scan ()`, with a space before the brackets or inside them,
   were refused, where spaces are free round an operator. And a table's
