@@ -901,6 +901,18 @@ scripts evaluated through the protocol are not subject to the page's CSP, and
 `requestAnimationFrame` fires normally, so the page is checked as served. `tests/display-renderer.test.js` covers the display's
 geometry and nothing else on the board.
 
+**The picture in the README.** `docs/images/amico2000-board.png` is a
+screenshot of this drawing, which the owner asked for on 2026-11-23. It is
+the one picture in the repository, and it is not a photograph: the rule
+about the photographs stands. It shows the English page in a 1400 px
+desktop window at twice the pixel density, cut to `.pcb` with 16 px of the
+bench around it, which stops short of the panels below, the monitor running
+and `0000 00` on the displays in the Readable look: 2304 x 811 pixels.
+Nothing keeps it in step with the drawing, so take it again when the board's
+look changes, in headless Chrome as above (`Page.captureScreenshot` with a
+`clip`). `readme-shot.mjs`, kept with the other browser-check scripts
+outside the repository, does it.
+
 ### Handheld Layout
 
 On a phone held upright the board cannot be both whole and usable: it is

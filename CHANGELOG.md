@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a picture of the board to the top of the README, at the owner's
+  request: `docs/images/amico2000-board.png`, a screenshot of the emulator's
+  own drawing with the monitor running and `0000 00` on the displays. It
+  links to the live site. It is a drawing and not a photograph; the
+  photographs of real boards stay out of the repository.
 - Added `google7a632e30a7a507df.html` at the site root, the file Google
   Search Console asks for to verify that the owner controls the site. It is
   Google's own one line, committed as downloaded. It is served once it

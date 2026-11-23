@@ -4,6 +4,12 @@ A browser-based emulator for the Italian AMICO 2000 home computer (ASEL Milano, 
 
 **Run it in your browser: [ascasso.github.io/amico2000](https://ascasso.github.io/amico2000/)**
 
+[![The AMICO 2000 board as the emulator draws it: the 6502 and its PROMs on the left, six seven-segment displays reading 0000 00 on the right, and the function and hex keys beneath them](docs/images/amico2000-board.png)](https://ascasso.github.io/amico2000/)
+
+*The board as the emulator draws it, with the monitor running: a drawing,
+measured part by part from photographs of two surviving boards. On the site
+its keys work.*
+
 The AMICO 2000 lives again. 🇮🇹💾✨
 
 ## 🚀 Quick Start
@@ -40,6 +46,7 @@ amico2000/
 ├── tests/               # Dependency-free regression tests
 │   └── fixtures/        # Pinned third-party test suites
 ├── docs/                # Engineering logs and reference notes
+│   └── images/          # The picture of the board at the top of this file
 └── README.md           # This file
 ```
 
