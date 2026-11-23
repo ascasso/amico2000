@@ -193,3 +193,16 @@ test('an image that would be 257 bytes gets a filler byte, and the board\'s own 
     const bare = binary.slice(0, 257);
     assert.deepEqual([...load(bare).slice(254)], [0x4c, 0x22, 0x00]);
 });
+
+test('a line may end with LF, CR LF or a CR alone, and a comment ends with its line', () => {
+    const lines = fs.readFileSync(squares, 'utf8').split('\n');
+    const expected = compile(lines.join('\n')).binary;
+    assert.equal(expected.length, 40);
+    for (const ending of ['\r\n', '\r']) assert.deepEqual(compile(lines.join(ending)).binary, expected);
+    // Read as one line, everything after the first # would be comment: the
+    // second assignment would vanish and the program would still compile.
+    const commented = (ending) => compile(['display.data = 1 # one', 'display.data = 2', ''].join(ending)).binary;
+    assert.deepEqual(commented('\r'), commented('\n'));
+    assert.deepEqual([...commented('\r').slice(1, 9)], [0xa9, 1, 0x85, 0xf9, 0xa9, 2, 0x85, 0xf9]);
+    assert.throws(() => compile('v = 1\rw = 256\r'), /^Error: Line 2: Byte literal out of range/);
+});

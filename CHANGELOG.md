@@ -744,6 +744,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed `amicoc` reading a source file with CR-only line endings, as old
+  Macs wrote them, as a single line. With a `#` comment in it, every
+  statement after the comment was dropped and the compile succeeded;
+  without one the error quoted the whole file. A line now ends at LF, at
+  CR LF or at a CR alone. Found by the check of the compiler.
 - Fixed a compiled program of exactly 257 bytes that the board's own LOAD
   routine could not load. The cassette PROM loses the last byte of a block
   one byte longer than a whole number of pages, so the program's closing

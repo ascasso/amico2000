@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 252
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 253
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -625,6 +625,7 @@ on 2026-11-23 and its place is the owner's to give.
          them, is read as one line. With a `#` comment in it, everything
          after the comment is dropped and the compile succeeds. Without one
          the error is "Unknown statement", with the whole file in it.
+         **Fixed:** a line ends at LF, at CR LF or at a CR alone.
       3. **After HLT, the RUN that resumes the program comes back from
          `keypad.press()` as a key**, `$13`. The helper waits for release
          only when it is called, and a halted program is nearly always

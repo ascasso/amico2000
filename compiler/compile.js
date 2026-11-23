@@ -189,7 +189,10 @@ function compile(source) {
     }
 
     emit('CLD'); // RUN restores the saved status, including the previous program's D flag.
-    for (const raw of source.split(/\r?\n/)) {
+    // A line ends at LF, at CR LF or at a CR alone, as old Macs wrote it. Split
+    // at LF only, a CR-only file is one line, and a `#` in it comments out
+    // every statement after it without a word.
+    for (const raw of source.split(/\r\n|\r|\n/)) {
         line++;
         const text = raw.split('#', 1)[0].trim();
         if (text) statement(text);
