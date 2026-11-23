@@ -4,6 +4,13 @@
 // Both the binary and the annotated assembly are made from these same records.
 const ORIGIN = 0x0200;
 const LIMIT = 0x03fc; // The four bytes here are the monitor's interrupt vectors.
+// The cassette PROM loses the last byte of a block that is one byte longer
+// than a whole number of pages: SAVE takes it, and LOAD stores it, one page
+// too low, and the checksum agrees on both sides (AGENTS.md, Cassette Sound
+// Format). An image of such a length is given one more byte, which nothing
+// executes, so that the board's own routines can carry the program. NOP is
+// what the manual's listings fill with (supplement, page 99).
+const FILLER = 0xea;
 const OPCODES = {
     CLD: 0xd8, CLC: 0x18, SEC: 0x38, TAX: 0xaa, RTS: 0x60,
     LDA: { imm: 0xa9, zp: 0xa5, absX: 0xbd },
@@ -47,6 +54,7 @@ function layout(items, symbols) {
     if (end > LIMIT) {
         throw new Error(`Program needs ${end - ORIGIN} bytes. Only ${LIMIT - ORIGIN} fit below the interrupt vectors at $03FC.`);
     }
+    return end;
 }
 
 function assemble(items) {
@@ -62,7 +70,11 @@ function assemble(items) {
         symbols.set(name, address);
         listing.push(`${name} = $${hex(address)}`);
     }
-    layout(items, symbols);
+    // The filler goes after everything else, so adding it moves nothing.
+    if ((layout(items, symbols) - ORIGIN) % 256 === 1) {
+        items.push({ bytes: [FILLER], filler: true });
+        layout(items, symbols);
+    }
     const binary = [];
     function row(pc, bytes, asm, line) {
         listing.push('    ' + asm.padEnd(27) + ' ; $' + hex(pc, 4) + '  ' +
@@ -74,6 +86,7 @@ function assemble(items) {
         if (item.label) {
             listing.push(item.label + ':');
         } else if (item.bytes) {
+            if (item.filler) listing.push('; filler: the cassette PROM loses the last byte of a block one byte over whole pages');
             for (let i = 0; i < item.bytes.length; i += 8) {
                 const bytes = item.bytes.slice(i, i + 8);
                 row(pc + i, bytes, '.byte ' + bytes.map(b => '$' + hex(b)).join(', '), line);

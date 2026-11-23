@@ -104,7 +104,11 @@ belongs to the running program. The original PROM behavior is documented in
 the [monitor review](../docs/monitor-rom-review.md).
 
 Code, used tables, and any input helper share the 508 bytes from `$0200`
-through `$03FB`. A larger image produces a compile error. Program variables
+through `$03FB`. A larger image produces a compile error. An image that would
+come to 257 bytes is given one byte of filler at its end: the cassette PROM's
+routines lose the last byte of a block one byte longer than a whole number of
+pages, and their checksum does not notice. The emulator's Instant cassette
+hides that; its Real time cassette and a board do not. Program variables
 that require storage occupy `$20-$7F` in zero page. The 6502 hardware stack,
 monitor and cassette workspaces, and interrupt vectors keep their own locations.
 The first compiler targets the original 1 KB configuration. Its types and

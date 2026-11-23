@@ -744,6 +744,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed a compiled program of exactly 257 bytes that the board's own LOAD
+  routine could not load. The cassette PROM loses the last byte of a block
+  one byte longer than a whole number of pages, so the program's closing
+  `JMP $FE22` arrived as `JMP $0022`; the cassette's Instant setting hid
+  it. `amicoc` now ends such an image with one byte of filler, and says so
+  in the listing. Found by the check of the compiler (`NextSession.md`,
+  item 13).
 - The site no longer publishes the repository's documents as web pages. A
   check of the live site for search engines found that GitHub Pages was
   running Jekyll over the repository and serving every Markdown document as

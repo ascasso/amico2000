@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 251
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 252
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -618,7 +618,9 @@ on 2026-11-23 and its place is the owner's to give.
          own LOAD routine.** The PROM loses the last byte of a block one
          byte longer than whole pages (`AGENTS.md`, Cassette Sound Format),
          so `$0300` keeps what it had and the closing `JMP $FE22` becomes
-         `JMP $0022`. The trap, Cassette: Instant, hides it.
+         `JMP $0022`. The trap, Cassette: Instant, hides it. **Fixed:**
+         such an image now ends with one byte of filler, and a test loads
+         it with the PROM's own routine.
       2. **A source file with CR-only line endings**, as old Macs wrote
          them, is read as one line. With a `#` comment in it, everything
          after the comment is dropped and the compile succeeds. Without one

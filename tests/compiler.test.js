@@ -7,6 +7,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { compile } = require('../compiler/compile');
 const { bootedMachine } = require('./helpers/machine');
+const { LOAD_ENTRY, realTimeMachine, runRoutine } = require('./helpers/cassette-signal');
 
 const squares = path.join(__dirname, '../compiler/examples/squares.amico');
 const cli = path.join(__dirname, '../compiler/amicoc.js');
@@ -163,4 +164,32 @@ test('the matchstick game plays to both endings on the original board memory map
         press(m, '1');
         assert.deepEqual(m.getDisplay(), segments);
     }
+});
+
+test('an image that would be 257 bytes gets a filler byte, and the board\'s own LOAD then reads all of it', () => {
+    // CLD, three scans, sixty-one assignments and the closing JMP: 1 + 9 + 244 + 3 = 257.
+    const source = 'display.scan()\n'.repeat(3) + Array.from({ length: 61 }, (_, i) => `display.data = ${i + 1}`).join('\n');
+    const { binary, origin, assembly } = compile(source);
+    assert.equal(binary.length, 258);
+    assert.deepEqual([...binary.slice(254)], [0x4c, 0x22, 0xfe, 0xea]);
+    assert.match(assembly, /^; filler: .*\n {4}\.byte \$EA +; \$0301 {2}EA$/m);
+    // An image a byte shorter or longer is left as it is: 4 scans and 60
+    // assignments make 256 bytes, 2 scans and 62 assignments 258.
+    const sized = (scans, assignments) => compile('display.scan()\n'.repeat(scans) + 'display.data = 1\n'.repeat(assignments)).binary;
+    assert.equal(sized(4, 60).length, 256);
+    assert.equal(sized(2, 62).length, 258);
+    assert.equal(sized(2, 62)[257], 0xfe);
+
+    // The PROM's own routine, traps off, against the emulated recorder.
+    const load = (data) => {
+        const { amico } = realTimeMachine();
+        amico.addTapeRecord({ id: 1, start: origin, data });
+        amico.cpu.memory.set([1, 0, 0xff], 0);
+        runRoutine(amico, LOAD_ENTRY);
+        return amico.cpu.memory.slice(origin, origin + data.length);
+    };
+    assert.deepEqual(load(binary), binary);
+    // Without the filler the last byte never arrives: the JMP would go to $0022.
+    const bare = binary.slice(0, 257);
+    assert.deepEqual([...load(bare).slice(254)], [0x4c, 0x22, 0x00]);
 });
