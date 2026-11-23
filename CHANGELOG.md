@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `tests/compiler-assignment.test.js`, which tries two rules of Amico
+  on every small program there is: that a name is assigned on every path
+  before it is read, and that every statement can be reached. Some 45,000
+  nestings of `if`, `else`, `loop` and `stop` are given to the compiler and
+  to an oracle that decides the same questions on a control-flow graph;
+  the two have to accept the same programs and refuse the rest at the same
+  line. It covers what the random programs cannot, since those are all
+  valid. `AMICO_STATEMENTS=7` goes deeper. It too comes from the check of
+  the compiler.
 - Added `tests/compiler-differential.test.js`, which holds the Amico compiler
   to an interpreter written from the README alone. A thousand random
   programs are compiled, run on the emulated board with registers and

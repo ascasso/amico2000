@@ -1241,6 +1241,13 @@ under Node on another computer and produces a listing, a binary or an
   reads a line or what it takes the accumulator to hold. When the language
   gains a construct, the interpreter and the generator beside it gain it
   too, or the construct goes untested.
+- `tests/compiler-assignment.test.js` tries every small nesting of `if`,
+  `else`, `loop` and `stop` against an oracle for the two flow rules: a
+  name assigned on every path before it is read, and no statement out of
+  reach. It expects the compiler's messages for those two, "Unreachable
+  statement" and "assigned variable"; reword them there too. A new way
+  for control to move, a `while` or a `break`, needs its edges in that
+  oracle.
 
 What an agent has to know before touching it:
 
