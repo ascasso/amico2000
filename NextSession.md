@@ -228,8 +228,8 @@ done but for the ends listed there.
    looked right and everything worked. On an iPad Pro 11" held upright the
    board as drawn had keys and displays too small, and in landscape it was
    fine, so tablets held upright now get the handheld layout too, up to
-   1100 px. That was checked in emulation only; the owner's iPad has not
-   seen it yet. Whatever item 1 and item 3 add has to fit the same first
+   1100 px. The owner then tried it on the iPad Pro 11" held upright: it
+   looked as intended, a full pass. Whatever item 1 and item 3 add has to fit the same first
    screen. Known rough edges, none of them blocking:
    - On the smallest common screen, an iPhone SE with Safari's toolbars, the
      last key row ends 2 px from the bottom and the maker's mark is below it.
@@ -242,7 +242,7 @@ done but for the ends listed there.
    - On a tablet the handheld layout is the phone's, larger: the title stays
      in its compact phone size, the language link in its two letters, and
      the keys fill a column about half the screen's width. It fits the first
-     screen; whether it looks right on the iPad is for the owner to say.
+     screen, and the owner found it right on the iPad Pro 11".
    - An iPad with a trackpad or mouse attached was not tried. If it reports
      a fine pointer it gets the board as drawn.
 3. **The site in Italian: done, with these ends loose.** The owner asked for
@@ -376,7 +376,32 @@ done but for the ends listed there.
     - The display is still drawn once per frame, so a program that animates
       the digits shows only some of its steps.
 11. **Ideas, not started:** a pass on wear and physical irregularity, sound,
-    and a desk scene around the board.
+    and a desk scene around the board. And one the owner raised on
+    2026-11-23 as a nice to have, not for now:
+    - **The cassette through the sound card.** With **Cassette: Real time**,
+      SAVE would play out of the speaker or line out, for a real deck to
+      record, and LOAD would listen to the microphone or line in while a
+      deck plays a tape, as on the board. Feasible, with no change to the
+      board side: a live recorder fits the interface `connectRecorder()`
+      already has, and `renderPulses()` already makes the sound. The work:
+      - **Timing.** `_runFrame()` runs the CPU in bursts and drops cycles
+        when a frame is late, which a real tape cannot survive. During a
+        live LOAD or SAVE the CPU would follow the audio clock, some
+        50-100 ms behind it, with pulses queued. The tab has to stay in
+        front.
+      - **Input.** The browser's echo cancellation, noise suppression and
+        gain control must be off, and `detectPulses()` needs a streaming
+        form. A cable from the deck is safe; a microphone in the room may
+        not be, because an echo arriving 0.78-2.4 ms after a pulse reads as
+        a 1 bit.
+      - **Testing.** Headless Chrome can take a WAV file as its microphone
+        (`--use-fake-device-for-media-stream` with
+        `--use-file-for-fake-audio-capture`), so `encodeWav()` output can go
+        through the whole live path.
+
+      Two smaller steps need none of the timing work and could come first: a
+      button that plays a program from the cassette as sound, and one that
+      records from the microphone until the tape stops and then decodes it.
 
 ## Cassette Work (Secondary)
 
