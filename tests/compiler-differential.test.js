@@ -143,15 +143,17 @@ test('random programs compute on the board what the reference interpreter comput
     }
 
     // A generator can stop making what it was written to make and the test
-    // would go on passing. These floors are about half of what it produced
-    // when it was written; they are there to notice a collapse, not a drift.
+    // would go on passing. When it was written, of the programs that ran, 21%
+    // had a long branch, 59% a loop, 71% a table read, 70% an else and 44% ifs
+    // four deep, and 74% of those generated fitted the board. The floors are
+    // about half of each: there to notice a collapse, not a drift.
     const share = (count) => count / seen.ran;
-    assert.ok(seen.ran / PROGRAMS > 0.5, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
-    assert.ok(share(seen.longBranch) > 0.08, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
-    assert.ok(share(seen.loops) > 0.25, `a loop in only ${seen.loops} of ${seen.ran}`);
-    assert.ok(share(seen.tables) > 0.20, `a table read in only ${seen.tables} of ${seen.ran}`);
-    assert.ok(share(seen.elseArms) > 0.30, `an else in only ${seen.elseArms} of ${seen.ran}`);
-    assert.ok(share(seen.deep) > 0.20, `ifs four deep in only ${seen.deep} of ${seen.ran}`);
+    assert.ok(seen.ran / PROGRAMS > 0.4, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
+    assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
+    assert.ok(share(seen.loops) > 0.30, `a loop in only ${seen.loops} of ${seen.ran}`);
+    assert.ok(share(seen.tables) > 0.35, `a table read in only ${seen.tables} of ${seen.ran}`);
+    assert.ok(share(seen.elseArms) > 0.35, `an else in only ${seen.elseArms} of ${seen.ran}`);
+    assert.ok(share(seen.deep) > 0.22, `ifs four deep in only ${seen.deep} of ${seen.ran}`);
 });
 
 test('display.scan() among the statements changes nothing a program can see', () => {

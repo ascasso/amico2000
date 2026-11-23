@@ -20,7 +20,8 @@
 //
 //     AMICO_STATEMENTS=7 node --test tests/compiler-assignment.test.js
 //
-// which is 4.1 million programs and takes about half a minute. It was one
+// which is 5.6 million programs, 4.1 million with one name and 1.5 million
+// with two, and takes about half a minute. It was one
 // reviewer's harness in the check of 2026-11-23 (AGENTS.md, A Review by
 // Several Agents), run then to seven statements with one name and to six
 // with two.

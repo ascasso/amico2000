@@ -1396,7 +1396,17 @@ reproduced every finding before passing any on.
 - **For building, one author.** Several agents writing the same files have
   nothing to keep them apart. Let one session write, in small commits, and
   give the finished series to reviewers on other models before it is
-  pushed, with the same kind of brief and the same form of report.
+  pushed, with the same kind of brief and the same form of report. The
+  fixes for that check were made so, the same day: nine commits by one
+  session, then Codex on the code and Claude Opus on the tests and the
+  documents. Two things earned their keep. Codex ran the old compiler
+  beside the new on thousands of generated lines and listed every input
+  whose outcome had changed, which showed that nothing unintended had, and
+  found three messages still pointing wrong. Opus undid each fix in a
+  scratch copy and ran its test, to see the test fail; all did, and it
+  found two numbers in a comment and the log that were not true. Ask a
+  reviewer of tests for exactly that: a test that passes with its fix
+  taken out is no test of it.
 - **The owner's Codex.** One instance at a time. Its prompt is plain ASCII,
   the owner's rule for anything handed to another tool, kept in a file and
   given on standard input. The run of 2026-11-23, with the model the

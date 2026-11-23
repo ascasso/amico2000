@@ -384,6 +384,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Raised the floors in `tests/compiler-differential.test.js` to what its
+  comment says they are, about half of what the generator makes; the one
+  for table reads was under a third. Corrected the header of
+  `tests/compiler-assignment.test.js`, which gave its deeper run as 4.1
+  million programs when it is 5.6 million. Both were found by a review of
+  the tests. `AGENTS.md`, A Review by Several Agents, now says how the
+  fixes themselves were reviewed and what that was good for.
 - Corrected `compiler/README.md` where the check of the compiler found it
   wrong or silent. "The square table occupies 40 bytes" was the size of
   the whole program, 16 bytes of it the table. `squares` runs for ever, and
