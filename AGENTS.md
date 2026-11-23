@@ -46,7 +46,7 @@ This file provides repository guidance for agents working in this repository.
   comment or a test. A new public page gets an entry of its own. Google uses
   `lastmod` only from sites where it has proved accurate, and nothing checks
   it, so it is easy to forget: before committing a page, look at the
-  sitemap. The file's own `robots.txt` is not read by crawlers, because the
+  sitemap. The site's `robots.txt` is not read by crawlers, because the
   site is not at the root of its host; the sitemap reaches Google through
   Search Console.
 - Commit in small units. One commit is one unit of work — a single fix, a
