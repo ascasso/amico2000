@@ -366,6 +366,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Named the compiler's language Amico, the owner's decision, and said in both
+  READMEs that it is new: written for this project in 2026, not ASEL's
+  software and never part of the machine. They called it "the AMICO's
+  byte-oriented language", which read as something that came with the board.
+  `NextSession.md`, item 13, now records the design the owner settled the
+  same day: what the language is to gain, what stays out of it, how programs
+  longer than 508 bytes will use the second kilobyte, and what is still open.
+  `AGENTS.md` has a section on the compiler, which it did not mention. The
+  compiler itself is unchanged.
 - Tablets held upright now get the handheld layout that phones have: the
   displays, LEDs, switch and keys in one column, with a picture of the board
   beneath. The owner found the board as drawn too small on an iPad Pro 11"

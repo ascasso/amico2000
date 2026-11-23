@@ -1,8 +1,13 @@
 # Writing programs for the AMICO 2000
 
-`amicoc` cross-compiles a small byte-oriented language on a computer with Node.js.
-The AMICO runs native NMOS 6502 instructions. The compiler and its source text
-take up no space on the board.
+Amico is a small language for the AMICO 2000 in which every value is a byte.
+`amicoc`, its compiler, runs on a computer with Node.js and turns a program
+into native NMOS 6502 instructions for the board. The compiler and the source
+text take up no space on the board. A program is a file ending in `.amico`.
+
+Amico is new. It was written for this project in 2026; it is not ASEL's
+software and was never part of the machine. What is planned for it is in
+[NextSession.md](../NextSession.md), item 13 under Outstanding.
 
 ## Try the square table
 

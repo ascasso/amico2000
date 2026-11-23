@@ -35,6 +35,12 @@ easier to approach, and must not make the machine easier than it was. Putting
 a program's bytes in memory for a visitor passes that test. A button that
 runs the program does not, and neither would an assembler.
 
+That test is about the emulator, the page a visitor works at. The owner said
+so again on 2026-11-23, "the emulator itself should not be easier than the
+original one", and counted it kept. Amico, the compiled language added that
+day, is a tool that runs on another computer and is not on the page, so the
+test does not judge it. See item 13 under Outstanding.
+
 The audiences and the test come from a product brief the owner brought on
 2026-11-22 and had reviewed against this file. The brief is not in the
 repository: most of it restated item 1, and a second statement of direction
@@ -55,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 237
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 246
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -72,6 +78,10 @@ below, each marked as coming from it.
   reads goes in twice. See item 3 for what is left.
 - **Programs:** the site offers none to load. The guide prints a few short
   ones to key in. See item 1.
+- **Amico:** `compiler/` holds a small compiled language for the board, named
+  Amico, and its compiler `amicoc`, which runs under Node and is no part of
+  the page. Codex built it on 2026-11-23 and nothing in it has changed since.
+  What the owner settled for it the same day is item 13.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
   which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
   executes one instruction.
@@ -92,7 +102,8 @@ below, each marked as coming from it.
 ## Outstanding
 
 In rough priority order. None of it is started, apart from item 3, which is
-done but for the ends listed there.
+done but for the ends listed there. Item 13 is outside the order: it arrived
+on 2026-11-23 and its place is the owner's to give.
 
 1. **Give the machine its software: a shelf of programs and a guide on
    screen.** Agreed with the owner on 2026-11-22 as the next piece of work.
@@ -444,6 +455,160 @@ done but for the ends listed there.
     - **Not run:** Lighthouse, which needs a download the session was not
       allowed. Load times were measured by hand instead, in headless Chrome
       throttled to a slow phone.
+
+13. **Amico, the language beside the board.** `compiler/` holds a small
+    language in which every value is a byte, and `amicoc`, which compiles it
+    under Node into 6502 code for `$0200`, as a listing, a binary or a tape
+    (`compiler/README.md`). It began, in the owner's words, as "a thought
+    experiment": asked whether such a language was feasible, Codex built all
+    of it in one prompt, on 2026-11-23. The same day the owner had an agent
+    look it over, named it, and settled in conversation what follows. None of
+    it is built, and nothing in the compiler has changed since Codex wrote it.
+    - **The name is Amico**, the owner's decision: "I'm gonna stick with
+      Amico, .amico. It's the obvious choice." Source files end in `.amico`,
+      all lowercase, and the compiler is `amicoc`. Write the language Amico
+      and the machine AMICO 2000. Adda, Otto and Caro were offered and
+      refused, Adda because search engines and people would take it for Ada.
+      The name is settled.
+    - **The North Star's test does not judge it.** That test is about the
+      emulator, and Amico runs on another computer. It stays off the page
+      unless the owner asks. It is new, and both READMEs say so, so that
+      nobody takes it for ASEL's.
+    - **The owner's direction:** "the language should be fairly simple and be
+      optimized for this board, not a generic portable language."
+    - **What a first look found**, on 2026-11-23, by reading the compiler,
+      running its tests and writing three programs in it, a clock, a die and
+      a hex entry, each of which ran correctly on the emulated board the
+      first time:
+      - It is honest about cost. A line is a load, one operation and a
+        store, and `squares` comes out at 40 bytes, within a byte of
+        hand-written code.
+      - It knows the monitor: `CLD` first, Port A set to input before the
+        key routine, the way out through `$FE22`, a program that would reach
+        the vectors refused, and a key wait that begins by waiting for
+        release, so that the RUN which started the program is not a move.
+      - It has no delay statement, so a program waits by scanning and cannot
+        darken the displays by idling.
+      - It reaches the hex digits and the keypad and nothing else: no memory
+        address, no port, no call, and a table only from a formula. It
+        cannot write the word on the displays or the sliding text of item 1,
+        the guide's two LED programs, or the manual's first program, the
+        sum, whose result it works out and stores nowhere.
+      - Nothing leaves a `loop`, and there is no `and` or `else if`: the
+        matchstick game needs three nested `if`s to accept a move.
+      - It hides what the 6502 is good at: decimal mode, indexing, carry. A
+        24-hour clock written in it is 140 bytes; the May 1979 article's is
+        63, and three in page zero.
+      - Quiet surprises. A value assigned to a name nobody reads is dropped
+        without a word, a misspelt name on the left of `=` included. `stop`
+        hands the board back showing `0000 00`. HLT overwrites the display
+        fields, which the examples use as variables. Key codes are bare
+        numbers.
+    - **To be added**, agreed with the owner. The spellings are the agent's
+      proposals, and each is settled when it is built:
+      - Names for memory, `byte sum at $04`, and for a row of bytes,
+        `byte segment[6] at $8f`. A call to an address, `call $ff7e`. On top
+        of those, friendly names for what the board and its monitor have.
+        Whether a program should show addresses the owner left to the agent,
+        which chose both.
+      - A table written out, beside the formula:
+        `const word = table byte = $77, $6d, $79, $38, 0, 0`.
+      - Words for the displays as a table the compiler works out,
+        `const hello = table segments "CIAO"`, with the bytes shown in the
+        listing. It needs an agreed alphabet first; item 1 has what is known
+        of the letters seven segments can and cannot make.
+      - A `decimal ... end` block, inside which `+` and `-` count in
+        decimal. The compiler clears decimal mode around the key routine,
+        where the monitor goes wrong (`docs/monitor-rom-review.md`, bug 2).
+      - A routine for the HLT key. The owner said in. The agent had voted to
+        leave it for now, as the hardest thing on the list: registers to
+        save, and the monitor's routines shared with the program it
+        interrupts. Its form is not designed.
+      - Subroutines with no parameters: `sub tick ... end`, called as
+        `tick()`.
+      - From the agent's recap, which the owner liked as a whole and did not
+        take one by one: a warning for a name assigned and never read; named
+        constants (`const start = 21`) and names for the key codes
+        (`key.none`, `key.run`); `display.hold()`, which scans until RES, so
+        that a program can end with its result showing; `and`, `or`,
+        `else if`, `>` and `<=`; shifts, `a << 1` and `a >> 1`; a key read
+        or a table read as an operand (`k = keypad.read() & 15`); and
+        tighter code, `INC` and `DEC` for `x = x + 1` and no `CMP #0` after
+        an operation that set the flags.
+    - **Stays out**, a list the owner approved:
+      - anything wider than a byte, carry, pointers;
+      - more than one operation on a line, parentheses, precedence;
+      - multiplying or dividing at run time, which a table does;
+      - strings and records;
+      - a run-time library, beyond a helper that is asked for and shows in
+        the listing, and run-time checks;
+      - parameters, local variables and recursion;
+      - any other machine, and the expansion boards;
+      - include, modules and macros;
+      - `goto`, and inline assembly, since the listing is assembler source
+        to carry on from;
+      - random numbers: a program counts while it waits for a key, as
+        programs did then.
+
+      And **no Italian words in the language**, the owner's decision:
+      "Italians prefer English for programming (Nuova Elettronica around the
+      time of the Amico 2000 tried BASIC in Italian and it was hated)". The
+      compiler itself stays small, with no dependencies.
+    - **The second kilobyte: decided, and built when a program first needs
+      it.** No new word in the language. A program that fits in 508 bytes is
+      laid out as today and runs on any board. A longer one starts at `$0200`
+      all the same and steps over the vectors at `$03FC-$03FF`, with the NMI
+      vector set to `$FE00`, and the listing says that it needs the RAM
+      expansion. RUN is always from `0200`. The owner chose this over leaving
+      the limit where it is and over starting long programs at `$0400`. What
+      the supplement has on the matter, each read on the scan on 2026-11-23:
+      - The second kilobyte is in one parts list with the cassette
+        interface, Tabella 10 on page 44: IC13 and IC14. The same page says
+        the expanded board has "circa 1,5 kbyte di RAM nella quale possono
+        essere scritti i programmi". Page 47 has its test: from `0400` to
+        `07FF` "deve essere possibile scrivere dei dati". The board the home
+        page draws has all four RAMs.
+      - Two programs of Appendix 2 run across the vectors, and both print
+        `00 FE 6F F5` at `$03FC`. The calculator's row on page 99 is
+        `03F0 =85 23 8A 60 E6 20 20 1F 06 60 EA EA 00 FE 6F F5`: a routine
+        ends, two `NOP`s, the vectors, and the code goes on at `$0400`. The
+        row of "Il gioco del 21" on page 104 is
+        `03F0 =95 65 96 85 91 A2 04 B5 91 95 92 CA 00 FE 6F F5`, followed by
+        `0400 =00 60`: the same four bytes straight after a `DEX`, in what
+        reads as the middle of a loop. Whether that routine works as printed
+        was not tried.
+    - **Open.** The words for ending a loop, which the owner will decide
+      later; the agent proposed `while`, `break`, `next` for going round
+      again, and a counted `repeat 6`. The alphabet for `table segments`.
+      The form of the HLT routine. And what the image of a long program puts
+      in the IRQ vector (item 6).
+    - **How to steer it:** by the project's own programs. The manual's sum
+      (Tabella 7), the word on the displays, the guide's LED counter, the
+      sliding text, the 1979 clock and 21 fiammiferi. Amico is good enough
+      when each reads well and comes out close to its hand-written size.
+    - **The listing as the manual's Tavola A.** The supplement's page 15 has
+      a program written first "nel nostro linguaggio", and Tavola A on page
+      16 sets three columns side by side: "linguaggio discorsivo (il nostro,
+      non comprensibile dal microelaboratore)", "linguaggio simbolico" and
+      "linguaggio macchina". Amico is that first column made exact, and its
+      listing is nearly the table: it has the mnemonics, the addresses and
+      the bytes, and of the source only a line number. The agent proposed
+      printing each source line above its instructions, with address and
+      bytes first, as the manual prints a listing. The manual's word for a
+      program that translates is "traduttore" (page 15), should the site
+      ever need an Italian one for the compiler.
+    - **Order of work**, the agent's proposal. The small fixes first: the
+      warning, the names for constants and keys, `display.hold()`, and the
+      README saying what `stop` and HLT do to the displays. Then memory
+      names, calls and written-out tables. Then the ways out of a loop and
+      the richer conditions, once the owner has chosen the words. Then
+      decimal. The compiler reads a line with one regular expression for
+      each kind of statement, which will not stretch to `and` or to rows of
+      bytes, so a small tokenizer comes before the loops. One unit to a
+      commit, each with its test.
+    - **Before any of it, a check of the compiler as it stands**, read only,
+      which the owner asked for on 2026-11-23 and which was under way when
+      this was written. Its findings are not here.
 
 ## Cassette Work (Secondary)
 

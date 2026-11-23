@@ -136,7 +136,9 @@ python3 -m http.server 8000
 The project consists of six modular JavaScript files, and `index.html`, which
 besides loading them draws the board; see Board Artwork under Important
 Implementation Notes. The guide is two more pages with no script,
-`guide.html` in English and `guida.html` in Italian.
+`guide.html` in English and `guida.html` in Italian. `compiler/` is a tool
+beside the page and no part of it; see Amico under Important Implementation
+Notes.
 
 ### 1. cpu6502.js (~1100 lines)
 Complete 6502 CPU interpreter implementing:
@@ -1205,6 +1207,58 @@ GitHub Pages publishes `master` as it is. Checked on the live site on
   `hreflang` pairs.
 
 What it lacks is under item 12 of Outstanding in `NextSession.md`.
+
+### Amico
+
+`compiler/` holds Amico, a small compiled language for the board, and
+`amicoc`, its compiler. It was added on 2026-11-23. It began as the owner's
+thought experiment, whether such a language was feasible, and Codex built it
+in one prompt. The owner named it and settled its design the same day.
+`NextSession.md` has all of that under item 13 of Outstanding: what is to be
+added, what stays out, what is still open, and the order of work. Read that
+item before changing the language.
+
+**It is no part of the page.** Nothing in `index.html` loads it. It runs
+under Node on another computer and produces a listing, a binary or an
+`.amtape` image for the board:
+
+- `compile.js` reads a program a line at a time, checks it and makes 6502
+  instructions as records.
+- `emit.js` drops a store that nothing reads, gives the variables their
+  places in page zero from `$20`, lays the code out from `$0200`, turns a
+  branch that cannot reach into the inverse branch around a `JMP`, and
+  writes the listing and the binary from the same records.
+- `amicoc.js` is the command line. Its tape is made by the machine layer's
+  own `addTapeRecord()` and `exportTape()`.
+- `compiler/README.md` is the language's reference. `tests/compiler.test.js`
+  runs compiled programs on the real monitor, through
+  `tests/helpers/machine.js`.
+
+What an agent has to know before touching it:
+
+- **The name is Amico.** Source files end in `.amico`, all lowercase, and
+  the compiler is `amicoc`. Write the language Amico and the machine
+  AMICO 2000. The owner chose the name on 2026-11-23 after others were
+  offered; it is settled, and no other is to be proposed.
+- **It is new, and has to say so.** It was written in 2026 and is not ASEL's
+  software. Wherever it is described, a reader must not be able to take it
+  for something that came with the machine. Both READMEs say it.
+- **It stays off the page.** The rule that help must not make the machine
+  easier than it was (North Star, `NextSession.md`) is about the emulator,
+  and the owner counts it kept. Amico is a tool beside the board. Do not
+  load the compiler into the page, or offer it there, unless the owner asks.
+- **The owner's direction:** "the language should be fairly simple and be
+  optimized for this board, not a generic portable language." It knows this
+  board's memory map, its monitor and its keys, and no other machine.
+- **No Italian words in the language.** The owner refused them on
+  2026-11-23: "Italians prefer English for programming". `compiler/README.md`
+  is a document and stays in English, like the others.
+- **What it has to keep.** A line of source is a handful of instructions
+  that someone could key in, and everything a program runs shows in its
+  listing. Generated code starts with `CLD`, sets Port A to input before the
+  key routine, and leaves through `$FE22`: the monitor's faults
+  (`docs/monitor-rom-review.md`) allowed for, each held by
+  `tests/compiler.test.js`.
 
 ## Development Guidelines
 
