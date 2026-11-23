@@ -466,7 +466,13 @@ function labelDisplay() {
 // meant to stay exactly as it is; a mouse is a fine pointer, a finger a
 // coarse one, so requiring a coarse pointer leaves every desktop alone.
 // Landscape on a phone keeps the board as drawn, which then fits the width.
-const HANDHELD_QUERY = '(max-width: 640px) and (orientation: portrait) and (pointer: coarse)';
+//
+// Tablets held upright are included. The board fits their width, but at
+// 744-1032 px its keys are 31-39 px and its displays a fifth of the screen:
+// the owner found them too small on an iPad Pro 11" (834 px), and the same
+// iPad turned sideways, keys at 45 px, fine. 1100 px takes in every iPad
+// upright, the widest being the 13" Pro at 1032.
+const HANDHELD_QUERY = '(max-width: 1100px) and (orientation: portrait) and (pointer: coarse)';
 
 // How far a finger may drift on a key in the handheld layout and still count
 // as a tap rather than the start of a scroll.

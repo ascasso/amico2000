@@ -891,14 +891,24 @@ geometry and nothing else on the board.
 ### Handheld Layout
 
 On a phone held upright the board cannot be both whole and usable: it is
-three times as wide as it is tall, and at 390 px its keys would be 16 px. So
-on such a screen, and only there, the page rearranges itself.
+three times as wide as it is tall, and at 390 px its keys would be 16 px. On
+a tablet held upright it is whole but small: at 834 px, an iPad Pro 11", its
+keys are 32 px and its displays 188 px across. So on such a screen, and only
+there, the page rearranges itself.
 
 - **When.** `HANDHELD_QUERY` in `main.js`:
-  `(max-width: 640px) and (orientation: portrait) and (pointer: coarse)`. The
+  `(max-width: 1100px) and (orientation: portrait) and (pointer: coarse)`. The
   coarse pointer is what keeps it off every desktop: a mouse is a fine
   pointer, so a desktop window of any shape keeps the board as drawn. A phone
-  turned to landscape keeps it too, since the board then fits the width.
+  or tablet turned to landscape keeps it too, since the board then fits the
+  width with keys of 45 px or more.
+  - The width was 640 px at first, which left tablets out on the reasoning
+    that any screen the board fits should keep it. On 2026-11-23 the owner
+    found the keys and displays too small on an iPad Pro 11" held upright,
+    and the same iPad in landscape fine. 1100 px takes in every iPad held
+    upright, the widest being the 13" Pro at 1032. In the panel the keys are
+    then 94-114 px, held to 9% of the screen's height by the key pitch, and
+    the displays stop at their `max-width` of 30rem.
 - **What.** `setupHandheldLayout()` moves the four parts a person works, the
   displays, the four LEDs, the function keys with the NOR/SS switch and the
   hex keys, out of `.pcb` into `#handheld-panel`, in that order, above the
@@ -946,8 +956,10 @@ on such a screen, and only there, the page rearranges itself.
   landscape and back to check the move both ways. Then on a real phone: a
   headless browser is not one. The owner has done so: on 2026-11-22 the page
   was opened in Safari on an iPhone 17 Pro held upright and looked right,
-  with everything working. No other phone or browser has been tried on a
-  real device.
+  with everything working, and on 2026-11-23 in Chrome on a OnePlus 7T, an
+  Android phone, with the same result. Tablets held upright were checked in
+  emulation only, at 744, 834 and 1032 px, when they were brought into the
+  layout; no tablet has been tried on a real device since.
 
 ### Two Languages
 
@@ -1216,12 +1228,12 @@ When implementing changes based on a GitHub issue:
    **Cassette: Real time**, though a program can light them at either
    setting. The NOR/SS switch was photographed only at NOR, so its SS position is
    the same drawing moved across. The displays do not show the 31 ms blink a
-   real board gives when a key is pressed. On a phone held upright the parts
+   real board gives when a key is pressed. On a phone or tablet held upright the parts
    a person works are rearranged into one column (see Handheld Layout); in a
    desktop window narrower than about 800 pixels the board keeps its size and
    pans sideways, as before. The drawing has been looked at in Chrome only,
-   and the handheld layout in emulation and in Safari on one iPhone 17 Pro,
-   held upright. See Board Artwork
+   and the handheld layout in emulation, in Safari on one iPhone 17 Pro and
+   in Chrome on one OnePlus 7T, held upright. See Board Artwork
 8. **Languages**: the site is in English and Italian and no other. The home
    page has one address for both, so a search engine or a link preview shows
    its English; only the guide has an Italian address. The Italian of a

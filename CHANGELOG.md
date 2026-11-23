@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `docs/monitor-rom-review.md`, a review of the original monitor PROM
+  (IC9) for bugs and security issues, at the owner's request. It finds five
+  bugs in the ROM as ASEL shipped it. RUN restores the status of the last
+  program halted, so an ordinary program can start in decimal mode, even
+  after RES; the manual's first program, which has no `CLD`, then adds 09 and
+  01 to get 10. In decimal mode the key routine at `$FF57` returns 15 for F
+  and for no key alike, where the manual's Tabella 17 promises 21 for no key.
+  Entered at `$FE30` in decimal mode, the main loop scrambles the keypad, so
+  that D acts as RUN. And the branch calculator at `$FF97` overwrites a halted
+  program's saved A and does not debounce its keys. The review also lists
+  where the manual describes the ROM wrongly, smaller faults of the design,
+  what was checked and found sound, and what a tape could do: take over HLT
+  and BRK until the board is switched off, but never start itself. Each
+  finding was reproduced by running the ROM, and the document gives the keys
+  that show it. Nothing in the emulator was changed. Its IRQ vector seed,
+  `$FE30`, is what makes the keypad bug reachable here, which bears on the
+  seed AGENTS.md leaves undecided.
 - Added Italian to the home page. A browser set to Italian now opens the
   page in Italian with nothing to press, and a word in the page's top right
   corner, `Italiano` or `English`, changes it where it stands: nothing is
@@ -332,6 +349,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Tablets held upright now get the handheld layout that phones have: the
+  displays, LEDs, switch and keys in one column, with a picture of the board
+  beneath. The owner found the board as drawn too small on an iPad Pro 11"
+  held upright, with keys of 32 px and displays 188 px across; in the
+  handheld layout they are 99 px and 480 px. The layout now applies up to
+  1100 px wide instead of 640, which takes in every iPad held upright. A
+  tablet or phone in landscape, and every desktop, keep the board as drawn.
+  The guides and the README say "phone or tablet". Checked in emulation; the
+  OnePlus 7T, in Chrome, was tried by the owner on a real device and passed.
 - Corrected `NextSession.md`, which still said the Italian was not live after
   pull request 53 had put it on the site. Documentation only.
 - The Italian now speaks as the manual does, in "noi". The supplement does

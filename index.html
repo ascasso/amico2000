@@ -945,19 +945,20 @@
         }
 
         /* ================================================================
-           Handheld layout: a phone held upright.
+           Handheld layout: a phone or a tablet held upright.
 
            The board is three times as wide as it is tall, and drawn at a
            size where its keys are about 30 px, so on a phone held upright
-           it cannot be shown whole and usable at once. In that case only,
+           it cannot be shown whole and usable at once, and on a tablet
+           held upright it is whole but its keys are too small for a finger. In that case only,
            main.js moves the parts a person works, the displays, the four
            LEDs, the NOR/SS switch and the keys, into .handheld-panel above
            the board, in one column with keys sized for a thumb, and leaves
            inert pictures of them in the drawing, which then shrinks to the
            width of the screen as a picture of the whole board.
 
-           "Upright phone" is the media query in main.js: narrow, portrait
-           and a coarse pointer. A desktop window of any shape never
+           "Held upright" is the media query in main.js: no wider than a
+           tablet, portrait and a coarse pointer. A desktop window of any shape never
            matches, because a mouse is a fine pointer; nothing here applies
            to it. Every rule below is scoped to .handheld-panel or to
            html.handheld, the class main.js sets while the layout is on, and
@@ -1125,7 +1126,7 @@
         <p>Advanced MIcro COmputer &middot; A.S.E.L. Milano &middot; 1978</p>
     </header>
 
-    <!-- The handheld layout: on a phone held upright, main.js moves the
+    <!-- The handheld layout: on a phone or tablet held upright, main.js moves the
          displays, lamps, switch and keys out of the board drawing into this
          panel and leaves pictures of them behind in the drawing. Empty and
          hidden everywhere else. See "Handheld layout" in the styles. -->
@@ -1802,7 +1803,7 @@
             <a href="https://github.com/ascasso/amico2000" target="_blank" rel="noopener">Codice sorgente su GitHub</a> &middot;
             <a href="https://computerhistory.it/computer/asel/amico-2000" target="_blank" rel="noopener">fotografie della scheda su ComputerHistory.it</a></span>
             <!-- Committed stamp: keep the date aligned with the commit, even when opened offline. -->
-            <p class="build-stamp"><span data-lang="en">Build</span><span data-lang="it" lang="it">Versione</span> <time id="build-date" datetime="2026-11-22">20261122</time></p>
+            <p class="build-stamp"><span data-lang="en">Build</span><span data-lang="it" lang="it">Versione</span> <time id="build-date" datetime="2026-11-23">20261123</time></p>
         </div>
 
     </main>
