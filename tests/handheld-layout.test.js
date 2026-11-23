@@ -70,8 +70,11 @@ test('main.js turns the layout on only for an upright touch screen', () => {
     assert.ok(parts.includes('(pointer: coarse)'), 'a coarse pointer only: a desktop with a mouse never matches');
     const width = parts.find((part) => part.startsWith('(max-width:'));
     assert.ok(width, 'a narrow screen only');
-    assert.ok(parseInt(width.match(/\d+/)[0], 10) < 760,
-        'below the board\'s minimum width, so that any screen the board fits keeps the board');
+    // A tablet held upright is taken in too: the board fits its width, but
+    // with keys of 31-39 px. The widest, an iPad Pro 13", is 1032 px upright.
+    // Landscape is kept out by the orientation, and desktops by the pointer.
+    assert.ok(parseInt(width.match(/\d+/)[0], 10) >= 1032,
+        'wide enough for every tablet held upright');
 
     // It is the class, set by main.js and by nothing else, that switches the styles.
     assert.match(script, /root\.classList\.toggle\('handheld', wanted\)/);

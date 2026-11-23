@@ -41,7 +41,7 @@ repository: most of it restated item 1, and a second statement of direction
 would compete with this one. What the review added is written into the items
 below, each marked as coming from it.
 
-## Where Things Stand (2026-11-22)
+## Where Things Stand (2026-11-23)
 
 - **Publishing:** agents push `develop` when their commits are done
   (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
@@ -64,7 +64,7 @@ below, each marked as coming from it.
   go dark when nothing is scanning them, as on the board.
 - **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
   PROM (IC10).
-- **Phones:** held upright, the page uses a handheld layout; see item 2.
+- **Phones and tablets:** held upright, the page uses a handheld layout; see item 2.
 - **Languages:** English and Italian. A browser set to Italian opens the home
   page in Italian, a link in its top corner changes language without a
   reload, and the guide is two pages, `guide.html` and `guida.html`. Read Two
@@ -85,7 +85,7 @@ below, each marked as coming from it.
   LEDs D4-D7 Under a Program). Read from the schematic, not tried on a real
   board.
 - **Open issues:** none.
-- **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-22.
+- **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-23.
 
 ## Outstanding
 
@@ -224,10 +224,13 @@ done but for the ends listed there.
    2026-11-22 (`AGENTS.md`, Handheld Layout): on an upright touch screen the
    displays, LEDs, switch and keys move into one column above a picture of
    the board. The owner tried it the same day in Safari on an iPhone 17 Pro
-   held upright: it looked right and everything worked. No other phone or
-   browser has been tried on a real device. Whatever item 1 and item 3 add
-   has to fit the same first screen. Known rough edges, none of them
-   blocking:
+   held upright, and on 2026-11-23 in Chrome on a OnePlus 7T: on both it
+   looked right and everything worked. On an iPad Pro 11" held upright the
+   board as drawn had keys and displays too small, and in landscape it was
+   fine, so tablets held upright now get the handheld layout too, up to
+   1100 px. That was checked in emulation only; the owner's iPad has not
+   seen it yet. Whatever item 1 and item 3 add has to fit the same first
+   screen. Known rough edges, none of them blocking:
    - On the smallest common screen, an iPhone SE with Safari's toolbars, the
      last key row ends 2 px from the bottom and the maker's mark is below it.
    - Turned to landscape, a phone gets the board as drawn, and the title
@@ -236,8 +239,12 @@ done but for the ends listed there.
      would be the fix.
    - The pictures left in the board drawing are static: they do not light up
      with the real displays and LEDs.
-   - Tablets in portrait wider than 640 px keep the board as drawn, at about
-     the size a desktop window shows it.
+   - On a tablet the handheld layout is the phone's, larger: the title stays
+     in its compact phone size, the language link in its two letters, and
+     the keys fill a column about half the screen's width. It fits the first
+     screen; whether it looks right on the iPad is for the owner to say.
+   - An iPad with a trackpad or mouse attached was not tried. If it reports
+     a fine pointer it gets the board as drawn.
 3. **The site in Italian: done, with these ends loose.** The owner asked for
    it on 2026-11-22 and it was built that day: the home page, the guide, and
    what the page says while it is used, down to the reasons the machine
