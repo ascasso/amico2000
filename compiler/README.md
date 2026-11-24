@@ -76,6 +76,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. The monitor then puts its own address and data on the displays, `0000` and the byte there, so whatever the program was showing is gone. To end with a result showing, end with `display.hold()`. |
 | `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
 | `byte sum at $04` | Give a memory location a name. Reading the name reads that byte and assigning to it writes it, each time. Declare it before executable statements. See Memory and ports. |
+| `byte segment[6] at $8f` | Give a row of bytes a name: here six, from `$8F`. `segment[2]` is the third of them, to read or to assign to. A literal index is checked and costs what a single byte costs; a variable index is not checked, and goes through X. A row has 1 to 256 bytes, and the count may be a constant. |
 | `call $ff7e` | Call the routine at an address. When it comes back nothing is taken to be known: not what is in A, and not which way the routine has left Port A, so the next key read sets that again. See Memory and ports. |
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |
 | `const word = table byte = $77, $6d, $79, $38` | Build a table from its bytes, written out with commas between them. Each is a literal or a constant; there may be 256 of them. Declare it before executable statements. |
@@ -179,10 +180,34 @@ That puts an A on the leftmost digit. `display.scan()` is `call $ff0c` with
 one difference: the compiler knows that routine leaves Port A an input, and
 knows nothing of any other.
 
+`byte segment[6] at $8f` names all six of those bytes at once, as a row.
+`segment[0]` is the first and `segment[5]` the last, and the index may be a
+variable. The manual's word, ASEL, copied out of a table:
+
+```
+const word = table byte = $77, $6d, $79, $38, 0, 0
+byte segment[6] at $8f
+i = 0
+loop
+    segment[i] = word[i]
+    i = i + 1
+    if i == 6
+        loop
+            call $ff7e
+        end
+    end
+end
+```
+
+A table is read and never written; a row is memory, and is both. An index
+that is a variable is not checked against the row's length: past the end it
+reaches whatever byte the instruction then addresses.
+
 An address is `$0000` to `$FFFF`, in hex or in decimal. `$20-$7F` is refused:
 the compiler keeps the program's own variables there. A named location needs
 no assignment before it is read, and is never warned of as unread. Two names
-may be given to one byte. A store into a PROM is lost, as on the board.
+may be given to one byte, and a row may lie over a named byte or another row.
+A store into a PROM is lost, as on the board.
 
 ## The ROM and the memory budget
 

@@ -679,3 +679,63 @@ test('a routine can be called by its address, and the manual\'s word shown', () 
         ['stop\ncall $ff7e', /^Error: Line 2: Unreachable statement/]
     ]) assert.throws(() => compile(source), error);
 });
+
+test('a row of bytes is named once and indexed', () => {
+    const bytes = (source) => [...compile(source).binary];
+    const row = 'byte segment[6] at $8f\n';
+    // A literal index is a plain address: no X, nothing more than a single byte costs.
+    assert.deepEqual(bytes(row + 'segment[0] = $77\nsegment[5] = 0'), [0xd8, 0xa9, 0x77, 0x85, 0x8f, 0xa9, 0x00, 0x85, 0x94, 0x4c, 0x22, 0xfe]);
+    assert.deepEqual(bytes(row + 'display.data = segment[2]'), [0xd8, 0xa5, 0x91, 0x85, 0xf9, 0x4c, 0x22, 0xfe]);
+    // A variable index goes to X. To store, the value is in A first and X is
+    // loaded on its own; to read, the index is moved over from A.
+    assert.deepEqual(bytes(row + 'i = display.low\nsegment[i] = $77').slice(5, 11), [0xa9, 0x77, 0xa6, 0x20, 0x95, 0x8f]);
+    assert.deepEqual(bytes(row + 'i = display.low\nx = segment[i]\ndisplay.data = x').slice(3, 6), [0xaa, 0xb5, 0x8f]);
+    // Above page zero the row's address is two bytes.
+    const far = compile('byte far[4] at $0400\ni = display.low\nfar[i] = i\ndisplay.data = far[i]\ndisplay.high = far[3]').assembly;
+    assert.match(far, /STA \$0400,X .*9D 00 04/);
+    assert.match(far, /LDA \$0400,X .*BD 00 04/);
+    assert.match(far, /LDA \$0403 .*AD 03 04/);
+    // A row that runs out of page zero cannot use the short form: indexed
+    // there, an address wraps round inside the page and would never reach $0100.
+    const edge = compile('byte edge[16] at $f8\ni = display.low\nedge[i] = 1\ndisplay.data = edge[8]').assembly;
+    assert.match(edge, /STA \$00F8,X .*9D F8 00/);
+    assert.match(edge, /LDA \$0100 .*AD 00 01/);
+    // The count may be a constant, and a row may be as long as a byte can index.
+    assert.deepEqual(bytes('const n = 6\nbyte segment[n] at $8f\nsegment[5] = 1'), bytes(row + 'segment[5] = 1'));
+    assert.deepEqual(bytes('byte big[256] at $0400\nbig[255] = 1').slice(3, 6), [0x8d, 0xff, 0x04]);
+    assert.deepEqual(compile(row + 'segment[0] = 1').warnings, []);
+
+    // The manual's word copied out of a table, a byte at a time, and shown.
+    const word = compile(['const word = table byte = $77, $6d, $79, $38, 0, 0', 'byte segment[6] at $8f', 'i = 0', 'loop',
+        '    segment[i] = word[i]', '    i = i + 1', '    if i == 6', '        loop', '            call $ff7e', '        end', '    end', 'end'].join('\n'));
+    const m = bootedMachine();
+    m.loadProgram(word.binary, word.origin);
+    monitorRun(m, '0200');
+    tick(m, 200000);
+    assert.deepEqual(m.getDisplay(), [0x77, 0x6d, 0x79, 0x38, 0, 0]);
+    // A byte of a row may be read into another, and compared.
+    assert.deepEqual(bytes('byte r[4] at $80\nr[1] = r[2]'), [0xd8, 0xa5, 0x82, 0x85, 0x81, 0x4c, 0x22, 0xfe]);
+    assert.ok(compile('byte r[4] at $80\nif r[1] == 3\nr[0] = 9\nend').binary.length > 8);
+    // The index may be a display field or a named location.
+    assert.deepEqual(bytes('byte r[4] at $80\nr[display.low] = display.high').slice(1, 7), [0xa5, 0xfb, 0xa6, 0xfa, 0x95, 0x80]);
+    assert.deepEqual(bytes('byte r[4] at $80\nbyte p at $0400\nr[p] = 9').slice(3, 8), [0xae, 0x00, 0x04, 0x95, 0x80]);
+
+    for (const [source, error] of [
+        [row + 'segment[6] = 1', /^Error: Line 2: Index out of range: segment\[6\], and segment has 6 bytes/],
+        [row + 'display.data = segment[6]', /^Error: Line 2: Index out of range: segment\[6\]/],
+        [row + 'display.data = segment', /^Error: Line 2: segment is a row of bytes: say which one, as segment\[0\]/],
+        [row + 'segment = 1', /^Error: Line 2: segment is a row of bytes/],
+        ['byte one at $8f\none[0] = 1', /^Error: Line 2: one is a single byte and takes no index/],
+        ['byte one at $8f\ndisplay.data = one[0]', /^Error: Line 2: one is a single byte and takes no index/],
+        ['byte r[0] at $80\ndisplay.data = 1', /^Error: Line 1: A row has 1 to 256 bytes, not 0/],
+        ['byte r[257] at $0400\ndisplay.data = 1', /^Error: Line 1: A row has 1 to 256 bytes, not 257/],
+        ['byte r[] at $80\ndisplay.data = 1', /^Error: Line 1: A row is so many bytes: a number or a constant, not nothing/],
+        ['byte r[x] at $80\ndisplay.data = 1', /^Error: Line 1: A row is so many bytes: a number or a constant, not x/],
+        ['byte r[4] at $1e\ndisplay.data = 1', /^Error: Line 1: \$20-\$7F is where the compiler keeps the program's own variables; r would overlap it/],
+        ['byte r[4] at $7e\ndisplay.data = 1', /^Error: Line 1: \$20-\$7F is where/],
+        ['byte r[4] at $fffe\ndisplay.data = 1', /^Error: Line 1: r would run past \$FFFF/],
+        ['const t = table byte = 1, 2\nt[0] = 5', /^Error: Line 2: t is a table, and a table is not written to/],
+        ['x = 1\nx[0] = 5', /^Error: Line 2: Only a row of bytes takes an index on the left of =, and x is not one/],
+        ['byte r[4] at $80\ni = 1\nr[i + 1] = 5', /^Error: Line 3: Expected a byte literal, a constant or an assigned variable, got i \+ 1/]
+    ]) assert.throws(() => compile(source), error);
+});

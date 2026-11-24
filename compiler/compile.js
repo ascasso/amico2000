@@ -33,8 +33,9 @@ function compile(source) {
     // A constant is a name for a byte literal and is gone by the time code is
     // made: wherever number() takes a literal it takes one of these.
     const constants = new Map(KEY_CODES);
-    // A memory location the program has given a name: the name and where it
-    // is. Reading the name reads the byte there and assigning to it writes it,
+    // A memory location the program has given a name: where it is, and for a
+    // row of bytes how many there are; `count` is null for a single byte.
+    // Reading the name reads the byte there and assigning to it writes it,
     // every time, so that it can stand for a port, or for a byte that the
     // monitor or the person at the keys changes. Nothing is ever taken to be
     // in the accumulator under such a name.
@@ -77,8 +78,22 @@ function compile(source) {
     // How an instruction reaches a named location: by one byte of address in
     // page zero, by two anywhere else.
     function place(name) {
-        const where = places.get(name);
+        const { where, count } = places.get(name);
+        if (count !== null) fail(name + ' is a row of bytes: say which one, as ' + name + '[0]');
         return [where < 0x100 ? 'zp' : 'abs', where];
+    }
+    // One byte of a row. A literal index is checked and becomes a plain
+    // address. Any other is left for X, and the instruction takes the row's
+    // first address: with one byte of it if the whole row is in page zero,
+    // where an indexed address wraps round inside the page, and with two
+    // otherwise.
+    function element(name, written) {
+        const { where, count } = places.get(name);
+        if (count === null) fail(name + ' is a single byte and takes no index');
+        const index = number(written);
+        if (index === null) return { mode: where + count <= 0x100 ? 'zpX' : 'absX', where, index: written };
+        if (index >= count) fail('Index out of range: ' + name + '[' + written + '], and ' + name + ' has ' + count + (count === 1 ? ' byte' : ' bytes'));
+        return { mode: where + index < 0x100 ? 'zp' : 'abs', where: where + index };
     }
     function variable(name) {
         // Three different mistakes, and the reader can only mend the one named.
@@ -137,6 +152,16 @@ function compile(source) {
             return;
         }
         const lookup = /^([a-z][a-z0-9_]*)\[\s*([^\]]+?)\s*\]$/.exec(text);
+        if (lookup && places.has(lookup[1])) {
+            const at = element(lookup[1], lookup[2]);
+            if (at.index !== undefined) {
+                load(at.index);
+                emit('TAX');
+            }
+            emit('LDA', at.mode, at.where);
+            inA = null;
+            return;
+        }
         if (lookup) {
             const table = tables.get(lookup[1]);
             if (!table) fail('Unknown table: ' + lookup[1]);
@@ -162,21 +187,33 @@ function compile(source) {
         inA = null;
     }
     function declarePlace(text) {
-        const match = /^byte\s+(\w+)\s+at\s+(\S+)$/.exec(text);
-        if (!match) fail('Expected byte name at address');
-        const [, name, written] = match;
+        const match = /^byte\s+(\w+)(?:\s*\[\s*([^\]]*?)\s*\])?\s+at\s+(\S+)$/.exec(text);
+        if (!match) fail('Expected byte name at address, or byte name[count] at address');
+        const [, name, counted, written] = match;
         if (places.has(name)) fail('Memory name declared twice: ' + name);
         if (tables.has(name)) fail(name + ' is already a table');
         if (constants.has(name)) fail(name + ' is already a constant');
         variable(name);
         const where = address(written);
+        // A row is as long as a byte can index: 256 at most, which is one
+        // more than a byte can say, so the count is read as an address is.
+        let count = null;
+        if (counted !== undefined) {
+            if (constants.has(counted)) count = constants.get(counted);
+            else if (/^(?:[0-9]+|\$[a-fA-F0-9]+)$/.test(counted)) count = counted.startsWith('$') ? parseInt(counted.slice(1), 16) : Number(counted);
+            if (count === null) fail('A row is so many bytes: a number or a constant, not ' + (counted || 'nothing'));
+            if (count < 1 || count > 256) fail('A row has 1 to 256 bytes, not ' + counted);
+            if (where + count > 0x10000) fail(name + ' would run past $FFFF');
+        }
         // The compiler puts the program's own variables there, in the order
         // it meets them, and a name fixed among them would share a byte with
         // one of them without either knowing.
-        if (where >= 0x20 && where <= 0x7f) {
-            fail('$20-$7F is where the compiler keeps the program\'s own variables; ' + written + ' is inside it');
+        const last = where + (count || 1) - 1;
+        if (where <= 0x7f && last >= 0x20) {
+            fail('$20-$7F is where the compiler keeps the program\'s own variables; ' +
+                (count === null ? written + ' is inside it' : name + ' would overlap it'));
         }
-        places.set(name, where);
+        places.set(name, { where, count });
     }
     function declareConstant(text) {
         const match = /^const\s+(\w+)\s*=\s*([\w.$]+)$/.exec(text);
@@ -280,7 +317,7 @@ function compile(source) {
         // neither. A line that is no statement is told so wherever it stands:
         // a misspelt `end` after `stop` was once called unreachable, which it
         // is, and which is not what is wrong with it.
-        const assign = /^([\w.]+)\s*=(?!=)\s*(.+)$/.exec(text);
+        const assign = /^([\w.]+)(?:\s*\[\s*([^\]]*?)\s*\])?\s*=(?!=)\s*(.+)$/.exec(text);
         const isIf = /^if(?:\s|$)/.test(text);
         const isConst = /^const(?:\s|$)/.test(text);
         const isByte = /^byte(?:\s|$)/.test(text);
@@ -359,7 +396,18 @@ function compile(source) {
             emit('JMP', 'abs', again);
             reachable = false;
         } else {
-            const [, name, value] = assign;
+            const [, name, indexed, value] = assign;
+            if (indexed !== undefined) {
+                // One byte of a row. The value is worked out first and stays in
+                // A while X is given the index, which a load into A would cost.
+                if (tables.has(name)) fail(name + ' is a table, and a table is not written to');
+                if (!places.has(name)) fail('Only a row of bytes takes an index on the left of =, and ' + name + ' is not one');
+                const at = element(name, indexed);
+                expression(value.trim());
+                if (at.index !== undefined) emit('LDX', ...operand(at.index));
+                emit('STA', at.mode, at.where);
+                return;
+            }
             if (places.has(name)) {
                 // Written there and then. A is left as the value's own name or
                 // number, which the store has not changed, and never as this

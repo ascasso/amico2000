@@ -10,8 +10,8 @@
 //
 // What it leans on: nested `if`s with and without `else`, arms long enough to
 // need a long branch, tables by a formula and written out, read by a literal
-// and by a variable, memory locations named in page zero and above it, two
-// names for one byte, display
+// and by a variable, memory locations and rows of bytes named in page zero
+// and above it, two names for one byte, display
 // fields as operands and as targets, constants and the key names standing
 // where a literal may, names that begin like words of the language, literals
 // spelt several ways, and operators written with and without spaces.
@@ -71,7 +71,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0 };
+    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -135,6 +135,19 @@ function generate(seed, { scans = false, long = false } = {}) {
             lines.push(`byte ${place.name} at ${written}`);
         }
         made.places = places.length;
+    }
+    // Four programs in ten name a row of bytes or two: one wholly in page
+    // zero, where an indexed instruction carries one byte of address, and one
+    // above it. They may lie over a named location or over each other; that
+    // is allowed, and the bytes are then the same bytes.
+    const rows = [];
+    if (chance(0.4)) {
+        if (chance(0.7)) rows.push({ name: 'r_near', address: between(0x80, 0xd0), length: between(1, 12) });
+        if (!rows.length || chance(0.5)) rows.push({ name: 'r_far', address: between(0x0400, 0x07e0), length: between(1, 20) });
+        for (const row of rows) {
+            const counted = chance(0.25) ? '$' + row.length.toString(16) : String(row.length);
+            lines.push(`byte ${row.name}[${counted}] at $${row.address.toString(16)}`);
+        }
     }
     // What can be read from the first line and is no variable of the program's.
     const fixed = FIELDS.concat(places.map((place) => place.name));
@@ -220,7 +233,36 @@ function generate(seed, { scans = false, long = false } = {}) {
         }
     }
 
+    // An index into something `length` long, kept in range the way a table's
+    // is: a literal, or a variable masked on the line before.
+    function indexInto(indent, assigned, length) {
+        if (chance(0.4)) return spell(between(0, length - 1));
+        let mask = 1;
+        while (mask * 2 <= length) mask *= 2;
+        const masked = target(true);
+        lines.push(`${indent}${masked} = ${joined(stored(assigned), '&', spell(mask - 1))}`);
+        assigned.add(masked);
+        return masked;
+    }
+    // One byte of a row read into a name, or written from an operand.
+    function rowUse(indent, assigned) {
+        const row = pick(rows);
+        made.rowUses++;
+        if (chance(0.5)) {
+            const into = target(false);
+            lines.push(`${indent}${into} = ${row.name}[${indexInto(indent, assigned, row.length)}]`);
+            assigned.add(into);
+        } else {
+            const index = indexInto(indent, assigned, row.length);
+            lines.push(`${indent}${row.name}[${chance(0.5) ? '' : ' '}${index}${chance(0.5) ? '' : ' '}] = ${operand(assigned)}`);
+        }
+    }
+
     function assignment(indent, assigned) {
+        if (rows.length && chance(0.2)) {
+            rowUse(indent, assigned);
+            return;
+        }
         const into = target(false);
         const roll = random.next();
         if (tables.length && roll < 0.15) {
@@ -242,6 +284,10 @@ function generate(seed, { scans = false, long = false } = {}) {
         } else if (roll < 0.2 && tables.length) {
             const table = pick(tables);
             left = `${table.name}[${spell(between(0, table.length - 1))}]`;
+        } else if (roll < 0.26 && rows.length) {
+            const row = pick(rows);
+            made.rowUses++;
+            left = `${row.name}[${spell(between(0, row.length - 1))}]`;
         } else {
             left = operand(assigned);
         }

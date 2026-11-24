@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 270
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 271
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -508,7 +508,7 @@ on 2026-11-23 and its place is the owner's to give.
     - **To be added**, agreed with the owner. The spellings are the agent's
       proposals, and each is settled when it is built:
       - Names for memory, `byte sum at $04` (**done**), and for a row of
-        bytes, `byte segment[6] at $8f`. A call to an address,
+        bytes, `byte segment[6] at $8f` (**done**). A call to an address,
         `call $ff7e` (**done**). On top of those, friendly names for what
         the board and its monitor have. Whether a program should show
         addresses the owner left to the agent, which chose both.

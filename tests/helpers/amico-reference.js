@@ -10,7 +10,8 @@
 //
 // It knows what a program computes: its own names, its tables, and the bytes
 // of the board's memory that it reaches by name, which are the three display
-// fields and whatever locations it has named with `byte ... at`. Those are
+// fields and whatever locations and rows it has named with `byte ... at`.
+// Those are
 // kept as memory, by address, so that two names for one byte are one byte
 // here as on the board. display.scan() changes none of it, so here it does
 // nothing. The key routines are not modelled at all; a test that needs them
@@ -56,7 +57,8 @@ function tableBytes(indexName, last, formula, constants) {
 function parse(source) {
     const tables = new Map();
     const constants = new Map(Object.entries(KEY_NAMES));
-    // A name the program gives to a memory location, and the address.
+    // A name the program gives to a memory location: its address, and for a
+    // row of bytes how many there are. `count` is null for a single byte.
     const places = new Map();
     const program = { kind: 'program', body: [] };
     const open = [program];
@@ -73,9 +75,13 @@ function parse(source) {
             tables.set(match[1], tableBytes(match[2], match[3], match[4], constants));
         } else if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*(\S+)$/.exec(line))) {
             constants.set(match[1], literal(match[2], constants));
-        } else if ((match = /^byte\s+([a-z][a-z0-9_]*)\s+at\s+(\S+)$/.exec(line))) {
-            // An address is written as a byte is, and may be up to $FFFF.
-            places.set(match[1], literal(match[2], new Map()));
+        } else if ((match = /^byte\s+([a-z][a-z0-9_]*)(?:\s*\[\s*(\S+?)\s*\])?\s+at\s+(\S+)$/.exec(line))) {
+            // An address is written as a byte is, and may be up to $FFFF. The
+            // count of a row may be a constant.
+            places.set(match[1], {
+                address: literal(match[3], new Map()),
+                count: match[2] === undefined ? null : literal(match[2], constants)
+            });
         } else if (line === 'loop') {
             const loop = { kind: 'loop', body: [] };
             into.push(loop);
@@ -100,8 +106,8 @@ function parse(source) {
             into.push({ kind: 'stop' });
         } else if (line === 'display.scan()') {
             into.push({ kind: 'scan' });
-        } else if ((match = /^([a-z][a-z0-9_.]*)\s*=\s*(.+)$/.exec(line))) {
-            into.push({ kind: 'assign', name: match[1], value: match[2].trim() });
+        } else if ((match = /^([a-z][a-z0-9_.]*)(?:\s*\[\s*(\S+?)\s*\])?\s*=\s*(.+)$/.exec(line))) {
+            into.push({ kind: 'assign', name: match[1], index: match[2], value: match[3].trim() });
         } else {
             throw new Error('The reference interpreter does not know this line: ' + line);
         }
@@ -124,10 +130,19 @@ function run(source, memory, maxSteps = 200000) {
     let steps = 0;
 
     // The address a name stands for, if it stands for one: a display field or
-    // a location the program has named.
+    // a single location the program has named.
     function addressOf(name) {
         if (name in FIELDS) return FIELDS[name];
-        return places.has(name) ? places.get(name) : null;
+        return places.has(name) && places.get(name).count === null ? places.get(name).address : null;
+    }
+    // The address of one byte of a row. An index past the row's end reaches
+    // whatever the instruction then addresses, which no test may depend on,
+    // so here it is an error, as it is for a table.
+    function elementOf(name, written) {
+        const row = places.get(name);
+        const index = valueOf(written);
+        if (index >= row.count) throw new Error('Index past the end of its row: ' + name + '[' + written + ']');
+        return row.address + index;
     }
     function valueOf(text) {
         const number = literal(text, constants);
@@ -142,6 +157,7 @@ function run(source, memory, maxSteps = 200000) {
     function evaluate(expression) {
         let match;
         if ((match = /^([a-z][a-z0-9_]*)\[\s*(\S+?)\s*\]$/.exec(expression))) {
+            if (places.has(match[1])) return cells[elementOf(match[1], match[2])];
             const bytes = tables.get(match[1]);
             const index = valueOf(match[2]);
             // The README leaves an index past the end to read whatever byte
@@ -162,8 +178,8 @@ function run(source, memory, maxSteps = 200000) {
         }
         return valueOf(expression);
     }
-    function assign(name, value) {
-        const address = addressOf(name);
+    function assign(name, index, value) {
+        const address = index === undefined ? addressOf(name) : elementOf(name, index);
         if (address !== null) cells[address] = value;
         else variables.set(name, value);
     }
@@ -181,7 +197,7 @@ function run(source, memory, maxSteps = 200000) {
         for (const statement of statements) {
             if (++steps > maxSteps) throw new Error('The program did not stop within ' + maxSteps + ' statements');
             switch (statement.kind) {
-                case 'assign': assign(statement.name, evaluate(statement.value)); break;
+                case 'assign': assign(statement.name, statement.index, evaluate(statement.value)); break;
                 case 'stop': throw new Stopped();
                 case 'scan': break;
                 case 'if':

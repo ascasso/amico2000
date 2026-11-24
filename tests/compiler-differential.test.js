@@ -125,7 +125,7 @@ function failure(seed, source, wrong) {
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -143,15 +143,16 @@ test('random programs compute on the board what the reference interpreter comput
         if (made.constants) seen.constants++;
         if (made.writtenTables) seen.written++;
         if (made.places) seen.places++;
+        if (made.rowUses) seen.rows++;
     }
 
     // A generator can stop making what it was written to make and the test
     // would go on passing. Measured over 20,000 programs, of those that ran 20%
     // had a long branch, 58% a loop, 56% a table read, 67% an else, 44% ifs
-    // four deep, 65% a constant or a key's name, 39% a table written out and
-    // 50% a named memory location, and 74% of those generated fitted the board.
-    // The floors are about half of each: there to notice a collapse, not a
-    // drift.
+    // four deep, 65% a constant or a key's name, 39% a table written out, 50%
+    // a named memory location and 31% a byte of a row read or written, and 73%
+    // of those generated fitted the board. The floors are about half of each:
+    // there to notice a collapse, not a drift.
     const share = (count) => count / seen.ran;
     assert.ok(seen.ran / PROGRAMS > 0.37, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
@@ -162,6 +163,7 @@ test('random programs compute on the board what the reference interpreter comput
     assert.ok(share(seen.constants) > 0.32, `a constant in only ${seen.constants} of ${seen.ran}`);
     assert.ok(share(seen.written) > 0.19, `a table written out in only ${seen.written} of ${seen.ran}`);
     assert.ok(share(seen.places) > 0.25, `a named memory location in only ${seen.places} of ${seen.ran}`);
+    assert.ok(share(seen.rows) > 0.15, `a row of bytes in only ${seen.rows} of ${seen.ran}`);
 });
 
 test('display.scan() among the statements changes nothing a program can see', () => {

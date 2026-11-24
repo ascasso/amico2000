@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico can name a row of bytes: `byte segment[6] at $8f`, and then
+  `segment[i]` to read or to assign to. A literal index is checked and is
+  a plain address; a variable index goes through X. With a table written
+  out and a call, the manual's word ASEL is copied to the displays a byte
+  at a time in twelve lines. A row has 1 to 256 bytes anywhere outside
+  `$20-$7F`.
 - Amico can call a routine by its address: `call $ff7e`. With a name for a
   memory location, that reaches the monitor's routine for showing six raw
   patterns, which is how a program puts letters on the displays: the

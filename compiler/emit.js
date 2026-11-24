@@ -15,8 +15,11 @@ const OPCODES = {
     CLD: 0xd8, CLC: 0x18, SEC: 0x38, TAX: 0xaa, RTS: 0x60,
     // The absolute forms are for a memory location the program names, which
     // may be anywhere; the compiler's own variables are all in page zero.
-    LDA: { imm: 0xa9, zp: 0xa5, abs: 0xad, absX: 0xbd },
-    STA: { zp: 0x85, abs: 0x8d }, DEC: { zp: 0xc6 },
+    LDA: { imm: 0xa9, zp: 0xa5, abs: 0xad, zpX: 0xb5, absX: 0xbd },
+    STA: { zp: 0x85, abs: 0x8d, zpX: 0x95, absX: 0x9d }, DEC: { zp: 0xc6 },
+    // X is loaded on its own only to store into a row of bytes: A holds the
+    // value by then, and a load of the index into A would lose it.
+    LDX: { imm: 0xa2, zp: 0xa6, abs: 0xae },
     ADC: { imm: 0x69, zp: 0x65, abs: 0x6d }, SBC: { imm: 0xe9, zp: 0xe5, abs: 0xed },
     AND: { imm: 0x29, zp: 0x25, abs: 0x2d }, ORA: { imm: 0x09, zp: 0x05, abs: 0x0d },
     EOR: { imm: 0x49, zp: 0x45, abs: 0x4d }, CMP: { imm: 0xc9, zp: 0xc5, abs: 0xcd },
@@ -24,7 +27,7 @@ const OPCODES = {
     BEQ: { rel: 0xf0 }, BNE: { rel: 0xd0 }, BCS: { rel: 0xb0 }, BCC: { rel: 0x90 }
 };
 const INVERSE = { BEQ: 'BNE', BNE: 'BEQ', BCS: 'BCC', BCC: 'BCS' };
-const WIDTH = { implied: 1, imm: 2, zp: 2, abs: 3, absX: 3, rel: 2 };
+const WIDTH = { implied: 1, imm: 2, zp: 2, abs: 3, zpX: 2, absX: 3, rel: 2 };
 
 function hex(n, width = 2) {
     return n.toString(16).toUpperCase().padStart(width, '0');
@@ -105,7 +108,7 @@ function assemble(items) {
             } else {
                 const bytes = [OPCODES[op][mode], mode === 'rel' ? (value - pc - 2) & 255 : value & 255];
                 if (WIDTH[mode] === 3) bytes.push(value >> 8);
-                row(pc, bytes, op + ' ' + (mode === 'imm' ? '#' : '') + operand + (mode === 'absX' ? ',X' : ''), line);
+                row(pc, bytes, op + ' ' + (mode === 'imm' ? '#' : '') + operand + (mode === 'absX' || mode === 'zpX' ? ',X' : ''), line);
             }
         }
     }
