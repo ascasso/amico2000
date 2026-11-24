@@ -12,8 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `display.segment[5]`, and the monitor's routine that shows them,
   `display.show()`, beside the three hex bytes and `display.scan()` it
   already had. Three examples use what the language can now reach:
-  `sum.amico`, the manual's first program, which compiles to the manual's
-  ten bytes with a `CLD` in front; `word.amico`, the manual's word ASEL on
+  `sum.amico`, the manual's first program, which compiles to a `CLD` and the
+  manual's ten bytes, the `CLC` moved after the load; `word.amico`, the
+  manual's word ASEL on
   the displays; and `leds.amico`, which counts in binary on the LEDs D4-D7.
 - Amico can name a row of bytes: `byte segment[6] at $8f`, and then
   `segment[i]` to read or to assign to. A literal index is checked and is
@@ -33,7 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reads that byte and assigning to it writes it, each time, so a name can
   stand for a byte keyed in before RUN, a result to look at afterwards, or
   a port. The manual's first program, the sum of two bytes, is now four
-  lines and compiles to the manual's own ten bytes with a `CLD` in front;
+  lines and compiles to a `CLD` and the manual's own ten bytes, with the
+  `CLC` after the load where the manual has it before;
   the LEDs D4-D7 are lit by naming three of the 8255's registers. Until now
   the language reached the hex digits and the keypad and nothing else. The
   second of the three additions that open the whole board to it.
@@ -442,6 +444,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Corrected statements that the day's work on Amico had left untrue. The
+  sum was said to compile to "the manual's ten bytes with a `CLD` in
+  front"; they are the manual's ten, with the `CLC` after the load where
+  the manual has it before. `NextSession.md` still said that nothing of
+  the agreed design was built and that the compiler had not changed since
+  Codex wrote it. `AGENTS.md`, A Review by Several Agents, gains what the
+  third round of reviews showed: tell a reviewer what new code is meant to
+  do.
 - Sharpened the tests of what Amico can now reach, after a review of them
   showed five breaks they let through. That nothing is taken as known
   after `call` or `display.show()` was tested only at the start of a

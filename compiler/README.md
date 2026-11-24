@@ -64,7 +64,8 @@ commands above and starts with `AD 0200 RUN`.
 - [sum.amico](examples/sum.amico) is the manual's first program, Tabella 7:
   it adds the bytes at `0006` and `0007` into `0004`. Key the two numbers in
   first, `AD 0006 DA 09 + 01`, run it, and read the sum with `AD 0004`. Its 11
-  bytes are the manual's ten with a `CLD` in front.
+  bytes are a `CLD` and the manual's ten, with the `CLC` after the load where
+  the manual has it before.
 - [word.amico](examples/word.amico) writes the manual's word, ASEL, on the
   displays, a byte of segments to a digit. Change the six bytes for another
   word. RES ends it.

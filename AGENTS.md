@@ -1355,6 +1355,13 @@ reproduced every finding before passing any on.
   the rules; what is deliberate and so not a finding; what was already
   known; how to run things, as snippets that work when pasted; and the form
   of the report.
+- **For new code, the brief says what the code is meant to do.** A reviewer
+  can find where code falls short of an intention only if it has been told
+  the intention. The brief for the constructs that reach memory said, of a
+  call, that "when it returns nothing is taken to be known". Codex then
+  found two things still taken as known, the decimal flag and, after a
+  store to the 8255, Port A's direction; and Opus found that the tests of
+  that sentence were run where it could not fail.
 - **Read-only was enforced, not only asked.** Each reviewer had a scratch
   directory of its own outside the repository. Codex ran with its sandbox
   open for writing in that directory alone, so it could not have changed

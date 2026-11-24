@@ -80,8 +80,11 @@ below, each marked as coming from it.
   ones to key in. See item 1.
 - **Amico:** `compiler/` holds a small compiled language for the board, named
   Amico, and its compiler `amicoc`, which runs under Node and is no part of
-  the page. Codex built it on 2026-11-23 and nothing in it has changed since.
-  What the owner settled for it the same day is item 13.
+  the page. Codex built it on 2026-11-23. The same day it was checked and
+  mended, and given its first additions: constants, tables written out,
+  names for memory locations and rows of bytes, and calls, so that it now
+  reaches the whole board. Item 13 has what the owner settled, what is
+  built and what is next.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
   which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
   executes one instruction.
@@ -462,8 +465,9 @@ on 2026-11-23 and its place is the owner's to give.
     (`compiler/README.md`). It began, in the owner's words, as "a thought
     experiment": asked whether such a language was feasible, Codex built all
     of it in one prompt, on 2026-11-23. The same day the owner had an agent
-    look it over, named it, and settled in conversation what follows. None of
-    it is built, and nothing in the compiler has changed since Codex wrote it.
+    look it over, named it, and settled in conversation what follows. What
+    has been built since is marked **done** where it stands; the rest is
+    not started.
     - **The name is Amico**, the owner's decision: "I'm gonna stick with
       Amico, .amico. It's the obvious choice." Source files end in `.amico`,
       all lowercase, and the compiler is `amicoc`. Write the language Amico
@@ -476,7 +480,8 @@ on 2026-11-23 and its place is the owner's to give.
       nobody takes it for ASEL's.
     - **The owner's direction:** "the language should be fairly simple and be
       optimized for this board, not a generic portable language."
-    - **What a first look found**, on 2026-11-23, by reading the compiler,
+    - **What a first look found**, in the compiler as Codex wrote it, before
+      any of what is marked done below. On 2026-11-23, by reading the compiler,
       running its tests and writing three programs in it, a clock, a die and
       a hex entry, each of which ran correctly on the emulated board the
       first time:
@@ -622,12 +627,16 @@ on 2026-11-23 and its place is the owner's to give.
       ever need an Italian one for the compiler.
     - **Order of work**, the agent's proposal. The small fixes first: the
       warning, the names for constants and keys, `display.hold()`, and the
-      README saying what `stop` and HLT do to the displays. Then memory
-      names, calls and written-out tables. Then `for`, `break` and `next`,
-      and the richer conditions. Then decimal. The compiler reads a line with one regular expression for
-      each kind of statement, which will not stretch to `and` or to rows of
-      bytes, so a small tokenizer comes before the loops. One unit to a
-      commit, each with its test.
+      README saying what `stop` and HLT do to the displays. **Done.** Then
+      memory names, calls and written-out tables. **Done**, with the rows
+      of bytes. Then `for`, `break` and `next`, and the richer conditions:
+      **next**. Then decimal. The compiler reads a line with one regular
+      expression for each kind of statement. That stretched to rows of
+      bytes, with an index allowed on the left of `=`; it will not stretch
+      to `and` and `or`, so a small tokenizer still comes before the
+      conditions. One unit to a commit, each with its test, and the
+      finished series to reviewers on other models before it is pushed
+      (`AGENTS.md`, A Review by Several Agents).
     - **A check of the compiler as it stands**, read only, which the owner
       asked for on 2026-11-23 before anything was built on it. Five
       reviewers, each with its own angle and its own model: four Claude
