@@ -72,8 +72,14 @@ function compile(source) {
     }
     function load(text) {
         const arg = operand(text);
-        if (inA !== text) emit('LDA', ...arg);
-        inA = text;
+        // What A holds is known by its value when that is a literal, however
+        // the literal was written: 21, $15 and a constant set to either are
+        // one thing to have in A. Known by its spelling, a constant cost a
+        // load that the number it stands for did not. A name can never begin
+        // with `#`, so the two kinds cannot be taken for each other.
+        const holds = arg[0] === 'imm' ? '#' + arg[1] : text;
+        if (inA !== holds) emit('LDA', ...arg);
+        inA = holds;
     }
     function scan() {
         emit('JSR', 'abs', SCAN);

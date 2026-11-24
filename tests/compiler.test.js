@@ -491,3 +491,23 @@ test('HLT gives the display fields to the monitor, and RUN does not give them ba
     assert.notDeepEqual(written.halted.slice(1), [0x12, 0x12]);
     assert.deepEqual(written.after, [0x12, 0x12, 0x12]);
 });
+
+test('a constant costs what the number it stands for costs', () => {
+    // The compiler skips a load when A already holds the value. It knew A by
+    // the spelling of what was loaded, so a constant, or the same number
+    // written another way, was loaded twice where the plain literal was not.
+    const literal = compile('if 21 == display.low\ndisplay.data = 21\nend').binary;
+    assert.equal(literal.length, 12);
+    for (const [first, second] of [['keypad.none', '21'], ['21', 'keypad.none'], ['$15', '21'], ['021', '$15'], ['keypad.none', 'keypad.none']]) {
+        assert.deepEqual(compile(`if ${first} == display.low\ndisplay.data = ${second}\nend`).binary, literal, `${first} then ${second}`);
+    }
+    assert.deepEqual(compile('const start = 21\nif start == display.low\ndisplay.data = 21\nend').binary, literal);
+    // Two bytes are what decide whether a full program fits.
+    const full = (value) => compile(`if ${value} == display.low\ndisplay.data = 21\nend\n` + 'display.scan()\n'.repeat(165)).binary;
+    assert.equal(full('21').length, 507);
+    assert.equal(full('keypad.none').length, 507);
+    // A different value is still loaded, and so is a variable, though it
+    // happens to hold the value that is in A.
+    assert.equal(compile('if 21 == display.low\ndisplay.data = 22\nend').binary.length, 14);
+    assert.match(compile('y = 21\nif 21 == display.low\ndisplay.data = y\nend').assembly, /CMP \$FA .*\n.*\n +LDA var_y/);
+});

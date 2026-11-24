@@ -805,6 +805,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed a named constant costing two bytes more than the number it stands
+  for. The compiler skips a load when the accumulator already holds the
+  value, and knew what it held by how the value had been written, so
+  `keypad.none` followed by `21`, or `$15` followed by `21`, was loaded
+  twice. A literal is now known by its value. Two bytes had decided
+  whether a full program fitted: one that compiled at 507 bytes with `21`
+  was refused at 509 with `keypad.none`. Found by a review of the
+  constants, the day they were written.
 - Fixed three of `amicoc`'s messages that a review of the fixes above found
   still pointing the wrong way. `if 0 ==`, with nothing on the right, was
   told which operators exist; `if 0 =< 1+1` was told its right side was
