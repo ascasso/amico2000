@@ -1259,7 +1259,13 @@ under Node on another computer and produces a listing, a binary or an
   tests fail: fifty-one for the loops and the conditions. Three were not
   caught at first, and each showed a test that was missing. Do the same
   for the next construct: a test that passes with its fix taken out is no
-  test of it.
+  test of it. It is not enough by itself; see A Review by Several Agents
+  for what a second planter then found.
+- **A line's shape.** `tests/compiler.test.js` has a test of lines that
+  are nearly statements, one for each question the compiler asks of a
+  line's pieces. A new kind of statement adds its questions there, each
+  with a line that only it refuses: without them `x = a + b + 4` is one
+  dropped check away from compiling as `x = a + b`, and nothing says so.
 
 What an agent has to know before touching it:
 
@@ -1431,7 +1437,14 @@ reproduced every finding before passing any on.
   old and new showed that no program the old compiler took had changed by
   a byte, and its hunt found that a named constant could cost two bytes
   more than its number; Opus planted twenty-one breaks and every one was
-  caught.
+  caught. The loops and conditions went the same way, and showed what the
+  author's own planting is worth. The session had planted 51 defects and
+  its tests caught all of them. Opus planted 51 others and 20 passed
+  unnoticed: seventeen were checks of a line's shape, a kind the author
+  had not thought to break at all. Whoever wrote the code plants the
+  mistakes it can imagine making. Have the reviewer of tests plant its
+  own, give it the author's list so that it plants different ones, and
+  afterwards run its list again to see the new tests catch them.
 - **The owner's Codex.** One instance at a time. Its prompt is plain ASCII,
   the owner's rule for anything handed to another tool, kept in a file and
   given on standard input. The run of 2026-11-23, with the model the

@@ -665,7 +665,12 @@ on 2026-11-23 and its place is the owner's to give.
       read as an operand, tighter code, and the listing as Tavola A. One
       unit to a commit, each with its test, and the finished series to
       reviewers on other models before it is pushed (`AGENTS.md`, A
-      Review by Several Agents).
+      Review by Several Agents). The loops and conditions were reviewed so
+      on 2026-11-23, by Codex and a Claude Opus subagent. Neither found
+      wrong code. Their findings, all fixed before the push, were tests
+      that let defects through, two byte counts in the README that
+      assumed a short branch, and two small matters in how a line is
+      read; the log of that day has each.
     - **A check of the compiler as it stands**, read only, which the owner
       asked for on 2026-11-23 before anything was built on it. Five
       reviewers, each with its own angle and its own model: four Claude

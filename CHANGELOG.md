@@ -485,6 +485,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `AGENTS.md` records what the review of Amico's loops and conditions
+  showed about testing tests: the author's 51 planted defects were all
+  caught, and 20 of a reviewer's 51 others were not, most of them of a
+  kind the author had not thought to plant. It asks that the reviewer of
+  tests plant its own, and that a new kind of statement add its lines to
+  the test of lines that are nearly statements. `NextSession.md` notes
+  that the series was reviewed and what was found.
 - Sharpened the tests of Amico's loops and conditions, after two reviewers
   of the unpushed series planted defects that no test noticed. Which way
   Port A is taken to face where an `else` or an `else if` begins is now
