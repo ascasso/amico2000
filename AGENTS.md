@@ -66,6 +66,16 @@ This file provides repository guidance for agents working in this repository.
   sitemap. The site's `robots.txt` is not read by crawlers, because the
   site is not at the root of its host; the sitemap reaches Google through
   Search Console.
+  - The build stamp alone is not a change to the page. It advances with
+    every commit made on a new day, one that changes only documents too, so
+    a `lastmod` that followed it would be the date of the latest commit, not
+    of the page. Google's own example of a change that is not significant
+    for `lastmod` is the same kind of thing, a copyright date ("Build and
+    submit a sitemap",
+    `https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap`,
+    read on 2026-11-24). A review that asks for the home page's `lastmod` to
+    match the stamp, when nothing else on the page changed, has nothing to
+    report; the review of pull request 58 did.
 - Commit in small units. One commit is one unit of work — a single fix, a
   single new test file, a single documented decision, one vendored fixture.
   Prefer several small commits over one large one, and never batch unrelated
