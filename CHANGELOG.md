@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- A test holds `NextSession.md` to 120 lines, to the documents it names,
+  and to an entry in `docs/open-work.md` for each open item it lists. The
+  file had been cut short once before and grew back in three days.
 - Amico makes a table from a text, for the displays:
   `const hello = table segments "CIAO"` is four bytes, the segments that
   draw each character on a digit, and the listing shows them under the text

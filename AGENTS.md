@@ -34,6 +34,8 @@ This file provides repository guidance for agents working in this repository.
 
   When a piece of work ends, its item leaves `NextSession.md` or shrinks
   to what is still open, and Next is set to what the owner said comes next.
+  `tests/next-session.test.js` fails if the file passes 120 lines, names a
+  document that is not there, or lists an item whose detail is nowhere.
 - Keep the home page's `build-date` stamp in sync with the committer's calendar
   date of the commit being created: `YYYYMMDD` text and `YYYY-MM-DD` in its
   `datetime` attribute. `git show -s --format=%cs HEAD` shows the existing
