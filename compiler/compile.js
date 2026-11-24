@@ -18,6 +18,22 @@ const SEGMENTS = { where: 0x8f, count: 6 };
 // hex digits, and for no key at all. A hex key's code is its own digit.
 const KEY_CODES = [['keypad.ad', 0x10], ['keypad.da', 0x11], ['keypad.inc', 0x12],
     ['keypad.run', 0x13], ['keypad.reg', 0x14], ['keypad.none', 0x15]];
+// The alphabet for the displays: what `table segments "TEXT"` makes of each
+// character, one byte to a digit, bit 0 for segment a round to bit 6 for g.
+// It is the manual's own, Tabella 18 of the supplement, "Esempio di alfabeto
+// per display a sette segmenti", which has the ten digits, twenty letters, the
+// dash and the dark digit, and no K, M, V, W, X or Z. The table prints a
+// letter in the case its shape has, A b C d E F, and a text may be written in
+// either: there is one shape to a letter. Its `o` is the round of a zero.
+// Most of its bytes have bit 7 set as well, as the monitor's own table at
+// $FFEA has, and the manual says of it "il bit 7 non viene utilizzato": here
+// it is left clear, as the manual's first ASEL has it, 77 6D 79 38.
+const ALPHABET = new Map(Object.entries({
+    0: 0x3f, 1: 0x06, 2: 0x5b, 3: 0x4f, 4: 0x66, 5: 0x6d, 6: 0x7d, 7: 0x07, 8: 0x7f, 9: 0x6f,
+    A: 0x77, B: 0x7c, C: 0x39, D: 0x5e, E: 0x79, F: 0x71, G: 0x3d, H: 0x76, I: 0x06, J: 0x1e,
+    L: 0x38, N: 0x54, O: 0x3f, P: 0x73, Q: 0x67, R: 0x50, S: 0x6d, T: 0x78, U: 0x3e, Y: 0x6e,
+    '-': 0x40, ' ': 0x00
+}));
 // A line is read as the pieces it is made of, and there are three kinds.
 // - A term is a number or a name: letters, digits, `_` and `$`, and a dot
 //   where it has one of those on both its sides. So display.data and
@@ -357,11 +373,36 @@ function compile(source) {
         if (bytes.length > 256) fail('A table holds 256 bytes at most, and this one has ' + bytes.length);
         tables.set(name, { label: 'data_' + name, bytes, line, used: false });
     }
+    // A table worked out from a text: a byte of segments to each character,
+    // for the row the monitor shows on the six digits. The text is the line's
+    // own, from one double quote to the other, spaces and all.
+    function declareSegments(name, written) {
+        const quoted = /^"([^"]*)"$/.exec(written);
+        if (!quoted) fail('Expected const name = table segments "TEXT", the text between two double quotes');
+        tableName(name);
+        const characters = [...quoted[1]];
+        if (!characters.length) fail('A text for the displays needs at least one character');
+        if (characters.length > 256) fail('A table holds 256 bytes at most, and this text has ' + characters.length + ' characters');
+        const bytes = characters.map((character) => {
+            const segments = ALPHABET.get(character.toUpperCase());
+            if (segments === undefined) {
+                fail('Seven segments have no ' + character + " in the manual's alphabet, which is 0 to 9, A b C d E F G H I J L n o P q r S t U Y, " +
+                    'the dash and the space; a table written out can hold any pattern');
+            }
+            return segments;
+        });
+        tables.set(name, { label: 'data_' + name, bytes, line, used: false, text: written + ' on the displays' });
+    }
     // const name = table byte = byte, byte, ... or
-    // const name = table byte [n in 0..last] = term, or term operator term.
+    // const name = table byte [n in 0..last] = term, or term operator term, or
+    // const name = table segments "TEXT".
     // The caller has found `const name = table` already.
     function declareTable(L) {
         const name = L.term(1);
+        if (L.term(4) === 'segments') {
+            declareSegments(name, L.slice(5));
+            return;
+        }
         if (L.term(4) === 'byte' && L.mark(5) === '=') {
             declareWrittenTable(name, L.slice(6));
             return;
@@ -371,7 +412,7 @@ function compile(source) {
         if (!(one || two) || L.term(4) !== 'byte' || L.mark(5) !== '[' || L.term(6) === undefined || L.term(7) !== 'in' ||
             L.term(8) === undefined || L.mark(9) !== '..' || L.term(10) === undefined || L.mark(11) !== ']' ||
             L.mark(12) !== '=' || L.term(13) === undefined) {
-            fail('Expected const name = table byte [n in 0..last] = formula, or const name = table byte = byte, byte, ...');
+            fail('Expected const name = table byte [n in 0..last] = formula, const name = table byte = byte, byte, ... or const name = table segments "TEXT"');
         }
         const [index, first, limit, lhs, op, rhs] = [L.term(6), L.term(8), L.term(10), L.term(13), L.mark(14), L.term(15)];
         // Zero however it is written: $0 and 00 are the byte the README means.
@@ -840,7 +881,7 @@ function compile(source) {
     for (const table of tables.values()) {
         if (!table.used) continue;
         mark(table.label);
-        items.push({ bytes: table.bytes, line: table.line });
+        items.push({ bytes: table.bytes, line: table.line, comment: table.text });
     }
     const result = assemble(items);
     // A name that is assigned and that no line reads has no place in memory:

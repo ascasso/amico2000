@@ -15,7 +15,7 @@
 // between constants, to the edges of a byte, one inside another, with their
 // names read inside and afterwards, `break` and `next` in the arms of `if`s
 // inside both kinds of loop, statements after a loop that a `break` leaves,
-// tables by a formula and written out, read by a literal and by a variable, memory locations and rows of bytes named in page zero
+// tables by a formula, written out, and made from a text for the displays, read by a literal and by a variable, memory locations and rows of bytes named in page zero
 // and above it, the row of segments the language starts with, two names for
 // one byte, display
 // fields as operands and as targets, constants and the key names standing
@@ -91,7 +91,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0, decimals: 0, sums: 0, leftDecimal: 0 };
+    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0, textTables: 0, decimals: 0, sums: 0, leftDecimal: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -217,6 +217,17 @@ function generate(seed, { scans = false, long = false } = {}) {
     const tables = [];
     const tableCount = chance(0.8) ? between(1, 3) : 0;
     for (let number = 0; number < tableCount; number++) {
+        // One table in five is a text for the displays: any of the alphabet's
+        // characters in either case, with spaces and dashes among them and
+        // now and then at its ends.
+        if (chance(0.2)) {
+            const length = between(1, 12);
+            const text = Array.from({ length }, () => (chance(0.15) ? ' ' : pick([...'0123456789AbCdEFGHIJLnoPqrStUY-abcdefghijlnopqrstuy'])));
+            tables.push({ name: 't' + number, length });
+            lines.push(`const t${number} = table segments${chance(0.3) ? '' : ' '}"${text.join('')}"`);
+            made.textTables++;
+            continue;
+        }
         // Three tables in ten are written out, a byte at a time.
         if (chance(0.3)) {
             const length = between(1, 12);

@@ -1,0 +1,20 @@
+# A text sliding across the six displays, on from the right and off to the
+# left, over and over. RES ends it.
+# The text has six blanks before it and six after, so that it comes on out of
+# the dark and goes off into it. `last` is where the six digits begin when
+# they show the last six characters: the length of the text less six.
+const text = table segments "      CIAO dA ASEL - 1978      "
+const last = 25
+
+loop
+    for start in 0..last
+        for digit in 0..5
+            from = start + digit
+            display.segment[digit] = text[from]
+        end
+        # A step is sixty showings of the displays, a quarter of a second.
+        for showing in 1..60
+            display.show()
+        end
+    end
+end

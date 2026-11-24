@@ -579,7 +579,7 @@ test('a table may be written out, byte by byte', () => {
         ['const t = table byte = 1 2' + reading, /^Error: Line 1: .*this is not a byte: 1 2/],
         ['const t = table byte = 1, 256' + reading, /^Error: Line 1: Byte literal out of range: 256/],
         ['const t = table byte = 1\nconst t = table byte = 2' + reading, /^Error: Line 2: Table declared twice: t/],
-        ['const t = table byte' + reading, /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula, or const name = table byte = byte, byte/]
+        ['const t = table byte' + reading, /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula, const name = table byte = byte, byte, \.\.\. or const name = table segments "TEXT"$/]
     ]) assert.throws(() => compile(source), error);
 });
 
@@ -1363,7 +1363,8 @@ test('else if tries another condition, and one end closes the chain', () => {
 // pieces refuses every one of these too.
 test('a line that is nearly a statement is refused, and not read as the statement it resembles', () => {
     const value = /^Error: Line \d: Expected a byte literal, a constant or an assigned variable, got /;
-    const table = /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula, or const name = table byte = byte, byte/;
+    const table = /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula, const name = table byte = byte, byte, \.\.\. or const name = table segments "TEXT"$/;
+    const text = /^Error: Line 1: Expected const name = table segments "TEXT", the text between two double quotes$/;
     const constant = /^Error: Line 1: Expected const name = byte, or const name = table byte with a formula or with its bytes/;
     const place = /^Error: Line 1: Expected byte name at address, or byte name\[count\] at address/;
     const counted = /^Error: Line 1: Expected for name in first\.\.last/;
@@ -1399,6 +1400,17 @@ test('a line that is nearly a statement is refused, and not read as the statemen
         ['const t = table byte [in 0..3] = 1\n' + read, table],
         ['const t = table word [n in 0..3] = n\n' + read, table],
         ['const t = table word = 1, 2, 3, 4\n' + read, table],
+        ['const t = table word "CIAO"\n' + read, table],
+        ['const t = table "CIAO"\n' + read, table],
+        // A table from a text: the word, then the text between its two quotes, and nothing more.
+        ['const t = table segments CIAO\n' + read, text],
+        ['const t = table segments "CIAO\n' + read, text],
+        ['const t = table segments CIAO"\n' + read, text],
+        ['const t = table segments "CIAO" 5\n' + read, text],
+        ['const t = table segments "CI" "AO"\n' + read, text],
+        ['const t = table segments = "CIAO"\n' + read, text],
+        ['const t = table segments\n' + read, text],
+        ["const t = table segments 'CIAO'\n" + read, text],
         // A constant.
         ['const c < 5\ndisplay.data = c', constant],
         ['const c = [\ndisplay.data = c', constant],
@@ -1741,4 +1753,114 @@ test('a decimal block changes the sums and nothing the compiler knows or forgets
     assert.equal(modeWords('display.scan()\ndecimal\n    display.show()\n    k = keypad.read()\n    display.data = k\nend'), 1);
     // On the board: the routine turns Port A to an output, and the key is read all the same.
     assert.equal(after('display.scan()\ndecimal\n    call $0300\n    display.data = keypad.read()\nend', { key: 'f', routine: [0xa9, 0x89, 0x8d, 0x03, 0xfd, 0x60] })[0xf9], 0x0f);
+});
+
+test('table segments makes a table from a text, in the manual\'s alphabet for the displays', () => {
+    const bytes = (source) => [...compile(source).binary];
+    const example = (name) => fs.readFileSync(path.join(__dirname, '../compiler/examples', name + '.amico'), 'utf8');
+    // What a text comes to: the bytes of its table, which a read by a variable index puts in the image.
+    const tableOf = (text) => {
+        const program = compile(`const t = table segments "${text}"\ni = display.low\ndisplay.data = t[i]`);
+        return [...program.binary.slice(12)];
+    };
+
+    // The manual's word, both ways: the same bytes as the table written out, and the manual's own four.
+    const read = '\nfor i in 0..5\n    display.segment[i] = word[i]\nend\nloop\n    display.show()\nend';
+    assert.deepEqual(bytes('const word = table segments "ASEL  "' + read), bytes('const word = table byte = $77, $6d, $79, $38, 0, 0' + read));
+    assert.deepEqual(tableOf('ASEL'), [0x77, 0x6d, 0x79, 0x38]);
+
+    // Tabella 18 of the supplement as it prints each byte, read off the scan. Most have bit 7 set, which
+    // the manual says is not used; the language leaves it clear.
+    const printed = { 1: 0x86, 2: 0xdb, 3: 0xcf, 4: 0xe6, 5: 0xed, 6: 0xfd, 7: 0x87, 8: 0xff, 9: 0xef, 0: 0xbf, '-': 0xc0,
+        A: 0xf7, b: 0x7c, C: 0xb9, d: 0x5e, E: 0xf9, F: 0xf1, G: 0xbd, H: 0xf6, I: 0x86, J: 0x9e, L: 0xb8,
+        n: 0x54, o: 0xbf, P: 0xf3, q: 0x67, r: 0x50, S: 0xed, t: 0x78, U: 0xbe, Y: 0xee, ' ': 0x00 };
+    assert.equal(Object.keys(printed).length, 32);
+    for (const [character, byte] of Object.entries(printed)) {
+        assert.deepEqual(tableOf(character), [byte & 127], character);
+        // A letter has one shape, in either case.
+        assert.deepEqual(tableOf(character.toUpperCase()), [byte & 127], character);
+        assert.deepEqual(tableOf(character.toLowerCase()), [byte & 127], character);
+    }
+    // The monitor's own table of the sixteen hex digits, at $FFEA, draws them the same.
+    const monitor = bootedMachine().cpu.memory.slice(0xffea, 0xfffa);
+    assert.deepEqual(tableOf('0123456789AbCdEF'), [...monitor].map((byte) => byte & 127));
+    // And the README prints the alphabet the compiler has, neither more nor less.
+    const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
+    const block = /```\n(0 \$3F[^`]*)```/.exec(readme)[1];
+    const listed = [...block.matchAll(/(\S+) \$([0-9A-F]{2})/g)].map(([, character, byte]) => [character === 'space' ? ' ' : character, parseInt(byte, 16)]);
+    assert.deepEqual(new Map(listed), new Map(Object.entries(printed).map(([character, byte]) => [character, byte & 127])));
+    assert.equal(listed.length, 32);
+
+    // Every other character is refused, by its own name: the six letters seven segments cannot draw here, and the rest.
+    for (const character of [...'KMVWXZkmvwxz_.,:;!?=+*/()[]$@èÀ']) {
+        assert.throws(() => compile(`const t = table segments "CI${character}O"\ndisplay.data = t[0]`),
+            new RegExp('^Error: Line 1: Seven segments have no ' + character.replace(/[.*+?()[\]$]/g, '\\$&') + " in the manual's alphabet, which is 0 to 9, A b C d E F G H I J L n o P q r S t U Y, the dash and the space; a table written out can hold any pattern$"), character);
+    }
+    // Spaces count wherever they stand, a space may stand before the text or not, and the text is one line's.
+    assert.deepEqual(tableOf('  A b  '), [0, 0, 0x77, 0, 0x7c, 0, 0]);
+    assert.deepEqual(bytes('const t = table segments"A"\ni = display.low\ndisplay.data = t[i]'), bytes('const t = table segments    "A"   \ni = display.low\ndisplay.data = t[i]'));
+    for (const [source, error] of [
+        ['const t = table segments ""\ndisplay.data = t[0]', /^Error: Line 1: A text for the displays needs at least one character$/],
+        ['const t = table segments "' + 'A'.repeat(257) + '"\ndisplay.data = t[0]', /^Error: Line 1: A table holds 256 bytes at most, and this text has 257 characters$/],
+        ['const t = table segments "CIAO"\nconst t = table segments "CIAO"\ndisplay.data = t[0]', /^Error: Line 2: Table declared twice: t$/],
+        ['const t = 5\nconst t = table segments "CIAO"\ndisplay.data = t', /^Error: Line 2: t is already a constant$/],
+        ['const if = table segments "CIAO"', /^Error: Line 1: if is a word of the language/],
+        ['const t = table segments "CIAO"\ndisplay.data = t[4]', /^Error: Line 2: Table index out of range/],
+        ['const t = table segments "CIAO"\nt[0] = 1', /^Error: Line 2: t is a table, and a table is not written to$/],
+        ['display.data = 1\nconst t = table segments "CIAO"', /^Error: Line 2: Declare constants, tables and memory names before the first statement$/],
+        // A # begins a comment wherever it stands, so it cuts a text short.
+        ['const t = table segments "CI#AO"\ndisplay.data = t[0]', /^Error: Line 1: Expected const name = table segments "TEXT"/]
+    ]) assert.throws(() => compile(source), error, source);
+    assert.equal(tableOf('A'.repeat(256)).length, 256);
+
+    // It is a table like any other: a literal index is the byte itself and costs no table, and
+    // `segments` is no word of the language, so a program may have it as a name.
+    assert.deepEqual(bytes('const t = table segments "CIAO"\ndisplay.data = t[0]'), [0xd8, 0xa9, 0x39, 0x85, 0xf9, 0x4c, 0x22, 0xfe]);
+    assert.equal(finished('const t = table segments "CIAO"\nsegments = 3\ndisplay.data = t[segments]')[0xf9], 0x3f);
+    // The listing has the text over the bytes it became, and its bytes are still the binary's.
+    const hello = compile('const hello = table segments "Ciao - 1978 "\ni = display.low\ndisplay.data = hello[i]');
+    assert.match(hello.assembly, /^data_hello:\n; "Ciao - 1978 " on the displays\n    \.byte \$39, \$06, \$77, \$3F, \$00, \$40, \$00, \$06 /m);
+    const fromListing = [...hello.assembly.matchAll(/; \$[0-9A-F]{4}  ([0-9A-F]{2}(?: [0-9A-F]{2})*)/g)].flatMap((row) => row[1].split(' ').map((byte) => parseInt(byte, 16)));
+    assert.deepEqual(fromListing, [...hello.binary]);
+    assert.doesNotMatch(compile('const t = table byte = 1, 2\ni = display.low\ndisplay.data = t[i]').assembly, /^; /m);
+
+    // On the board the word is on the six digits.
+    const shown = rawRun('const hello = table segments "CIAO-9"\nfor i in 0..5\n    display.segment[i] = hello[i]\nend\nloop\n    display.show()\nend');
+    tick(shown, 200000);
+    assert.deepEqual(shown.getDisplay(), [0x39, 0x06, 0x77, 0x3f, 0x40, 0x6f]);
+
+    // The example: its text slides across the six digits a place at a time, on out of the dark and off
+    // into it, and round again, four steps a second.
+    const slide = compile(example('slide'));
+    assert.equal(slide.binary.length, 87);
+    assert.deepEqual(slide.warnings, []);
+    const text = /table segments "([^"]*)"/.exec(example('slide'))[1];
+    assert.equal(Number(/const last = (\d+)/.exec(example('slide'))[1]), text.length - 6);
+    const patterns = tableOf(text);
+    const m = bootedMachine();
+    m.loadProgram(slide.binary, slide.origin);
+    monitorRun(m, '0200');
+    // A step is known by the six bytes changing. The digits are read a little after it, when the copy is
+    // done and the emulator has let go of what a digit showed before: it takes no notice of a blank sent
+    // to a digit, so a place that turns from a letter to a space goes on showing the letter for a tenth
+    // of a second, where a board would go dark at once (NextSession.md has this as a fault of the emulator's).
+    const row = () => m.cpu.memory.slice(0x8f, 0x95).join(' ');
+    const seen = [];
+    const at = [];
+    let last = row();
+    while (seen.length < text.length - 5 + 3) {
+        m.cpu.run(5000);
+        if (row() !== last) {
+            at.push(m.cpu.cycles);
+            m.cpu.run(120000);
+            last = row();
+            seen.push(m.getDisplay().join(' '));
+        }
+    }
+    const windows = Array.from({ length: text.length - 5 }, (_, start) => patterns.slice(start, start + 6).join(' '));
+    // The first showing is all dark and so is the last, so the first change seen is to the second window;
+    // from there every window in turn, and round to the second again.
+    assert.deepEqual(seen, windows.slice(1).concat(windows.slice(1, 5)));
+    const step = (at[10] - at[2]) / 8;
+    assert.ok(step > 230000 && step < 270000, 'a step takes ' + step + ' cycles');
 });

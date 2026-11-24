@@ -94,6 +94,8 @@ function assemble(items) {
             listing.push(item.label + ':');
         } else if (item.bytes) {
             if (item.filler) listing.push('; filler: the cassette PROM loses the last byte of a block one byte over whole pages');
+            // A table made from a text says which, since its bytes do not.
+            if (item.comment) listing.push('; ' + item.comment);
             for (let i = 0; i < item.bytes.length; i += 8) {
                 const bytes = item.bytes.slice(i, i + 8);
                 row(pc + i, bytes, '.byte ' + bytes.map(b => '$' + hex(b)).join(', '), line);

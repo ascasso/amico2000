@@ -27,6 +27,15 @@ const KEY_NAMES = {
     'keypad.run': 0x13, 'keypad.reg': 0x14, 'keypad.none': 0x15
 };
 
+// The alphabet for the displays, as the README has it from the manual's
+// Tabella 18: the segments that draw each character, a letter in either case.
+const SEGMENTS_OF = {
+    '0': 0x3f, '1': 0x06, '2': 0x5b, '3': 0x4f, '4': 0x66, '5': 0x6d, '6': 0x7d, '7': 0x07, '8': 0x7f, '9': 0x6f,
+    a: 0x77, b: 0x7c, c: 0x39, d: 0x5e, e: 0x79, f: 0x71, g: 0x3d, h: 0x76, i: 0x06, j: 0x1e,
+    l: 0x38, n: 0x54, o: 0x3f, p: 0x73, q: 0x67, r: 0x50, s: 0x6d, t: 0x78, u: 0x3e, y: 0x6e,
+    '-': 0x40, ' ': 0x00
+};
+
 // A byte written in decimal or as $hex, or the name of a constant, which
 // stands wherever a literal may. Null if the text is some other name.
 function literal(text, constants) {
@@ -93,7 +102,15 @@ function parse(source) {
         const line = raw.replace(/#.*$/, '').trim();
         if (!line) continue;
         let match;
-        if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*table\s+byte\s*=\s*(.+)$/.exec(line))) {
+        if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*table\s+segments\s*"([^"]*)"$/.exec(line))) {
+            // A table from a text: a byte of segments to each character,
+            // spaces included wherever they stand.
+            tables.set(match[1], [...match[2]].map((character) => {
+                const segments = SEGMENTS_OF[character.toLowerCase()];
+                if (segments === undefined) throw new Error('Not in the alphabet for the displays: ' + character);
+                return segments;
+            }));
+        } else if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*table\s+byte\s*=\s*(.+)$/.exec(line))) {
             // A table written out: its bytes, with commas between them.
             tables.set(match[1], match[2].split(',').map((piece) => literal(piece.trim(), constants)));
         } else if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*table\s+byte\s*\[\s*([a-z][a-z0-9_]*)\s+in\s+0\s*\.\.\s*(\S+?)\s*\]\s*=\s*(.+)$/.exec(line))) {

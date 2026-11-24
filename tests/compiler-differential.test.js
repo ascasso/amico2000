@@ -161,7 +161,7 @@ function failure(seed, source, wrong) {
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0, decimals: 0, twoBlocks: 0, sums: 0, minus: 0, inConditions: 0, loopsInside: 0, breaksOut: 0, nextsOut: 0, jumpsInside: 0, binaryAfter: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, texts: 0, spaced: 0, places: 0, rows: 0, decimals: 0, twoBlocks: 0, sums: 0, minus: 0, inConditions: 0, loopsInside: 0, breaksOut: 0, nextsOut: 0, jumpsInside: 0, binaryAfter: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -183,6 +183,9 @@ test('random programs compute on the board what the reference interpreter comput
         if (made.depth >= 4) seen.deep++;
         if (made.constants) seen.constants++;
         if (made.writtenTables) seen.written++;
+        // Counted from the source, not from the generator's word.
+        if (/= table segments ?"/.test(source)) seen.texts++;
+        if (/= table segments ?"[^"]* [^"]*"/.test(source)) seen.spaced++;
         if (made.places) seen.places++;
         if (made.rowUses) seen.rows++;
         const facts = decimalFacts(source);
@@ -201,8 +204,10 @@ test('random programs compute on the board what the reference interpreter comput
     // A generator can stop making what it was written to make and the test
     // would go on passing. Measured over 20,000 programs, 57% of those
     // generated fitted the board, and of those that ran:
-    //   27% had a long branch          63% a constant or a key's name
-    //   62% a loop                     38% a table written out
+    //   27% had a long branch          61% a constant or a key's name
+    //   62% a loop                     33% a table written out
+    //                                  27% a table from a text, 17% one
+    //                                      with a space in it
     //   51% a for                      50% a named memory location
     //   50% a break                    38% a byte of a row read or written
     //   20% a next                     50% blocks four deep
@@ -214,8 +219,9 @@ test('random programs compute on the board what the reference interpreter comput
     //   15% a break that leaves a block, 6% a next that does, 12% a break or
     //       a next that stays inside one
     //   40% a + or a - after a block has ended, which has to be binary
-    // The floors are about half of each: there to notice a collapse, not a
-    // drift. AMICO_SHARES=1 prints the shares.
+    // The floors are about half of each, and a quarter of the rarest, which
+    // a few hundred programs have only a handful of: there to notice a
+    // collapse, not a drift. AMICO_SHARES=1 prints the shares.
     const share = (count) => count / seen.ran;
     assert.ok(seen.ran / PROGRAMS > 0.30, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
@@ -230,6 +236,8 @@ test('random programs compute on the board what the reference interpreter comput
     assert.ok(share(seen.deep) > 0.21, `blocks four deep in only ${seen.deep} of ${seen.ran}`);
     assert.ok(share(seen.constants) > 0.32, `a constant in only ${seen.constants} of ${seen.ran}`);
     assert.ok(share(seen.written) > 0.19, `a table written out in only ${seen.written} of ${seen.ran}`);
+    assert.ok(share(seen.texts) > 0.13, `a table from a text in only ${seen.texts} of ${seen.ran}`);
+    assert.ok(share(seen.spaced) > 0.07, `a space in a text in only ${seen.spaced} of ${seen.ran}`);
     assert.ok(share(seen.places) > 0.25, `a named memory location in only ${seen.places} of ${seen.ran}`);
     assert.ok(share(seen.rows) > 0.19, `a row of bytes in only ${seen.rows} of ${seen.ran}`);
     assert.ok(share(seen.decimals) > 0.27, `a decimal block in only ${seen.decimals} of ${seen.ran}`);
@@ -237,7 +245,7 @@ test('random programs compute on the board what the reference interpreter comput
     // What a block has in it, each counted from the source by decimalFacts().
     for (const [what, floor, name] of [['twoBlocks', 0.12, 'a second decimal block'], ['minus', 0.18, 'a - in decimal'],
         ['inConditions', 0.05, 'a sum in decimal on the left of a comparison'], ['loopsInside', 0.11, 'a loop inside a decimal block'],
-        ['breaksOut', 0.07, 'a break that leaves a decimal block'], ['nextsOut', 0.03, 'a next that leaves a decimal block'],
+        ['breaksOut', 0.07, 'a break that leaves a decimal block'], ['nextsOut', 0.015, 'a next that leaves a decimal block'],
         ['jumpsInside', 0.06, 'a break or a next that stays inside a decimal block'], ['binaryAfter', 0.20, 'a + or a - after a decimal block']]) {
         assert.ok(share(seen[what]) > floor, `${name} in only ${seen[what]} of ${seen.ran}`);
     }

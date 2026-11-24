@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico makes a table from a text, for the displays:
+  `const hello = table segments "CIAO"` is four bytes, the segments that
+  draw each character on a digit, and the listing shows them under the text
+  they came from. The alphabet is the manual's own, Tabella 18 of the
+  Sperimentare supplement: the ten digits, twenty letters, the dash and the
+  space. It has no K, M, V, W, X or Z, and a text with one of those is
+  refused; a table written out still holds any pattern. A letter has one
+  shape and may be written in either case. The manual prints most of the
+  bytes with bit 7 set, which it says is not used; here it is clear.
+- Amico has a sixth example, `compiler/examples/slide.amico`: a text that
+  slides across the six displays, a digit at a time, four steps a second.
+  87 bytes, 31 of them the text.
 - Amico has a `decimal` block. Between `decimal` and its `end`, `+` and `-`
   count in two decimal digits to a byte, which is how the hex displays show
   one: `$59 + 1` is `$60`, and a byte wraps at a hundred. It is the 6502's

@@ -56,9 +56,9 @@ includes debouncing, and it uses five more bytes in zero page. The manual's
 transcribed assembly listing occupies 148 bytes and has different timing and
 opponent logic. [Original listing](../docs/manual-extraction/listings/21-fiammiferi-0200.hex)
 
-## A sum, a word, the LEDs and a clock
+## A sum, a word, the LEDs, a clock and a sliding text
 
-Four more short programs. Each compiles with the commands above and starts
+Five more short programs. Each compiles with the commands above and starts
 with `AD 0200 RUN`.
 
 - [sum.amico](examples/sum.amico) is the manual's first program, Tabella 7:
@@ -84,6 +84,11 @@ with `AD 0200 RUN`.
   [The article's listing](../docs/manual-extraction/listings/orologio-1979-05.txt)
   The time is kept in the display fields, as the article keeps it, so HLT
   loses it. RES ends the clock.
+- [slide.amico](examples/slide.amico) slides a text across the six displays,
+  a digit at a time, four steps a second. The text is a line of the program,
+  `table segments "..."`, in the manual's alphabet for seven segments, which
+  cannot spell the machine's own name: it has no M. Change the text, and
+  `last` with its length. 87 bytes, 31 of them the text. RES ends it.
 
 ## Language
 
@@ -115,6 +120,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `call $ff7e` | Call the routine at an address. When it comes back nothing is taken to be known: not what is in A, and not which way the routine has left Port A, so the next key read sets that again. Decimal mode is cleared, in case the routine set it; inside a `decimal` block it is cleared for the call and set again after it. See Memory and ports. |
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |
 | `const word = table byte = $77, $6d, $79, $38` | Build a table from its bytes, written out with commas between them. Each is a literal or a constant; there may be 256 of them. Declare it before executable statements. |
+| `const hello = table segments "CIAO"` | Build a table from a text, a byte of segments to each character, for the six digits. The alphabet is the manual's. Declare it before executable statements. See Words on the displays. |
 | `value = squares[key]` | Read a table entry. A literal index is checked and folded at compile time. A variable index becomes a native indexed load. Guard it with an `if` when its range is uncertain. An out-of-range variable index reads the byte at the resulting address. |
 
 The compiler warns of a name that is assigned and never read:
@@ -327,6 +333,51 @@ The routine behind `display.show()` leaves the rightmost digit lit when it
 returns, so a program that does much else between calls shows that digit
 brighter; and it leaves Port A an output, so the next key read sets it to
 input again.
+
+## Words on the displays
+
+`const hello = table segments "CIAO"` makes a table of four bytes, one to a
+character: the segments that draw it on a digit. It is a table like any
+other, read by an index, and the listing shows its bytes under the text they
+came from. Put into `display.segment` and shown with `display.show()`, the
+word is on the displays:
+
+```
+const hello = table segments "CIAO  "
+for i in 0..5
+    display.segment[i] = hello[i]
+end
+loop
+    display.show()
+end
+```
+
+The alphabet is the manual's own, Tabella 18 of the Sperimentare supplement,
+"Esempio di alfabeto per display a sette segmenti":
+
+```
+0 $3F   1 $06   2 $5B   3 $4F   4 $66   5 $6D   6 $7D   7 $07   8 $7F   9 $6F
+A $77   b $7C   C $39   d $5E   E $79   F $71   G $3D   H $76   I $06   J $1E
+L $38   n $54   o $3F   P $73   q $67   r $50   S $6D   t $78   U $3E   Y $6E
+- $40   space $00
+```
+
+Seven segments cannot draw every letter, and the manual's table has no K, M,
+V, W, X or Z: a text with one of those, or with any other character, is
+refused. Each letter has the one shape, printed above in the case that
+looks like it, and a text may be written in either case: `"CIAO"` and
+`"ciao"` are the same four bytes. Some shapes are shared: I is a 1, S is a 5,
+and the manual's o is the round of a 0. A space is a dark digit, and spaces
+count wherever they stand in the text, at its ends too.
+
+The manual prints most of these bytes with bit 7 set as well, `F7` for A, as
+the monitor's own table of digits has them, and says that bit 7 is not used.
+Here it is left clear, as in the manual's first ASEL, `77 6D 79 38`.
+
+For a shape that is not in the alphabet, write the table out, a byte to a
+digit, as `const word = table byte = $77, $6d, $79, $38`. A text holds 256
+characters at most. A character read by a literal index costs no table at
+all: `hello[0]` is the byte `$39`.
 
 `display.hold()` scans the six digits for ever. It is `loop`,
 `display.scan()`, `end` in one word and the same six bytes, and nothing after
