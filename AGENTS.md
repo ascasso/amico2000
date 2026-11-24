@@ -1246,8 +1246,8 @@ under Node on another computer and produces a listing, a binary or an
   name assigned on every path before it is read, and no statement out of
   reach. It expects the compiler's messages for those two, "Unreachable
   statement" and "assigned variable"; reword them there too. A new way
-  for control to move, a `while` or a `break`, needs its edges in that
-  oracle.
+  for control to move needs its edges in that oracle: `for`, `break` and
+  `next`, when they are built.
 
 What an agent has to know before touching it:
 

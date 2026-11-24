@@ -526,6 +526,15 @@ on 2026-11-23 and its place is the owner's to give.
         interrupts. Its form is not designed.
       - Subroutines with no parameters: `sub tick ... end`, called as
         `tick()`.
+      - Ways out of a loop, the owner's choice on 2026-11-23 from five put
+        to it: `for i in 0..5`, which takes a name through a range written
+        as a table's is, both ends included; `break`, which leaves the
+        loop it is in; and `next`, which goes round again. `loop ... end`
+        stays the endless loop, and a loop that runs on a condition is a
+        `loop` with `if ... break` in it. Not chosen: `while` and
+        `repeat 6`, which the agent had first proposed and then
+        recommended against; `until` at the foot of a loop; `break` alone;
+        and `loop 60` and `loop while` with `leave` and `again`.
       - From the agent's recap, which the owner liked as a whole and did not
         take one by one: a warning for a name assigned and never read; named
         constants (`const start = 21`) and names for the key codes
@@ -577,11 +586,11 @@ on 2026-11-23 and its place is the owner's to give.
         `0400 =00 60`: the same four bytes straight after a `DEX`, in what
         reads as the middle of a loop. Whether that routine works as printed
         was not tried.
-    - **Open.** The words for ending a loop, which the owner will decide
-      later; the agent proposed `while`, `break`, `next` for going round
-      again, and a counted `repeat 6`. The alphabet for `table segments`.
-      The form of the HLT routine. And what the image of a long program puts
-      in the IRQ vector (item 6).
+    - **Open.** The alphabet for `table segments`. The form of the HLT
+      routine. What the image of a long program puts in the IRQ vector
+      (item 6). And the small print of `for`, to be settled when it is
+      built: whether its ends may be variables, whether it may count
+      down, and what its name holds once the loop is over.
     - **How to steer it:** by the project's own programs. The manual's sum
       (Tabella 7), the word on the displays, the guide's LED counter, the
       sliding text, the 1979 clock and 21 fiammiferi. Amico is good enough
@@ -600,9 +609,8 @@ on 2026-11-23 and its place is the owner's to give.
     - **Order of work**, the agent's proposal. The small fixes first: the
       warning, the names for constants and keys, `display.hold()`, and the
       README saying what `stop` and HLT do to the displays. Then memory
-      names, calls and written-out tables. Then the ways out of a loop and
-      the richer conditions, once the owner has chosen the words. Then
-      decimal. The compiler reads a line with one regular expression for
+      names, calls and written-out tables. Then `for`, `break` and `next`,
+      and the richer conditions. Then decimal. The compiler reads a line with one regular expression for
       each kind of statement, which will not stretch to `and` or to rows of
       bytes, so a small tokenizer comes before the loops. One unit to a
       commit, each with its test.

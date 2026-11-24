@@ -384,6 +384,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Recorded the owner's choice of words for leaving a loop in Amico, in
+  `NextSession.md`, item 13: `for i in 0..5`, `break` and `next`, with
+  `loop ... end` staying the endless loop. Nothing is built yet.
 - `compiler/README.md` now says how a number may be spelt: leading zeros
   change nothing, so `021` is 21 and not octal, and hex digits may be of
   either case. The compiler already read them so, and so did the reference
