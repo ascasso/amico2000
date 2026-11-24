@@ -161,7 +161,7 @@ function failure(seed, source, wrong) {
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, texts: 0, spaced: 0, places: 0, rows: 0, decimals: 0, twoBlocks: 0, sums: 0, minus: 0, inConditions: 0, loopsInside: 0, breaksOut: 0, nextsOut: 0, jumpsInside: 0, binaryAfter: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, texts: 0, spaced: 0, dashed: 0, bothCases: 0, textsReadOn: 0, places: 0, rows: 0, decimals: 0, twoBlocks: 0, sums: 0, minus: 0, inConditions: 0, loopsInside: 0, breaksOut: 0, nextsOut: 0, jumpsInside: 0, binaryAfter: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -184,8 +184,15 @@ test('random programs compute on the board what the reference interpreter comput
         if (made.constants) seen.constants++;
         if (made.writtenTables) seen.written++;
         // Counted from the source, not from the generator's word.
-        if (/= table segments ?"/.test(source)) seen.texts++;
-        if (/= table segments ?"[^"]* [^"]*"/.test(source)) seen.spaced++;
+        const texts = [...source.matchAll(/^const (\w+) = table segments ?"([^"]*)"/gm)].map(([, name, text]) => ({ name, text }));
+        assert.equal(made.textTables, texts.length, failure(seed, source, 'the generator miscounts its texts'));
+        if (texts.length) seen.texts++;
+        if (texts.some(({ text }) => text.includes(' '))) seen.spaced++;
+        if (texts.some(({ text }) => text.includes('-'))) seen.dashed++;
+        if (texts.some(({ text }) => /[a-z]/.test(text)) && texts.some(({ text }) => /[A-Z]/.test(text))) seen.bothCases++;
+        // A text read past its first character, by a number that is not
+        // zero: a name would not show it, since a name may hold zero.
+        if (texts.some(({ name }) => new RegExp('\\b' + name + '\\[\\s*(?:\\$0*[1-9a-fA-F][0-9a-fA-F]*|0*[1-9][0-9]*)\\s*\\]').test(source))) seen.textsReadOn++;
         if (made.places) seen.places++;
         if (made.rowUses) seen.rows++;
         const facts = decimalFacts(source);
@@ -206,8 +213,10 @@ test('random programs compute on the board what the reference interpreter comput
     // generated fitted the board, and of those that ran:
     //   27% had a long branch          61% a constant or a key's name
     //   62% a loop                     33% a table written out
-    //                                  27% a table from a text, 17% one
-    //                                      with a space in it
+    //                                  27% a table from a text
+    //   17% a text with a space in it, 12% one with a dash, 18% texts in
+    //       capitals and in small letters, 6% a text read by a number
+    //       that is not zero
     //   51% a for                      50% a named memory location
     //   50% a break                    38% a byte of a row read or written
     //   20% a next                     50% blocks four deep
@@ -224,6 +233,9 @@ test('random programs compute on the board what the reference interpreter comput
     // collapse, not a drift. AMICO_SHARES=1 prints the shares.
     const share = (count) => count / seen.ran;
     assert.ok(seen.ran / PROGRAMS > 0.30, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
+    // A share of a few dozen programs says little: asked for fewer than 300,
+    // of which some 170 run, the test compares them and counts nothing.
+    if (PROGRAMS < 300) return;
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
     assert.ok(share(seen.loops) > 0.28, `a loop in only ${seen.loops} of ${seen.ran}`);
     assert.ok(share(seen.fors) > 0.24, `a for in only ${seen.fors} of ${seen.ran}`);
@@ -238,6 +250,9 @@ test('random programs compute on the board what the reference interpreter comput
     assert.ok(share(seen.written) > 0.19, `a table written out in only ${seen.written} of ${seen.ran}`);
     assert.ok(share(seen.texts) > 0.13, `a table from a text in only ${seen.texts} of ${seen.ran}`);
     assert.ok(share(seen.spaced) > 0.07, `a space in a text in only ${seen.spaced} of ${seen.ran}`);
+    assert.ok(share(seen.dashed) > 0.05, `a dash in a text in only ${seen.dashed} of ${seen.ran}`);
+    assert.ok(share(seen.bothCases) > 0.08, `capitals and small letters in texts in only ${seen.bothCases} of ${seen.ran}`);
+    assert.ok(share(seen.textsReadOn) > 0.02, `a text read past its first character in only ${seen.textsReadOn} of ${seen.ran}`);
     assert.ok(share(seen.places) > 0.25, `a named memory location in only ${seen.places} of ${seen.ran}`);
     assert.ok(share(seen.rows) > 0.19, `a row of bytes in only ${seen.rows} of ${seen.ran}`);
     assert.ok(share(seen.decimals) > 0.27, `a decimal block in only ${seen.decimals} of ${seen.ran}`);
@@ -471,4 +486,17 @@ test('the interpreter refuses a sum in decimal that the language does not define
         }
     }
     assert.equal(reference.run('x = $59\ndecimal\n    y = x + 1\n    z = x & $0f\n    w = z | $a0\nend\n', memory).variables.get('y'), 0x60);
+});
+
+// The interpreter has the alphabet for the displays a second time, typed from
+// the README. The random programs meet each character only now and then, so
+// a wrong byte there could pass a thousand of them; this reads every
+// character once, in both cases, into memory.
+test('the interpreter draws every character of the alphabet as the compiler does', () => {
+    const alphabet = '0123456789AbCdEFGHIJLnoPqrStUY- ';
+    for (const text of [alphabet, alphabet.toUpperCase(), alphabet.toLowerCase()]) {
+        const source = `const t = table segments "${text}"\nbyte out[32] at $0400\nfor i in 0..31\n    out[i] = t[i]\nend\n`;
+        const result = compare(source, 5);
+        assert.equal(result, null, result && result.wrong);
+    }
 });

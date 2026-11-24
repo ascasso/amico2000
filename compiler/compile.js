@@ -25,9 +25,10 @@ const KEY_CODES = [['keypad.ad', 0x10], ['keypad.da', 0x11], ['keypad.inc', 0x12
 // dash and the dark digit, and no K, M, V, W, X or Z. The table prints a
 // letter in the case its shape has, A b C d E F, and a text may be written in
 // either: there is one shape to a letter. Its `o` is the round of a zero.
-// Most of its bytes have bit 7 set as well, as the monitor's own table at
-// $FFEA has, and the manual says of it "il bit 7 non viene utilizzato": here
-// it is left clear, as the manual's first ASEL has it, 77 6D 79 38.
+// Most of its bytes have bit 7 set as well, as every byte of the monitor's
+// own table at $FFEA has, and the manual says of it "il bit 7 non viene
+// utilizzato": here it is left clear, as the manual's first ASEL has it,
+// 77 6D 79 38.
 const ALPHABET = new Map(Object.entries({
     0: 0x3f, 1: 0x06, 2: 0x5b, 3: 0x4f, 4: 0x66, 5: 0x6d, 6: 0x7d, 7: 0x07, 8: 0x7f, 9: 0x6f,
     A: 0x77, B: 0x7c, C: 0x39, D: 0x5e, E: 0x79, F: 0x71, G: 0x3d, H: 0x76, I: 0x06, J: 0x1e,
@@ -337,7 +338,7 @@ function compile(source) {
     // const name = byte.
     function declareConstant(L) {
         if (L.length !== 4 || L.term(1) === undefined || L.mark(2) !== '=' || L.term(3) === undefined) {
-            fail('Expected const name = byte, or const name = table byte with a formula or with its bytes');
+            fail('Expected const name = byte, or const name = table byte with a formula or with its bytes, or const name = table segments "TEXT"');
         }
         const name = L.term(1);
         const written = L.term(3);
@@ -377,14 +378,19 @@ function compile(source) {
     // for the row the monitor shows on the six digits. The text is the line's
     // own, from one double quote to the other, spaces and all.
     function declareSegments(name, written) {
-        const quoted = /^"([^"]*)"$/.exec(written);
+        const quoted = /^"([^"]*)"(.*)$/.exec(written);
         if (!quoted) fail('Expected const name = table segments "TEXT", the text between two double quotes');
+        // The quotes are right, and it is what comes after them that is not.
+        if (quoted[2]) fail('A text for the displays ends the line at its closing quote, and this goes on: ' + quoted[2].trim());
         tableName(name);
         const characters = [...quoted[1]];
         if (!characters.length) fail('A text for the displays needs at least one character');
         if (characters.length > 256) fail('A table holds 256 bytes at most, and this text has ' + characters.length + ' characters');
         const bytes = characters.map((character) => {
-            const segments = ALPHABET.get(character.toUpperCase());
+            // The twenty-six small letters are the capitals, and nothing
+            // else is: toUpperCase() alone would make an I of a dotless i
+            // and an S of a long s, which are no letters of the alphabet.
+            const segments = ALPHABET.get(/^[a-z]$/.test(character) ? character.toUpperCase() : character);
             if (segments === undefined) {
                 fail('Seven segments have no ' + character + " in the manual's alphabet, which is 0 to 9, A b C d E F G H I J L n o P q r S t U Y, " +
                     'the dash and the space; a table written out can hold any pattern');

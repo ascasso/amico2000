@@ -1406,8 +1406,15 @@ test('a line that is nearly a statement is refused, and not read as the statemen
         ['const t = table segments CIAO\n' + read, text],
         ['const t = table segments "CIAO\n' + read, text],
         ['const t = table segments CIAO"\n' + read, text],
-        ['const t = table segments "CIAO" 5\n' + read, text],
-        ['const t = table segments "CI" "AO"\n' + read, text],
+        ['const t = table segments "CIAO" 5\n' + read, /^Error: Line 1: A text for the displays ends the line at its closing quote, and this goes on: 5$/],
+        ['const t = table segments "CI" "AO"\n' + read, /^Error: Line 1: A text for the displays ends the line at its closing quote, and this goes on: "AO"$/],
+        ['const t = table segments "CIAO" # and a comment\n' + read.replace('t[3]', 't[4]'), /^Error: Line 2: Table index out of range/],
+        // The word is `segments`, whole, and the text comes straight after it.
+        ['const t = table segmentsx "CIAO"\n' + read, table],
+        ['const t = table segment "CIAO"\n' + read, table],
+        ['const t = table segments of "CIAO"\n' + read, text],
+        ['const t = table segments byte "CIAO"\n' + read, text],
+        ['const t = segments "CIAO"\n' + read, /^Error: Line 1: Expected const name = byte, or const name = table byte with a formula or with its bytes, or const name = table segments "TEXT"$/],
         ['const t = table segments = "CIAO"\n' + read, text],
         ['const t = table segments\n' + read, text],
         ["const t = table segments 'CIAO'\n" + read, text],
@@ -1791,10 +1798,15 @@ test('table segments makes a table from a text, in the manual\'s alphabet for th
     assert.deepEqual(new Map(listed), new Map(Object.entries(printed).map(([character, byte]) => [character, byte & 127])));
     assert.equal(listed.length, 32);
 
-    // Every other character is refused, by its own name: the six letters seven segments cannot draw here, and the rest.
-    for (const character of [...'KMVWXZkmvwxz_.,:;!?=+*/()[]$@èÀ']) {
+    // Every other character is refused, by its own name: the six letters seven segments cannot draw here
+    // and every other character a keyboard has, a tab, and what is not ASCII. Among those are a space that
+    // is not the space, two letters whose capitals are an I and an S, the dotless i and the long s, which
+    // are no letters of the alphabet for that, and a character that is two units long and is named whole.
+    const keyboard = Array.from({ length: 95 }, (_, code) => String.fromCharCode(32 + code)).filter((character) => !(character.toLowerCase() in Object.fromEntries(Object.keys(printed).map((known) => [known.toLowerCase(), 1]))) && character !== '"' && character !== '#');
+    assert.equal(keyboard.length, 95 - 10 - 40 - 2 - 2);
+    for (const character of [...keyboard, '\t', '\u00a0', '\u0131', '\u017f', '\u00e8', '\u00c0', '\u00df', '\u{1f600}']) {
         assert.throws(() => compile(`const t = table segments "CI${character}O"\ndisplay.data = t[0]`),
-            new RegExp('^Error: Line 1: Seven segments have no ' + character.replace(/[.*+?()[\]$]/g, '\\$&') + " in the manual's alphabet, which is 0 to 9, A b C d E F G H I J L n o P q r S t U Y, the dash and the space; a table written out can hold any pattern$"), character);
+            new RegExp('^Error: Line 1: Seven segments have no ' + character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + " in the manual's alphabet, which is 0 to 9, A b C d E F G H I J L n o P q r S t U Y, the dash and the space; a table written out can hold any pattern$"), character);
     }
     // Spaces count wherever they stand, a space may stand before the text or not, and the text is one line's.
     assert.deepEqual(tableOf('  A b  '), [0, 0, 0x77, 0, 0x7c, 0, 0]);
@@ -1811,7 +1823,16 @@ test('table segments makes a table from a text, in the manual\'s alphabet for th
         // A # begins a comment wherever it stands, so it cuts a text short.
         ['const t = table segments "CI#AO"\ndisplay.data = t[0]', /^Error: Line 1: Expected const name = table segments "TEXT"/]
     ]) assert.throws(() => compile(source), error, source);
-    assert.equal(tableOf('A'.repeat(256)).length, 256);
+    // A text of 256 characters, no two neighbours alike, is 256 bytes, each its own character's.
+    const every = Object.keys(printed);
+    const long = Array.from({ length: 256 }, (_, place) => every[(place * 7 + (place >> 5)) % 32]);
+    assert.deepEqual(tableOf(long.join('')), long.map((character) => printed[character] & 127));
+    // Its name is a name like any table's: not a memory name's, and `segments` itself will do, for a table or a constant.
+    assert.throws(() => compile('byte t[4] at $0300\nconst t = table segments "CIAO"\ni = display.low\ndisplay.data = t[i]'), /^Error: Line 2: t is already a memory name$/);
+    assert.equal(finished('const segments = table segments "CIAO"\ndisplay.data = segments[2]')[0xf9], 0x77);
+    assert.equal(finished('const segments = 2\nconst t = table segments "CIAO"\ndisplay.data = t[segments]')[0xf9], 0x77);
+    // Read by a variable on the left of a comparison, it leaves the character in the accumulator and not the index.
+    assert.equal(finished('const t = table segments "CIAO"\ni = 2\ndisplay.high = 0\nif t[i] == $77\n    display.high = i\nend')[0xfb], 2);
 
     // It is a table like any other: a literal index is the byte itself and costs no table, and
     // `segments` is no word of the language, so a program may have it as a name.
@@ -1823,6 +1844,11 @@ test('table segments makes a table from a text, in the manual\'s alphabet for th
     const fromListing = [...hello.assembly.matchAll(/; \$[0-9A-F]{4}  ([0-9A-F]{2}(?: [0-9A-F]{2})*)/g)].flatMap((row) => row[1].split(' ').map((byte) => parseInt(byte, 16)));
     assert.deepEqual(fromListing, [...hello.binary]);
     assert.doesNotMatch(compile('const t = table byte = 1, 2\ni = display.low\ndisplay.data = t[i]').assembly, /^; /m);
+    // Each text has its own line, as it was written, spaces and all, over its own bytes, with the line it is
+    // declared on; a table of another kind beside them has none.
+    const several = compile('const a = table segments "A  b"\nconst w = table byte = 1, 2\nconst s = table segments "S"\ni = display.low\ndisplay.data = a[i]\ndisplay.low = w[i]\ndisplay.high = s[i]').assembly;
+    assert.match(several, /^data_a:\n; "A  b" on the displays\n    \.byte \$77, \$00, \$00, \$7C +; \$[0-9A-F]{4}  77 00 00 7C  line 1\ndata_w:\n    \.byte \$01, \$02 +; \$[0-9A-F]{4}  01 02  line 2\ndata_s:\n; "S" on the displays\n    \.byte \$6D +; \$[0-9A-F]{4}  6D  line 3\n$/m);
+    assert.equal(several.split('\n').filter((row) => row.startsWith('; ')).length, 2);
 
     // On the board the word is on the six digits.
     const shown = rawRun('const hello = table segments "CIAO-9"\nfor i in 0..5\n    display.segment[i] = hello[i]\nend\nloop\n    display.show()\nend');

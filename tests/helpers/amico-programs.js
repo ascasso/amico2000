@@ -222,7 +222,7 @@ function generate(seed, { scans = false, long = false } = {}) {
         // now and then at its ends.
         if (chance(0.2)) {
             const length = between(1, 12);
-            const text = Array.from({ length }, () => (chance(0.15) ? ' ' : pick([...'0123456789AbCdEFGHIJLnoPqrStUY-abcdefghijlnopqrstuy'])));
+            const text = Array.from({ length }, () => (chance(0.15) ? ' ' : chance(0.08) ? '-' : pick([...'0123456789AbCdEFGHIJLnoPqrStUY-abcdefghijlnopqrstuy'])));
             tables.push({ name: 't' + number, length });
             lines.push(`const t${number} = table segments${chance(0.3) ? '' : ' '}"${text.join('')}"`);
             made.textTables++;
