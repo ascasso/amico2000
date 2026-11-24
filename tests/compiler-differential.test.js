@@ -361,3 +361,28 @@ test('the left side of a comparison leaves its own value in the accumulator', ()
         }
     }
 });
+
+// A branch reaches 127 bytes forward and 128 back, and over more the back end
+// writes the opposite branch round a JMP. The random programs give an `if` a
+// long arm now and then; these put thirty statements where each new kind of
+// branch has to cross them: the branch back at the foot of a `for`, the
+// branch over a `next` whose rest of the loop is long, and the branches of a
+// condition joined by `or` and of an `else if` that compares with `<=`. A
+// `break` and a `next` are themselves a JMP, which reaches anywhere.
+const LONG = Array.from({ length: 30 }, (_, k) => `    sum = sum + ${k % 7 + 1}`).join('\n');
+const ACROSS_A_LONG_WAY = {
+    'the branch back of a for': `sum = 0\nfor i in 0..3\n${LONG}\n    sum = sum + i\nend\ndisplay.data = sum\ndisplay.low = i`,
+    'a next over the rest of a for': `sum = 0\nfor i in 5..0\n    if i == 2\n        next\n    end\n${LONG}\nend\ndisplay.data = sum\ndisplay.low = i`,
+    'an or and an else if before long arms': `sum = 0\nx = 3\ny = 9\nif x == 4 or y > x\n${LONG}\nelse if x <= y\n${LONG}\nelse\n    sum = 1\nend\ndisplay.data = sum`,
+    'the same, the other way': `sum = 0\nx = 9\ny = 3\nif x == 4 or y > x\n${LONG}\nelse if x <= y\n${LONG}\nelse\n    sum = 1\nend\ndisplay.data = sum`
+};
+
+test('the new branches cross statements too long for a branch to reach over', () => {
+    for (const [name, source] of Object.entries(ACROSS_A_LONG_WAY)) {
+        assert.match(compile(source).assembly, /\*\+5/, name + ' has no long branch in it');
+        for (const seed of [1, 2]) {
+            const result = compare(source + '\n', seed);
+            assert.equal(result, null, result && `${name}: ${result.wrong}`);
+        }
+    }
+});

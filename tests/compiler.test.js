@@ -739,7 +739,7 @@ test('a row of bytes is named once and indexed', () => {
     monitorRun(m, '0200');
     tick(m, 200000);
     assert.deepEqual(m.getDisplay(), [0x77, 0x6d, 0x79, 0x38, 0, 0]);
-    // The same with a for, which is how the README has it: seven lines.
+    // The same with a for, which is how the README has it: eight lines, where this took twelve.
     const counted = compile('const word = table byte = $77, $6d, $79, $38, 0, 0\nbyte segment[6] at $8f\nfor i in 0..5\n    segment[i] = word[i]\nend\nloop\n    call $ff7e\nend');
     const board = bootedMachine();
     board.loadProgram(counted.binary, counted.origin);
@@ -1104,6 +1104,12 @@ test('break leaves the loop it is in, and next goes round it again', () => {
         ['for i in 0..3\nif i == 1\nbreak\nend\nx = 1\nend\ndisplay.data = x', /^Error: Line 7: Expected a byte literal, a constant or an assigned variable, got x/],
         // Two ways out, and only the second has assigned the name.
         ['loop\nif display.low == 0\nbreak\nend\nx = 1\nbreak\nend\ndisplay.data = x', /^Error: Line 8: Expected a byte literal, a constant or an assigned variable, got x/],
+        // And only the first: of a loop's breaks, of a for's breaks, and of
+        // the ways to a for's foot. Every way out counts, whichever comes first.
+        ['loop\nif display.low == 0\nx = 1\nbreak\nend\nbreak\nend\ndisplay.data = x', /^Error: Line 8: Expected a byte literal, a constant or an assigned variable, got x/],
+        ['for i in 0..3\nif i == 1\nx = 1\nbreak\nend\nbreak\nend\ndisplay.data = x', /^Error: Line 8: Expected a byte literal, a constant or an assigned variable, got x/],
+        ['for i in 0..3\nif i == 1\nx = 1\nnext\nend\nnext\nend\ndisplay.data = x', /^Error: Line 8: Expected a byte literal, a constant or an assigned variable, got x/],
+        ['for i in 0..3\nif i == 1\nx = 1\nnext\nend\nend\ndisplay.data = x', /^Error: Line 7: Expected a byte literal, a constant or an assigned variable, got x/],
         ['break', /^Error: Line 1: break leaves a loop or a for, and there is none round it/],
         ['next', /^Error: Line 1: next goes round a loop or a for again, and there is none round it/],
         ['if display.low == 0\nbreak\nend', /^Error: Line 2: break leaves a loop or a for, and there is none round it/],
@@ -1279,6 +1285,9 @@ test('else if tries another condition, and one end closes the chain', () => {
     // A condition of a chain may be joined, like any other.
     const joined = finished('byte took[6] at $80\nfor i in 0..5\n    if i == 0 or i == 5\n        took[i] = 1\n    else if i >= 2 and i < 4\n        took[i] = 2\n    else\n        took[i] = 3\n    end\nend');
     assert.deepEqual([...joined.slice(0x80, 0x86)], [1, 3, 2, 2, 3, 1]);
+    // An arm that cannot reach the end gets no jump to it: nothing would run it.
+    assert.doesNotMatch(compile('if display.low == 0\n    stop\nelse\n    display.data = 1\nend').assembly, /JMP flow_/);
+    assert.match(compile('if display.low == 0\n    display.data = 2\nelse\n    display.data = 1\nend').assembly, /JMP flow_2/);
     // Inside a loop, an arm may leave it or go round.
     assert.deepEqual(fields('display.low = 0\nsum = 0\nfor i in 0..9\n    if i == 2\n        next\n    else if i == 6\n        break\n    else\n        sum = sum + i\n    end\nend\ndisplay.high = sum\ndisplay.data = i'), [0 + 1 + 3 + 4 + 5, 0, 6]);
 
@@ -1287,6 +1296,19 @@ test('else if tries another condition, and one end closes the chain', () => {
     // there. Here the arm above ends with x in A, and x is what the next
     // condition asks about.
     assert.deepEqual(fields('byte p at $80\ndisplay.high = 0\ndisplay.low = 0\ndisplay.data = 0\nx = 5\nif display.low == 1\n    p = x\nelse if x == 5\n    display.data = 1\nend'), [0, 0, 1]);
+    // Nor is it known there which way Port A faces. The arm above may have
+    // scanned, which turns it inwards, and not have run. Here a store has
+    // turned it outwards and the arm that scans is passed over, so the key
+    // read has to turn it back: on the board, Port A is an input when the
+    // monitor's key routine is entered. The same where a plain else begins.
+    for (const other of ['else if keypad.read() == keypad.none\n    display.data = 1', 'else\n    k = keypad.read()\n    display.data = k']) {
+        const m = rawRun('byte control at $fd03\ncontrol = $89\nif display.low == 99\n    display.scan()\n' + other + '\nend');
+        for (let steps = 0; m.cpu.PC !== 0xff57; steps++) {
+            assert.ok(steps < 10000, 'the key routine was never entered');
+            m.cpu.step();
+        }
+        assert.equal(m.pia.portAInput, true, other);
+    }
     // And what a condition joined by and leaves is known to its arm: the
     // key read has turned Port A, so the next one does not turn it again.
     const turned = compile('if display.low == 9\n    display.data = 0\nelse if display.low == 0 and keypad.read() == 5\n    k = keypad.read()\n    display.data = k\nend').assembly;
@@ -1314,4 +1336,88 @@ test('else if tries another condition, and one end closes the chain', () => {
         ['if display.low == 0\nelse display.data = 1\nend', /^Error: Line 2: Unknown statement: else display.data = 1/],
         ['if display.low == 0\nelse if display.low == 1', /^Error: Line 1: Missing end: this if is never closed/]
     ]) assert.throws(() => compile(source), error, source);
+});
+
+// The compiler knows a statement by the pieces of its line, and each kind of
+// statement asks for its pieces one by one: this word here, that mark there,
+// nothing after the last. Any one of those questions left out, and a line
+// that is nearly a statement is read as one, and compiled to something its
+// writer did not mean: `x = a + b + 4` as `x = a + b`. A reviewer took the
+// questions out one at a time and no test noticed, so each has a line here
+// that only it refuses. The compiler as it was before it read lines as
+// pieces refuses every one of these too.
+test('a line that is nearly a statement is refused, and not read as the statement it resembles', () => {
+    const value = /^Error: Line \d: Expected a byte literal, a constant or an assigned variable, got /;
+    const table = /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula, or const name = table byte = byte, byte/;
+    const constant = /^Error: Line 1: Expected const name = byte, or const name = table byte with a formula or with its bytes/;
+    const place = /^Error: Line 1: Expected byte name at address, or byte name\[count\] at address/;
+    const counted = /^Error: Line 1: Expected for name in first\.\.last/;
+    const unknown = (line) => new RegExp('^Error: Line \\d: Unknown statement: ' + line.replace(/[.()[\]$+*]/g, '\\$&') + '$');
+    const read = 'x = t[3]\ndisplay.data = x';
+    for (const [source, error] of [
+        // An expression is one operation, and a read by index ends it.
+        ['a = 1\nb = 2\nx = a + b + 4\ndisplay.data = x', value],
+        ['a = 1\nb = 2\nx = a + b +\ndisplay.data = x', value],
+        ['a = 1\nx = a +\ndisplay.data = x', value],
+        ['a = 1\nx = + a\ndisplay.data = x', value],
+        ['a = 1\nb = 2\nx = a * b\ndisplay.data = x', value],
+        ['a = 1\nb = 2\nx = a b\ndisplay.data = x', value],
+        ['const t = table byte = 1, 2\nx = t[1] + 4\ndisplay.data = x', value],
+        ['const t = table byte = 1, 2\nx = t[1] 4\ndisplay.data = x', value],
+        ['const t = table byte = 1, 2\nx = t[]\ndisplay.data = x', value],
+        ['const t = table byte = 1, 2\nx = t 1]\ndisplay.data = x', value],
+        ['x = keypad.read() 5\ndisplay.data = x', value],
+        ['x = keypad.press() + 1\ndisplay.data = x', value],
+        // The right side of a comparison is one value, and two are not one.
+        ['if display.low == 1 2\nend', /^Error: Line 1: The right side of a comparison is a single value/],
+        ['a = 1\nif display.low == a display.high\nend', /^Error: Line 2: The right side of a comparison is a single value/],
+        // A table by a formula: every word and mark of it, and nothing more.
+        ['const t = table byte [n in 0..3] = n & 1\n' + read, table],
+        ['const t = table byte [n in 0..3] = n + 1 + 1\n' + read, table],
+        ['const t = table byte [n in 0..3] = n +\n' + read, table],
+        ['const t = table byte [n of 0..3] = n\n' + read, table],
+        ['const t = table byte [n in 0-3] = n\n' + read, table],
+        ['const t = table byte [n in 0..3) = n\n' + read, table],
+        ['const t = table byte (n in 0..3] = n\n' + read, table],
+        ['const t = table byte [n in 0..3] + n\n' + read, table],
+        ['const t = table byte [n in 0..3] =\n' + read, table],
+        ['const t = table byte [in 0..3] = 1\n' + read, table],
+        ['const t = table word [n in 0..3] = n\n' + read, table],
+        ['const t = table word = 1, 2, 3, 4\n' + read, table],
+        // A constant.
+        ['const c < 5\ndisplay.data = c', constant],
+        ['const c = [\ndisplay.data = c', constant],
+        ['const c 5\ndisplay.data = c', constant],
+        ['const c = 5 6\ndisplay.data = c', constant],
+        // A memory name.
+        ['byte p on $80\np = 1', place],
+        ['byte p at\np = 1', place],
+        ['byte p at $80 $81\np = 1', place],
+        ['byte p at $80 at $81\np = 1', place],
+        ['byte [4] at $80\ndisplay.data = 1', place],
+        ['byte r[4 at $80\ndisplay.data = 1', place],
+        ['byte r[4] on $80\ndisplay.data = 1', place],
+        // A for.
+        ['for i at 0..5\nend', counted],
+        ['for i in 0-5\nend', counted],
+        ['for i in 0..5 6\nend', counted],
+        // A statement of one word, or of a name and an empty pair of brackets.
+        ['stop now', unknown('stop now')],
+        ['loop forever\nend', unknown('loop forever')],
+        ['display.scan() 5', unknown('display.scan() 5')],
+        ['display.scan(1)', unknown('display.scan(1)')],
+        ['display.hold() now', unknown('display.hold() now')],
+        ['display.show() 5', unknown('display.show() 5')],
+        ['display.scan', unknown('display.scan')],
+        // An else belongs to an if, and to nothing else that is open.
+        ['for i in 0..1\nelse\nend', /^Error: Line 2: Unexpected else/],
+        ['loop\nelse\nend', /^Error: Line 2: Unexpected else/],
+        ['for i in 0..1\nelse if i == 0\nend', /^Error: Line 2: Unexpected else/]
+    ]) assert.throws(() => compile(source), error, source);
+    // Nothing here is refused for its spacing: the same lines, well formed, compile.
+    assert.ok(compile('a = 1\nb = 2\nx = a+b\ndisplay.data = x'));
+    assert.ok(compile('const t = table byte[n in 0 .. 3]=n&1'.replace('&', '+') + '\n' + read));
+    // One spacing was refused before the compiler read a line as pieces and
+    // is taken now, as it always was round an index: no space before `at`.
+    assert.deepEqual([...compile('byte row[6]at $8f\nrow[0] = 1').binary], [...compile('byte row[6] at $8f\nrow[0] = 1').binary]);
 });

@@ -483,6 +483,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Sharpened the tests of Amico's loops and conditions, after two reviewers
+  of the unpushed series planted defects that no test noticed. Which way
+  Port A is taken to face where an `else` or an `else if` begins is now
+  checked on the board, at the entry of the monitor's key routine. Every
+  question the compiler asks of a line's shape has a line that only it
+  refuses, fifty of them: `x = a + b + 4` was one question away from
+  compiling as `x = a + b`. That a name needs every way out of a loop is
+  tested with the ways in both orders. The branches the new words make are
+  run across statements too long for a branch to reach over.
 - `NextSession.md` and `AGENTS.md` say what Amico now has. Item 13 marks
   `for`, `break`, `next` and the richer conditions done, records how the
   small print of `for` was settled, which the owner has not yet seen, lists
