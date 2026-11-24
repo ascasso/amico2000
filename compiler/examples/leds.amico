@@ -8,18 +8,13 @@ byte control at $fd03
 
 control = $89       # Port A an output; the mode word goes first
 port_b = $87
-count = 0
-rounds = 0
-slow = 0
 loop
-    port_a = count
-    # Nothing waits here but counting: 256 rounds, 78 times over, is half a second.
-    rounds = rounds + 1
-    if rounds == 0
-        slow = slow + 1
-        if slow == 78
-            slow = 0
-            count = count + 1
+    for count in 0..15
+        port_a = count
+        # Nothing waits here but counting: 256 rounds, 150 times over, is half a second.
+        for slow in 1..150
+            for rounds in 0..255
+            end
         end
     end
 end

@@ -155,7 +155,7 @@ test('diagnostics identify mistakes and the linker protects the interrupt vector
 test('the matchstick game plays to both endings on the original board memory map', () => {
     const source = fs.readFileSync(path.join(__dirname, '../compiler/examples/matches.amico'), 'utf8');
     const program = compile(source);
-    assert.equal(program.binary.length, 186);
+    assert.equal(program.binary.length, 182);
     for (const [moves, totals, ending] of [
         ['123333', [0x19, 0x16, 0x12, 0x08, 0x04, 0x01], '5afe01'],
         ['33333', [0x17, 0x13, 0x09, 0x05, 0x01], 'dead01']
@@ -724,6 +724,13 @@ test('a row of bytes is named once and indexed', () => {
     monitorRun(m, '0200');
     tick(m, 200000);
     assert.deepEqual(m.getDisplay(), [0x77, 0x6d, 0x79, 0x38, 0, 0]);
+    // The same with a for, which is how the README has it: seven lines.
+    const counted = compile('const word = table byte = $77, $6d, $79, $38, 0, 0\nbyte segment[6] at $8f\nfor i in 0..5\n    segment[i] = word[i]\nend\nloop\n    call $ff7e\nend');
+    const board = bootedMachine();
+    board.loadProgram(counted.binary, counted.origin);
+    monitorRun(board, '0200');
+    tick(board, 200000);
+    assert.deepEqual(board.getDisplay(), [0x77, 0x6d, 0x79, 0x38, 0, 0]);
     // A byte of a row may be read into another, and compared.
     assert.deepEqual(bytes('byte r[4] at $80\nr[1] = r[2]'), [0xd8, 0xa5, 0x82, 0x85, 0x81, 0x4c, 0x22, 0xfe]);
     assert.ok(compile('byte r[4] at $80\nif r[1] == 3\nr[0] = 9\nend').binary.length > 8);

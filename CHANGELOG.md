@@ -483,6 +483,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Two of Amico's examples are written with its new words. The matchstick
+  game accepts a move with one condition, `if take >= 1 and take <= 3 and
+  take < left`, where it had three `if`s one inside another, and its two
+  reasons to reply with one match are joined by `or`: 182 bytes, from 186.
+  The LED counter is three `for` loops, one that counts on the LEDs and two
+  that wait, where it kept three counts by hand: 53 bytes, from 64, and
+  still half a second to a step. The README's copy of the manual's word to
+  the displays is a `for` of three lines.
 - Amico's compiler reads a line as pieces, where it had one regular
   expression for each kind of statement: terms, which are numbers and names,
   marks, which are operators, brackets and commas, and anything else a

@@ -51,7 +51,7 @@ to play again.
 
 This adaptation of the manual's game opens with a reply of one, giving the
 human player an opening to discover. Subsequent moves aim to leave one match
-modulo four. It responds as soon as a press is confirmed. Its 186-byte image
+modulo four. It responds as soon as a press is confirmed. Its 182-byte image
 includes debouncing, and it uses five more bytes in zero page. The manual's
 transcribed assembly listing occupies 148 bytes and has different timing and
 opponent logic. [Original listing](../docs/manual-extraction/listings/21-fiammiferi-0200.hex)
@@ -338,15 +338,11 @@ variable. The manual's word, ASEL, copied out of a table:
 ```
 const word = table byte = $77, $6d, $79, $38, 0, 0
 byte segment[6] at $8f
-i = 0
-loop
+for i in 0..5
     segment[i] = word[i]
-    i = i + 1
-    if i == 6
-        loop
-            call $ff7e
-        end
-    end
+end
+loop
+    call $ff7e
 end
 ```
 
