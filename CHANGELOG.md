@@ -407,6 +407,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `compiler/README.md` now warns that HLT gives the three display fields to
+  the monitor: it writes the halted address into `display.high` and
+  `display.low` and the byte there into `display.data`, and RUN does not
+  put back what the program had in them. A program that keeps its state
+  in a display field loses it at a halt or under single step; the advice
+  is to keep it in a variable. A test pins the behaviour. The last of the
+  four small fixes agreed for Amico.
 - Mended the random program generator behind
   `tests/compiler-differential.test.js`. Its seeds are small numbers, and
   the first choice it made from one came out the same way for nearly every

@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 264
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 265
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -547,7 +547,8 @@ on 2026-11-23 and its place is the owner's to give.
           `if key == key.none` reads badly;
         - `display.hold()`, which scans until RES, so that a program can
           end with its result showing. **Done**;
-        - the README saying what `stop` and HLT do to the displays;
+        - the README saying what `stop` and HLT do to the displays.
+          **Done**, each with a test that pins it;
         - `and`, `or`, `else if`, `>` and `<=`;
         - shifts, `a << 1` and `a >> 1`;
         - a key read or a table read as an operand

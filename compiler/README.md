@@ -115,6 +115,13 @@ not when a halted program takes up again, and a program waiting for a key is
 nearly always halted inside it. A program should pass over a key it has no
 use for, as the matchstick game passes over everything but 1, 2 and 3.
 
+HLT also gives the three display fields to the monitor. It writes the address
+at which the program was halted into `display.high` and `display.low` and the
+byte at that address into `display.data`, and RUN does not put back what was
+there. A program that keeps a count or a state in a display field has lost it
+after a halt, and so has one stepped with the NOR/SS switch at SS. Keep what
+matters in a variable and write the field from it.
+
 ## The ROM and the memory budget
 
 RUN restores the status saved in RAM. Generated programs start with `CLD`,

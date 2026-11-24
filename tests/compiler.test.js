@@ -459,3 +459,35 @@ test('display.hold() keeps a result on the displays until RES, where stop loses 
     // In one arm of an `if`, the program goes on by the other.
     assert.ok(compile('k = display.low\nif k == 1\ndisplay.hold()\nend\ndisplay.data = 2').binary.length > 8);
 });
+
+// Another limit the README warns of, under Display and keys. The display
+// fields are the monitor's own workspace, and HLT is the monitor.
+test('HLT gives the display fields to the monitor, and RUN does not give them back', () => {
+    const fields = (m) => [...m.cpu.memory.slice(0xf9, 0xfc)];
+    const haltAndResume = (source) => {
+        const m = bootedMachine();
+        const { origin, binary } = compile(source);
+        m.loadProgram(binary, origin);
+        monitorRun(m, '0200');
+        tick(m, 200000);
+        const before = fields(m);
+        m.hlt();
+        tick(m, 200000);
+        const halted = fields(m);
+        press(m, 'Enter');
+        tick(m, 200000);
+        return { before, halted, after: fields(m), m };
+    };
+
+    // State kept in the fields themselves: gone.
+    const kept = haltAndResume('display.high = $12\ndisplay.low = $34\ndisplay.data = $56\ndisplay.hold()');
+    assert.deepEqual(kept.before, [0x56, 0x34, 0x12]);
+    assert.notDeepEqual(kept.halted.slice(1), [0x34, 0x12]); // The halted address is there instead.
+    assert.deepEqual(kept.after.slice(1), kept.halted.slice(1)); // And RUN leaves it there.
+
+    // State kept in a variable and written to the fields each round: back at once.
+    const written = haltAndResume('a = $12\nloop\ndisplay.high = a\ndisplay.low = a\ndisplay.data = a\ndisplay.scan()\nend');
+    assert.deepEqual(written.before, [0x12, 0x12, 0x12]);
+    assert.notDeepEqual(written.halted.slice(1), [0x12, 0x12]);
+    assert.deepEqual(written.after, [0x12, 0x12, 0x12]);
+});
