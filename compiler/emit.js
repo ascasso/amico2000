@@ -13,11 +13,13 @@ const LIMIT = 0x03fc; // The four bytes here are the monitor's interrupt vectors
 const FILLER = 0xea;
 const OPCODES = {
     CLD: 0xd8, CLC: 0x18, SEC: 0x38, TAX: 0xaa, RTS: 0x60,
-    LDA: { imm: 0xa9, zp: 0xa5, absX: 0xbd },
+    // The absolute forms are for a memory location the program names, which
+    // may be anywhere; the compiler's own variables are all in page zero.
+    LDA: { imm: 0xa9, zp: 0xa5, abs: 0xad, absX: 0xbd },
     STA: { zp: 0x85, abs: 0x8d }, DEC: { zp: 0xc6 },
-    ADC: { imm: 0x69, zp: 0x65 }, SBC: { imm: 0xe9, zp: 0xe5 },
-    AND: { imm: 0x29, zp: 0x25 }, ORA: { imm: 0x09, zp: 0x05 },
-    EOR: { imm: 0x49, zp: 0x45 }, CMP: { imm: 0xc9, zp: 0xc5 },
+    ADC: { imm: 0x69, zp: 0x65, abs: 0x6d }, SBC: { imm: 0xe9, zp: 0xe5, abs: 0xed },
+    AND: { imm: 0x29, zp: 0x25, abs: 0x2d }, ORA: { imm: 0x09, zp: 0x05, abs: 0x0d },
+    EOR: { imm: 0x49, zp: 0x45, abs: 0x4d }, CMP: { imm: 0xc9, zp: 0xc5, abs: 0xcd },
     JSR: { abs: 0x20 }, JMP: { abs: 0x4c },
     BEQ: { rel: 0xf0 }, BNE: { rel: 0xd0 }, BCS: { rel: 0xb0 }, BCC: { rel: 0x90 }
 };

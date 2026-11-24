@@ -408,7 +408,7 @@ test('a constant stands wherever a literal may, and the keys that are not digits
         ['const a = 1\nconst a = 2\ndisplay.data = a', /^Error: Line 2: Constant declared twice: a/],
         ['const a = 1\na = 2', /^Error: Line 2: a is a constant, not a variable/],
         ['keypad.none = 1', /^Error: Line 1: keypad.none is a constant, not a variable/],
-        ['display.data = 1\nconst a = 1', /^Error: Line 2: Declare constants and tables before the first statement/],
+        ['display.data = 1\nconst a = 1', /^Error: Line 2: Declare constants, tables and memory names before the first statement/],
         ['const a = b\ndisplay.data = a', /^Error: Line 1: A constant is a byte literal or another constant, not b/],
         ['const a = 256\ndisplay.data = a', /^Error: Line 1: Byte literal out of range: 256/],
         ['const byte = 1\ndisplay.data = 1', /^Error: Line 1: byte is a word of the language/],
@@ -555,4 +555,84 @@ test('a table may be written out, byte by byte', () => {
         ['const t = table byte = 1\nconst t = table byte = 2' + reading, /^Error: Line 2: Table declared twice: t/],
         ['const t = table byte' + reading, /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula, or const name = table byte = byte, byte/]
     ]) assert.throws(() => compile(source), error);
+});
+
+test('a memory location can be given a name, and the manual\'s first program written', () => {
+    // Tabella 7 of the supplement: add the bytes at $06 and $07 into $04. The
+    // manual keys 18 A5 06 65 07 85 04 4C 22 FE; this is those ten bytes with
+    // the CLC after the load, and a CLD in front.
+    const sum = compile('byte a at $06\nbyte b at $07\nbyte sum at $04\nsum = a + b');
+    assert.deepEqual([...sum.binary], [0xd8, 0xa5, 0x06, 0x18, 0x65, 0x07, 0x85, 0x04, 0x4c, 0x22, 0xfe]);
+    assert.deepEqual(sum.warnings, []); // A named location is not a name that goes unread.
+    const add = (first, second, status) => {
+        const m = bootedMachine();
+        m.loadProgram(sum.binary, sum.origin);
+        m.cpu.memory.set([first, second], 0x06);
+        m.cpu.setP(status);
+        m.cpu.PC = sum.origin;
+        while (m.cpu.PC !== 0xfe22) m.cpu.step();
+        return m.cpu.memory[0x04];
+    };
+    assert.equal(add(9, 1, 0x00), 0x0a);
+    // The manual's own bytes give 10 here, in decimal: docs/monitor-rom-review.md, bug 1.
+    assert.equal(add(9, 1, 0x08), 0x0a);
+
+    // Above page zero an instruction carries both bytes of the address.
+    const far = compile('byte far at $0400\nx = far\nx = x + far\nif x < far\nfar = x\nend\ndisplay.data = far');
+    assert.match(far.assembly, /LDA \$0400 .*AD 00 04/);
+    assert.match(far.assembly, /ADC \$0400 .*6D 00 04/);
+    assert.match(far.assembly, /CMP \$0400 .*CD 00 04/);
+    assert.match(far.assembly, /STA \$0400 .*8D 00 04/);
+    assert.deepEqual(compile('byte p at 128\ndisplay.data = p').binary, compile('byte p at $0080\ndisplay.data = p').binary);
+
+    // The LEDs D4-D7, by the three ports that light them (AGENTS.md, The LEDs
+    // D4-D7 Under a Program): the mode word first, then the two ports.
+    const leds = compile('byte port_a at $fd00\nbyte port_b at $fd01\nbyte control at $fd03\ncontrol = $89\nport_b = $87\nport_a = 5\nloop\nend');
+    const board = bootedMachine();
+    board.loadProgram(leds.binary, leds.origin);
+    board.cpu.PC = leds.origin;
+    tick(board, 20000);
+    assert.equal(board.phaseLEDs.on, 5);
+});
+
+test('a named location is read and written every time it is named, never remembered', () => {
+    const count = (assembly, instruction) => assembly.split('\n').filter(line => line.includes(instruction)).length;
+    // Two readings are two readings: it may be a port, and say something else.
+    const twice = compile('byte port at $fd00\nx = port\ny = port\ndisplay.data = x\ndisplay.low = y');
+    assert.equal(count(twice.assembly, 'LDA $FD00'), 2);
+    // Also straight after a comparison that has just read it.
+    assert.equal(count(compile('byte port at $fd00\nif port < 5\nx = port\ndisplay.data = x\nend').assembly, 'LDA $FD00'), 2);
+    // Written and then read is a store and then a load, where a variable
+    // of the program's own would still be in A and need neither.
+    assert.equal(count(compile('byte port at $fd00\nport = display.high\nx = port\ndisplay.data = x').assembly, 'LDA $FD00'), 1);
+    assert.doesNotMatch(compile('p = display.high\nx = p\ndisplay.data = x').assembly, /var_p/);
+    // And what was written is not taken to be what is there. A PROM takes no
+    // writes: the board shows the monitor's first byte, not the 0 just stored.
+    const rom = compile('byte first at $fe00\nfirst = 0\ndisplay.data = first');
+    assert.equal(count(rom.assembly, 'LDA $FE00'), 1);
+    const m = bootedMachine();
+    m.loadProgram(rom.binary, rom.origin);
+    m.cpu.PC = rom.origin;
+    while (m.cpu.PC !== 0xfe22) m.cpu.step();
+    assert.equal(m.cpu.memory[0xf9], m.cpu.memory[0xfe00]);
+    assert.notEqual(m.cpu.memory[0xfe00], 0);
+    // After a store, A is still known by the value stored, so the same
+    // number is not loaded again for the next store.
+    assert.equal(count(compile('byte p at $80\nbyte q at $81\np = 7\nq = 7').assembly, 'LDA #$07'), 1);
+
+    for (const [source, error] of [
+        ['byte p at $20\ndisplay.data = p', /^Error: Line 1: \$20-\$7F is where the compiler keeps the program's own variables; \$20 is inside it/],
+        ['byte p at $7f\ndisplay.data = p', /^Error: Line 1: \$20-\$7F is where/],
+        ['byte p at $10000\ndisplay.data = p', /^Error: Line 1: An address is \$FFFF at most, not \$10000/],
+        ['byte p at here\ndisplay.data = p', /^Error: Line 1: An address is a number, such as \$04 or \$FD01, not here/],
+        ['byte p\ndisplay.data = 1', /^Error: Line 1: Expected byte name at address/],
+        ['byte p at $80\nbyte p at $81\ndisplay.data = p', /^Error: Line 2: Memory name declared twice: p/],
+        ['const p = 1\nbyte p at $80\ndisplay.data = p', /^Error: Line 2: p is already a constant/],
+        ['byte p at $80\nconst p = 1\ndisplay.data = p', /^Error: Line 2: p is already a memory name/],
+        ['byte p at $80\nconst p = table byte = 1\ndisplay.data = 1', /^Error: Line 2: p is already a memory name/],
+        ['display.data = 1\nbyte p at $80', /^Error: Line 2: Declare constants, tables and memory names before the first statement/],
+        ['byte if at $80\ndisplay.data = 1', /^Error: Line 1: if is a word of the language/]
+    ]) assert.throws(() => compile(source), error);
+    // Two names for one byte are allowed, and a name for a display field's byte.
+    assert.ok(compile('byte seconds at $f9\nbyte again at $f9\nseconds = 5\ndisplay.low = again').binary.length > 4);
 });

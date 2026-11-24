@@ -75,6 +75,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `loop` | Repeat the enclosed statements. Close with `end`. Blocks can nest. |
 | `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. The monitor then puts its own address and data on the displays, `0000` and the byte there, so whatever the program was showing is gone. To end with a result showing, end with `display.hold()`. |
 | `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
+| `byte sum at $04` | Give a memory location a name. Reading the name reads that byte and assigning to it writes it, each time. Declare it before executable statements. See Memory and ports. |
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |
 | `const word = table byte = $77, $6d, $79, $38` | Build a table from its bytes, written out with commas between them. Each is a literal or a constant; there may be 256 of them. Declare it before executable statements. |
 | `value = squares[key]` | Read a table entry. A literal index is checked and folded at compile time. A variable index becomes a native indexed load. Guard it with an `if` when its range is uncertain. An out-of-range variable index reads the byte at the resulting address. |
@@ -88,7 +89,8 @@ spelt two ways.
 ## Display and keys
 
 `display.high`, `display.low`, and `display.data` are the left, middle, and
-right pairs of hex digits. Each names its byte in the monitor workspace.
+right pairs of hex digits. Each names its byte in the monitor workspace:
+`$FB`, `$FA` and `$F9`.
 Assigning a field changes the value in RAM. `display.scan()` lights all six
 digits once using the PROM. Call it repeatedly to keep a steady display.
 
@@ -122,6 +124,47 @@ byte at that address into `display.data`, and RUN does not put back what was
 there. A program that keeps a count or a state in a display field has lost it
 after a halt, and so has one stepped with the NOR/SS switch at SS. Keep what
 matters in a variable and write the field from it.
+
+## Memory and ports
+
+`byte sum at $04` gives a memory location a name. From then on the name is
+that byte: reading it reads the location and assigning to it writes there, at
+once and every time, with nothing kept in a register between. So a name can
+stand for a byte keyed in at the monitor before RUN, for a result to look at
+afterwards, or for one of the 8255's ports.
+
+The manual's first program, which adds the bytes at `$06` and `$07` into
+`$04`, is four lines:
+
+```
+byte a at $06
+byte b at $07
+byte sum at $04
+sum = a + b
+```
+
+It compiles to the manual's own ten bytes, the `CLC` after the load and not
+before it, with a `CLD` in front. Key the two numbers in, RUN at `0200`, and
+read the sum with `AD 0004`.
+
+The four LEDs D4 to D7 are lit through three of the 8255's registers: the
+mode word, then Port B, then Port A, whose four low bits are the LEDs.
+
+```
+byte port_a at $fd00
+byte port_b at $fd01
+byte control at $fd03
+control = $89
+port_b = $87
+port_a = 5
+loop
+end
+```
+
+An address is `$0000` to `$FFFF`, in hex or in decimal. `$20-$7F` is refused:
+the compiler keeps the program's own variables there. A named location needs
+no assignment before it is read, and is never warned of as unread. Two names
+may be given to one byte. A store into a PROM is lost, as on the board.
 
 ## The ROM and the memory budget
 

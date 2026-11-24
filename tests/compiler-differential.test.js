@@ -31,7 +31,8 @@ const PROGRAMS = Number(process.env.AMICO_PROGRAMS) || 1000;
 // reset entry. The board is read at that moment, before the monitor runs on
 // and puts its own address on the displays.
 const MONITOR_ENTRY = 0xfe22;
-const DISPLAY = { 'display.data': 0xf9, 'display.low': 0xfa, 'display.high': 0xfb };
+// The RAM of the 2 KB board: everything a program could change.
+const RAM = 0x0800;
 
 // The same junk for the same seed, so a failure can be made again.
 function junk(seed) {
@@ -44,18 +45,14 @@ function junk(seed) {
     };
 }
 
+const hex = (value, width = 2) => '$' + value.toString(16).toUpperCase().padStart(width, '0');
+
 /**
  * Runs one program both ways. Returns null when the board agrees with the
  * interpreter, `{ tooLong }` when the program does not fit the board, and
  * otherwise `{ wrong }`, a sentence saying what differs.
  */
 function compare(source, seed) {
-    const fields = {
-        'display.data': (seed * 7) & 255,
-        'display.low': (seed * 13 + 5) & 255,
-        'display.high': (seed * 31 + 9) & 255
-    };
-
     let compiled;
     try {
         compiled = compile(source);
@@ -68,15 +65,16 @@ function compare(source, seed) {
 
     const machine = bootedMachine();
     const memory = machine.cpu.memory;
-    machine.loadProgram(compiled.binary, compiled.origin);
-    // A program must not count on what RAM or the registers held: variables
-    // start as junk, as do A, X, Y and the flags. Decimal mode is set on
-    // every other run, because RUN hands a program the status of the last
-    // one halted (docs/monitor-rom-review.md, bug 1).
+    // A program must not count on what RAM or the registers held: its
+    // variables start as junk, and so do A, X, Y and the flags. Decimal mode
+    // is set on every other run, because RUN hands a program the status of
+    // the last one halted (docs/monitor-rom-review.md, bug 1). The rest of
+    // RAM is junk as well, the display fields among it, so that a byte the
+    // program reads by address without having written it is something.
     const byte = junk(seed);
-    for (let address = 0x20; address < 0x80; address++) memory[address] = byte();
-    for (const [name, address] of Object.entries(DISPLAY)) memory[address] = fields[name];
-    const before = memory.slice(0, 0x0800);
+    for (let address = 0; address < RAM; address++) memory[address] = byte();
+    machine.loadProgram(compiled.binary, compiled.origin);
+    const before = memory.slice(0, RAM);
     machine.cpu.A = byte();
     machine.cpu.X = byte();
     machine.cpu.Y = byte();
@@ -91,31 +89,33 @@ function compare(source, seed) {
         machine.cpu.step();
     }
 
-    const expected = reference.run(source, fields);
+    // The interpreter starts from the same memory and says what every byte of
+    // it should be afterwards: the display fields and the locations the
+    // program named as it left them, and all the rest untouched.
+    const expected = reference.run(source, before);
     const differences = [];
-    for (const [name, address] of Object.entries(DISPLAY)) {
-        if (memory[address] !== expected.get(name)) {
-            differences.push(`${name} is ${memory[address]} on the board and ${expected.get(name)} by the interpreter`);
-        }
-    }
-    // The listing's first lines say where each variable lives. One that is
-    // never read from memory has no place and cannot be compared; one that
-    // was assigned only on a path not taken has no value to compare with.
-    const places = new Set(Object.values(DISPLAY));
-    for (const [, name, hex] of compiled.assembly.matchAll(/^var_([a-z0-9_]+) = \$([0-9A-F]{2})$/gm)) {
-        const address = parseInt(hex, 16);
-        places.add(address);
-        if (expected.has(name) && memory[address] !== expected.get(name)) {
-            differences.push(`${name} is ${memory[address]} on the board and ${expected.get(name)} by the interpreter`);
+    // The listing's first lines say where each of the program's own
+    // variables lives. One that is never read from memory has no place and
+    // cannot be compared; one that was assigned only on a path not taken has
+    // no value to compare with.
+    const own = new Set();
+    for (const [, name, written] of compiled.assembly.matchAll(/^var_([a-z0-9_]+) = \$([0-9A-F]{2})$/gm)) {
+        const address = parseInt(written, 16);
+        own.add(address);
+        if (expected.variables.has(name) && memory[address] !== expected.variables.get(name)) {
+            differences.push(`${name} is ${memory[address]} on the board and ${expected.variables.get(name)} by the interpreter`);
         }
     }
     // display.scan() is the monitor's routine: it keeps a byte at $FC and
     // uses the stack. Nothing else may be written by anything.
     const scans = source.includes('display.scan()');
-    for (let address = 0; address < 0x0800; address++) {
-        if (places.has(address)) continue;
+    for (let address = 0; address < RAM; address++) {
+        if (own.has(address)) continue;
         if (scans && (address === 0xfc || (address >= 0x0100 && address < 0x0200))) continue;
-        if (memory[address] !== before[address]) differences.push(`$${address.toString(16)} was written`);
+        if (memory[address] !== expected.memory[address]) {
+            differences.push(`${hex(address, 4)} is ${hex(memory[address])} on the board and ${hex(expected.memory[address])} by the interpreter`);
+            if (differences.length > 6) break;
+        }
     }
     return differences.length ? { wrong: differences.join('; ') } : null;
 }
@@ -125,7 +125,7 @@ function failure(seed, source, wrong) {
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -142,14 +142,16 @@ test('random programs compute on the board what the reference interpreter comput
         if (made.depth >= 4) seen.deep++;
         if (made.constants) seen.constants++;
         if (made.writtenTables) seen.written++;
+        if (made.places) seen.places++;
     }
 
     // A generator can stop making what it was written to make and the test
     // would go on passing. Measured over 20,000 programs, of those that ran 20%
     // had a long branch, 58% a loop, 56% a table read, 67% an else, 44% ifs
-    // four deep, 65% a constant or a key's name and 39% a table written out,
-    // and 74% of those generated fitted the board. The floors are about half of
-    // each: there to notice a collapse, not a drift.
+    // four deep, 65% a constant or a key's name, 39% a table written out and
+    // 50% a named memory location, and 74% of those generated fitted the board.
+    // The floors are about half of each: there to notice a collapse, not a
+    // drift.
     const share = (count) => count / seen.ran;
     assert.ok(seen.ran / PROGRAMS > 0.37, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
@@ -159,6 +161,7 @@ test('random programs compute on the board what the reference interpreter comput
     assert.ok(share(seen.deep) > 0.22, `ifs four deep in only ${seen.deep} of ${seen.ran}`);
     assert.ok(share(seen.constants) > 0.32, `a constant in only ${seen.constants} of ${seen.ran}`);
     assert.ok(share(seen.written) > 0.19, `a table written out in only ${seen.written} of ${seen.ran}`);
+    assert.ok(share(seen.places) > 0.25, `a named memory location in only ${seen.places} of ${seen.ran}`);
 });
 
 test('display.scan() among the statements changes nothing a program can see', () => {

@@ -33,6 +33,12 @@ function compile(source) {
     // A constant is a name for a byte literal and is gone by the time code is
     // made: wherever number() takes a literal it takes one of these.
     const constants = new Map(KEY_CODES);
+    // A memory location the program has given a name: the name and where it
+    // is. Reading the name reads the byte there and assigning to it writes it,
+    // every time, so that it can stand for a port, or for a byte that the
+    // monitor or the person at the keys changes. Nothing is ever taken to be
+    // in the accumulator under such a name.
+    const places = new Map();
     const blocks = [];
     let defined = new Set();
     // For the warning at the end: where each name was first assigned, and
@@ -60,11 +66,26 @@ function compile(source) {
         if (value > 255) fail('Byte literal out of range: ' + text);
         return value;
     }
+    // An address is the one thing here wider than a byte, and is written only
+    // where a location is named or called: $04, $FD01, or in decimal.
+    function address(text) {
+        if (!/^(?:[0-9]+|\$[a-fA-F0-9]+)$/.test(text)) fail('An address is a number, such as $04 or $FD01, not ' + text);
+        const where = text.startsWith('$') ? parseInt(text.slice(1), 16) : Number(text);
+        if (where > 0xffff) fail('An address is $FFFF at most, not ' + text);
+        return where;
+    }
+    // How an instruction reaches a named location: by one byte of address in
+    // page zero, by two anywhere else.
+    function place(name) {
+        const where = places.get(name);
+        return [where < 0x100 ? 'zp' : 'abs', where];
+    }
     function variable(name) {
         // Three different mistakes, and the reader can only mend the one named.
         if (RESERVED.has(name)) fail(name + ' is a word of the language and cannot be a name');
         if (tables.has(name)) fail(name + ' is a table, not a variable');
         if (constants.has(name)) fail(name + ' is a constant, not a variable');
+        if (places.has(name)) fail(name + ' is a memory name, not a variable');
         if (!NAME.test(name)) fail('Invalid byte variable: ' + name);
         return 'var_' + name;
     }
@@ -72,12 +93,18 @@ function compile(source) {
         const value = number(text);
         if (value !== null) return ['imm', value];
         if (FIELDS.has(text)) return ['zp', FIELDS.get(text)];
+        if (places.has(text)) return place(text);
         if (!defined.has(text)) fail('Expected a byte literal, a constant or an assigned variable, got ' + text);
         read.add(text);
         return ['zp', variable(text)];
     }
     function load(text) {
         const arg = operand(text);
+        if (places.has(text)) {
+            emit('LDA', ...arg);
+            inA = null;
+            return;
+        }
         // What A holds is known by its value when that is a literal, however
         // the literal was written: 21, $15 and a constant set to either are
         // one thing to have in A. Known by its spelling, a constant cost a
@@ -134,12 +161,30 @@ function compile(source) {
         emit(ARITHMETIC.get(pair[2]), ...operand(pair[3]));
         inA = null;
     }
+    function declarePlace(text) {
+        const match = /^byte\s+(\w+)\s+at\s+(\S+)$/.exec(text);
+        if (!match) fail('Expected byte name at address');
+        const [, name, written] = match;
+        if (places.has(name)) fail('Memory name declared twice: ' + name);
+        if (tables.has(name)) fail(name + ' is already a table');
+        if (constants.has(name)) fail(name + ' is already a constant');
+        variable(name);
+        const where = address(written);
+        // The compiler puts the program's own variables there, in the order
+        // it meets them, and a name fixed among them would share a byte with
+        // one of them without either knowing.
+        if (where >= 0x20 && where <= 0x7f) {
+            fail('$20-$7F is where the compiler keeps the program\'s own variables; ' + written + ' is inside it');
+        }
+        places.set(name, where);
+    }
     function declareConstant(text) {
         const match = /^const\s+(\w+)\s*=\s*([\w.$]+)$/.exec(text);
         if (!match) fail('Expected const name = byte, or const name = table byte with a formula or with its bytes');
         const [, name, written] = match;
         if (constants.has(name)) fail('Constant declared twice: ' + name);
         if (tables.has(name)) fail(name + ' is already a table');
+        if (places.has(name)) fail(name + ' is already a memory name');
         variable(name);
         const value = number(written);
         if (value === null) fail('A constant is a byte literal or another constant, not ' + written);
@@ -150,6 +195,7 @@ function compile(source) {
     function tableName(name) {
         if (tables.has(name)) fail('Table declared twice: ' + name);
         if (constants.has(name)) fail(name + ' is already a constant');
+        if (places.has(name)) fail(name + ' is already a memory name');
         variable(name);
     }
     // A table written out: its bytes, with commas between them. Each is a
@@ -237,15 +283,21 @@ function compile(source) {
         const assign = /^([\w.]+)\s*=(?!=)\s*(.+)$/.exec(text);
         const isIf = /^if(?:\s|$)/.test(text);
         const isConst = /^const(?:\s|$)/.test(text);
+        const isByte = /^byte(?:\s|$)/.test(text);
         // `if = 1` and `const = 1` assign to a word of the language. Say so
         // before the line is read as a comparison or a declaration gone wrong.
         if (assign && RESERVED.has(assign[1])) variable(assign[1]);
-        if (!assign && !isIf && !isConst && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text) && !HOLD_CALL.test(text)) {
+        if (!assign && !isIf && !isConst && !isByte && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text) && !HOLD_CALL.test(text)) {
             fail('Unknown statement: ' + text);
         }
         if (!reachable) fail('Unreachable statement');
+        if (isByte) {
+            if (started) fail('Declare constants, tables and memory names before the first statement');
+            declarePlace(text);
+            return;
+        }
         if (isConst) {
-            if (started) fail('Declare constants and tables before the first statement');
+            if (started) fail('Declare constants, tables and memory names before the first statement');
             // The word after the `=` says which it is, so that a table
             // written wrongly is told about tables.
             if (/^const\s+\w+\s*=\s*table\b/.test(text)) declareTable(text);
@@ -299,9 +351,17 @@ function compile(source) {
             reachable = false;
         } else {
             const [, name, value] = assign;
-            const address = FIELDS.get(name) ?? variable(name);
+            if (places.has(name)) {
+                // Written there and then. A is left as the value's own name or
+                // number, which the store has not changed, and never as this
+                // name: the next reading of it has to be a reading.
+                expression(value.trim());
+                emit('STA', ...place(name));
+                return;
+            }
+            const zeroPage = FIELDS.get(name) ?? variable(name);
             expression(value.trim());
-            emit('STA', 'zp', address);
+            emit('STA', 'zp', zeroPage);
             if (!FIELDS.has(name) && !assignedAt.has(name)) assignedAt.set(name, line);
             defined.add(name);
             inA = name;

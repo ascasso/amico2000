@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico can name a memory location: `byte sum at $04`. Reading the name
+  reads that byte and assigning to it writes it, each time, so a name can
+  stand for a byte keyed in before RUN, a result to look at afterwards, or
+  a port. The manual's first program, the sum of two bytes, is now four
+  lines and compiles to the manual's own ten bytes with a `CLD` in front;
+  the LEDs D4-D7 are lit by naming three of the 8255's registers. Until now
+  the language reached the hex digits and the keypad and nothing else. The
+  second of the three additions that open the whole board to it.
 - Amico's tables can be written out: `const word = table byte = $77, $6d,
   $79, $38, 0, 0`. Until now a table came only from a formula over its
   index, which makes squares and cannot make the segment patterns of a

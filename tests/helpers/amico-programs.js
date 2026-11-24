@@ -10,7 +10,8 @@
 //
 // What it leans on: nested `if`s with and without `else`, arms long enough to
 // need a long branch, tables by a formula and written out, read by a literal
-// and by a variable, display
+// and by a variable, memory locations named in page zero and above it, two
+// names for one byte, display
 // fields as operands and as targets, constants and the key names standing
 // where a literal may, names that begin like words of the language, literals
 // spelt several ways, and operators written with and without spaces.
@@ -69,7 +70,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0 };
+    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -114,6 +115,29 @@ function generate(seed, { scans = false, long = false } = {}) {
         return chance(0.15) ? `${left}${operator}${right}` : `${left} ${operator} ${right}`;
     }
 
+    // Half the programs name memory locations: one in page zero, often one
+    // above it, which different instructions reach, and often a third. The
+    // third is sometimes a second name for the first one's byte or for a
+    // display field's: nothing forbids two names for a byte, and the compiler
+    // must not be fooled by it. Every one holds something before the program
+    // starts, as a display field does, so they are read from the first line.
+    const places = [];
+    if (chance(0.5)) {
+        places.push({ name: 'm_near', address: between(0x80, 0xdf) });
+        if (chance(0.7)) places.push({ name: 'm_far', address: between(0x0400, 0x07ff) });
+        if (chance(0.5)) {
+            const roll = random.next();
+            places.push({ name: 'm_also', address: roll < 0.4 ? places[0].address : roll < 0.6 ? pick([0xf9, 0xfa, 0xfb]) : between(0x80, 0xdf) });
+        }
+        for (const place of places) {
+            const written = chance(0.2) ? String(place.address) : '$' + place.address.toString(16).padStart(chance(0.5) ? 4 : 2, '0');
+            lines.push(`byte ${place.name} at ${written}`);
+        }
+        made.places = places.length;
+    }
+    // What can be read from the first line and is no variable of the program's.
+    const fixed = FIELDS.concat(places.map((place) => place.name));
+
     const tables = [];
     const tableCount = chance(0.8) ? between(1, 3) : 0;
     for (let number = 0; number < tableCount; number++) {
@@ -136,7 +160,7 @@ function generate(seed, { scans = false, long = false } = {}) {
         lines.push(`const t${number} = table byte [${index} in 0..${named ? named.name : spell(last)}] = ${formula}`);
     }
 
-    const variablesIn = (assigned) => [...assigned].filter((name) => !FIELDS.includes(name));
+    const variablesIn = (assigned) => [...assigned].filter((name) => !fixed.includes(name));
 
     // Something to compute with: a literal, a display field or a name that
     // is assigned on every path to here.
@@ -144,15 +168,15 @@ function generate(seed, { scans = false, long = false } = {}) {
         const variables = variablesIn(assigned);
         const roll = random.next();
         if (roll < 0.3 || (variables.length === 0 && roll < 0.6)) return literal();
-        if (roll < 0.5 || variables.length === 0) return pick(FIELDS);
+        if (roll < 0.5 || variables.length === 0) return pick(fixed);
         return pick(variables);
     }
     function stored(assigned) {
         const variables = variablesIn(assigned);
-        return variables.length && chance(0.7) ? pick(variables) : pick(FIELDS);
+        return variables.length && chance(0.7) ? pick(variables) : pick(fixed);
     }
     function target(variableOnly) {
-        if (!variableOnly && chance(0.25)) return pick(FIELDS);
+        if (!variableOnly && chance(0.25)) return pick(fixed);
         let name;
         do { name = pick(NAMES); } while (counters.has(name));
         return name;
@@ -300,7 +324,7 @@ function generate(seed, { scans = false, long = false } = {}) {
 
     // The display fields hold something before the program starts, so they
     // can be read from the first line.
-    const whole = block('', new Set(FIELDS), 0, between(1, long ? 6 : 10), true);
+    const whole = block('', new Set(fixed), 0, between(1, long ? 6 : 10), true);
     if (!whole.ends && chance(0.1)) lines.push('stop');
     return { source: lines.join('\n') + '\n', made };
 }

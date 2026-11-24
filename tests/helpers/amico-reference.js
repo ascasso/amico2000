@@ -8,12 +8,16 @@
 // in the README first and add it here from that description, not from the
 // compiler.
 //
-// It knows only what a program computes: its names, the three display fields
-// and its tables. display.scan() changes none of those, so here it does
+// It knows what a program computes: its own names, its tables, and the bytes
+// of the board's memory that it reaches by name, which are the three display
+// fields and whatever locations it has named with `byte ... at`. Those are
+// kept as memory, by address, so that two names for one byte are one byte
+// here as on the board. display.scan() changes none of it, so here it does
 // nothing. The key routines are not modelled at all; a test that needs them
 // drives the real monitor.
 
-const FIELDS = ['display.high', 'display.low', 'display.data'];
+// Where the README says the three display fields are.
+const FIELDS = { 'display.high': 0xfb, 'display.low': 0xfa, 'display.data': 0xf9 };
 // The README's names for the codes of the keys that are not hex digits.
 const KEY_NAMES = {
     'keypad.ad': 0x10, 'keypad.da': 0x11, 'keypad.inc': 0x12,
@@ -46,12 +50,14 @@ function tableBytes(indexName, last, formula, constants) {
     return bytes;
 }
 
-// Reads a program into its tables and a tree of statements. It is as strict
-// as it needs to be for programs the compiler accepts, and no stricter: what
-// the compiler should refuse is another test's business.
+// Reads a program into its declarations and a tree of statements. It is as
+// strict as it needs to be for programs the compiler accepts, and no
+// stricter: what the compiler should refuse is another test's business.
 function parse(source) {
     const tables = new Map();
     const constants = new Map(Object.entries(KEY_NAMES));
+    // A name the program gives to a memory location, and the address.
+    const places = new Map();
     const program = { kind: 'program', body: [] };
     const open = [program];
     let into = program.body;
@@ -67,6 +73,9 @@ function parse(source) {
             tables.set(match[1], tableBytes(match[2], match[3], match[4], constants));
         } else if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*(\S+)$/.exec(line))) {
             constants.set(match[1], literal(match[2], constants));
+        } else if ((match = /^byte\s+([a-z][a-z0-9_]*)\s+at\s+(\S+)$/.exec(line))) {
+            // An address is written as a byte is, and may be up to $FFFF.
+            places.set(match[1], literal(match[2], new Map()));
         } else if (line === 'loop') {
             const loop = { kind: 'loop', body: [] };
             into.push(loop);
@@ -97,24 +106,38 @@ function parse(source) {
             throw new Error('The reference interpreter does not know this line: ' + line);
         }
     }
-    return { tables, constants, body: program.body };
+    return { tables, constants, places, body: program.body };
 }
 
 class Stopped extends Error {}
 
-// Runs a program and returns what every name and display field holds when it
-// stops. `fields` gives the three display bytes as the program finds them.
-// A program that never stops is cut off at `maxSteps` statements.
-function run(source, fields, maxSteps = 200000) {
-    const { tables, constants, body } = parse(source);
-    const values = new Map(Object.entries(fields));
+/**
+ * Runs a program. `memory` is the board's memory as the program finds it; a
+ * copy is worked on. Returns the program's own names with what each holds
+ * when it stops, the memory as it leaves it, and the locations it named.
+ * A program that never stops is cut off at `maxSteps` statements.
+ */
+function run(source, memory, maxSteps = 200000) {
+    const { tables, constants, places, body } = parse(source);
+    const cells = Uint8Array.from(memory);
+    const variables = new Map();
     let steps = 0;
 
+    // The address a name stands for, if it stands for one: a display field or
+    // a location the program has named.
+    function addressOf(name) {
+        if (name in FIELDS) return FIELDS[name];
+        return places.has(name) ? places.get(name) : null;
+    }
     function valueOf(text) {
         const number = literal(text, constants);
         if (number !== null) return number;
-        if (!values.has(text)) throw new Error('Read before any assignment: ' + text);
-        return values.get(text);
+        const address = addressOf(text);
+        // A byte of memory is read as it is, whether or not this program
+        // has written it: it may have been keyed in.
+        if (address !== null) return cells[address];
+        if (!variables.has(text)) throw new Error('Read before any assignment: ' + text);
+        return variables.get(text);
     }
     function evaluate(expression) {
         let match;
@@ -139,6 +162,11 @@ function run(source, fields, maxSteps = 200000) {
         }
         return valueOf(expression);
     }
+    function assign(name, value) {
+        const address = addressOf(name);
+        if (address !== null) cells[address] = value;
+        else variables.set(name, value);
+    }
     function holds(test) {
         const left = evaluate(test.left);
         const right = valueOf(test.right);
@@ -153,7 +181,7 @@ function run(source, fields, maxSteps = 200000) {
         for (const statement of statements) {
             if (++steps > maxSteps) throw new Error('The program did not stop within ' + maxSteps + ' statements');
             switch (statement.kind) {
-                case 'assign': values.set(statement.name, evaluate(statement.value)); break;
+                case 'assign': assign(statement.name, evaluate(statement.value)); break;
                 case 'stop': throw new Stopped();
                 case 'scan': break;
                 case 'if':
@@ -172,7 +200,7 @@ function run(source, fields, maxSteps = 200000) {
     } catch (error) {
         if (!(error instanceof Stopped)) throw error;
     }
-    return values;
+    return { variables, memory: cells, places };
 }
 
 module.exports = { run, parse, FIELDS };
