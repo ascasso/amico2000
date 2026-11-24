@@ -846,6 +846,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed `r [0]`, with a space before the index, being taken as a row's
+  byte on the left of `=` and refused on the right of one, and refused for
+  a table. It is taken in both places now.
 - Fixed a key read made with Port A an output. After `display.scan()` the
   compiler knows Port A is an input and does not set it again before a key
   read; a program that then wrote a mode word to the 8255 through a named

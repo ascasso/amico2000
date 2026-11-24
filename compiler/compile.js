@@ -166,7 +166,9 @@ function compile(source) {
             inA = null;
             return;
         }
-        const lookup = /^([a-z][a-z0-9_.]*)\[\s*([^\]]+?)\s*\]$/.exec(text);
+        // A space may stand before the index, as it may when the same byte is
+        // on the left of an `=`.
+        const lookup = /^([a-z][a-z0-9_.]*)\s*\[\s*([^\]]+?)\s*\]$/.exec(text);
         if (lookup && places.has(lookup[1])) {
             const at = element(lookup[1], lookup[2]);
             if (at.index !== undefined) {

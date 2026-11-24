@@ -860,3 +860,18 @@ test('a store that reaches the 8255 makes the next key read set Port A again', (
     assert.equal(modeWords('byte r[5] at $fcfc\ndisplay.scan()\nr[3] = 1\ndisplay.data = keypad.read()'), 0);
     assert.equal(modeWords('byte p at $fe00\ndisplay.scan()\np = 1\ndisplay.data = keypad.read()'), 0);
 });
+
+test('a space may stand before an index, on a read as on a store', () => {
+    const same = (spaced, plain) => assert.deepEqual(compile(spaced).binary, compile(plain).binary, spaced);
+    same('byte r[1] at 0\nr [0] = 7\ndisplay.data = r [0]', 'byte r[1] at 0\nr[0] = 7\ndisplay.data = r[0]');
+    same('const t = table byte = 1, 2\nk = display.low\ndisplay.data = t [k]', 'const t = table byte = 1, 2\nk = display.low\ndisplay.data = t[k]');
+    same('const t = table byte = 1, 2\nif t  [ 1 ] == 2\nstop\nend', 'const t = table byte = 1, 2\nif t[1] == 2\nstop\nend');
+    same('display.data = display.segment [2]', 'display.data = display.segment[2]');
+    // On the board: stored and read back.
+    const program = compile('byte r[2] at $80\nr [1] = 7\ndisplay.data = r [1]');
+    const m = bootedMachine();
+    m.loadProgram(program.binary, program.origin);
+    m.cpu.PC = program.origin;
+    while (m.cpu.PC !== 0xfe22) m.cpu.step();
+    assert.equal(m.cpu.memory[0xf9], 7);
+});
