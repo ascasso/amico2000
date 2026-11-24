@@ -739,3 +739,63 @@ test('a row of bytes is named once and indexed', () => {
         ['byte r[4] at $80\ni = 1\nr[i + 1] = 5', /^Error: Line 3: Expected a byte literal, a constant or an assigned variable, got i \+ 1/]
     ]) assert.throws(() => compile(source), error);
 });
+
+test('the six digits have a name as raw segments, and three more examples run', () => {
+    const example = (name) => compile(fs.readFileSync(path.join(__dirname, '../compiler/examples', name + '.amico'), 'utf8'));
+    // display.segment is the row at $8F-$94, and display.show() the call that shows it.
+    assert.deepEqual(compile('display.segment[2] = $79\ndisplay.show()').binary, compile('byte s[6] at $8f\ns[2] = $79\ncall $ff7e').binary);
+    assert.deepEqual(compile('i = display.low\ndisplay.data = display.segment[i]').binary, compile('byte s[6] at $8f\ni = display.low\ndisplay.data = s[i]').binary);
+    // The routine leaves Port A an output, so a key read after it sets the direction again.
+    assert.equal(compile('display.show()\nk = keypad.read()\ndisplay.data = k').binary.length,
+        compile('display.scan()\nk = keypad.read()\ndisplay.data = k').binary.length + 5);
+    for (const [source, error] of [
+        ['display.segment[6] = 1', /^Error: Line 1: Index out of range: display.segment\[6\], and display.segment has 6 bytes/],
+        ['display.segment = 1', /^Error: Line 1: display.segment is a row of bytes/],
+        ['x = display.show()', /^Error: Line 1: Expected a byte literal/],
+        ['display.hold()\ndisplay.show()', /^Error: Line 2: Unreachable statement/]
+    ]) assert.throws(() => compile(source), error);
+
+    // The manual's sum (Tabella 7): its own ten bytes, the CLC after the load, and a CLD in front.
+    const sum = example('sum');
+    assert.deepEqual([...sum.binary], [0xd8, 0xa5, 0x06, 0x18, 0x65, 0x07, 0x85, 0x04, 0x4c, 0x22, 0xfe]);
+    // Keyed as its first lines say: the two numbers, RUN at 0200, and the sum at 0004.
+    let m = bootedMachine();
+    m.loadProgram(sum.binary, sum.origin);
+    tick(m);
+    for (const key of ['ArrowUp', '0', '0', '0', '6', 'ArrowDown', '0', '9', '+', '0', '1']) press(m, key);
+    monitorRun(m, '0200');
+    tick(m, 200000);
+    for (const key of ['ArrowUp', '0', '0', '0', '4']) press(m, key);
+    assert.equal(m.cpu.memory[0x04], 0x0a);
+    assert.equal(m.cpu.memory[0xf9], 0x0a); // The monitor shows the byte at the address keyed.
+
+    // The manual's word.
+    const word = example('word');
+    assert.equal(word.binary.length, 29);
+    m = bootedMachine();
+    m.loadProgram(word.binary, word.origin);
+    monitorRun(m, '0200');
+    tick(m, 200000);
+    assert.deepEqual(m.getDisplay(), [0x77, 0x6d, 0x79, 0x38, 0, 0]);
+
+    // The LEDs count, twice a second, and the displays stay dark.
+    const leds = example('leds');
+    m = bootedMachine();
+    m.loadProgram(leds.binary, leds.origin);
+    monitorRun(m, '0200');
+    const seen = [];
+    const at = [];
+    const started = m.cpu.cycles;
+    while (seen.length < 5 && m.cpu.cycles - started < 10e6) {
+        m.cpu.run(2000);
+        if (m.phaseLEDs.on !== seen[seen.length - 1]) {
+            seen.push(m.phaseLEDs.on);
+            at.push(m.cpu.cycles);
+        }
+    }
+    assert.deepEqual(seen, [0, 1, 2, 3, 4]);
+    const step = (at[4] - at[1]) / 3;
+    assert.ok(step > 450000 && step < 550000, 'a step takes ' + step + ' cycles');
+    assert.deepEqual(m.getDisplay(), [0, 0, 0, 0, 0, 0]);
+    for (const program of [sum, word, leds]) assert.deepEqual(program.warnings, []);
+});

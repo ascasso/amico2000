@@ -1,0 +1,25 @@
+# The four LEDs D4 to D7 count in binary, twice a second.
+# They are not the cassette's alone: an LED is lit while Port B bit 7 and its
+# own line of Port A, bits 0 to 3, are both high. The displays stay dark,
+# because $87 on Port B selects no digit.
+byte port_a at $fd00
+byte port_b at $fd01
+byte control at $fd03
+
+control = $89       # Port A an output; the mode word goes first
+port_b = $87
+count = 0
+rounds = 0
+slow = 0
+loop
+    port_a = count
+    # Nothing waits here but counting: 256 rounds, 78 times over, is half a second.
+    rounds = rounds + 1
+    if rounds == 0
+        slow = slow + 1
+        if slow == 78
+            slow = 0
+            count = count + 1
+        end
+    end
+end

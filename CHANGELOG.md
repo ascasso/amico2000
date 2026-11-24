@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico names the six digits as raw segments, `display.segment[0]` to
+  `display.segment[5]`, and the monitor's routine that shows them,
+  `display.show()`, beside the three hex bytes and `display.scan()` it
+  already had. Three examples use what the language can now reach:
+  `sum.amico`, the manual's first program, which compiles to the manual's
+  ten bytes with a `CLD` in front; `word.amico`, the manual's word ASEL on
+  the displays; and `leds.amico`, which counts in binary on the LEDs D4-D7.
 - Amico can name a row of bytes: `byte segment[6] at $8f`, and then
   `segment[i]` to read or to assign to. A literal index is checked and is
   a plain address; a variable index goes through X. With a table written

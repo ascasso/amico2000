@@ -1,0 +1,12 @@
+# The manual's word on the six displays (Sperimentare supplement, the exercise
+# with the monitor's routine at FF7E). One byte is one digit: bit 0 lights
+# segment a, bit 1 segment b, and so on round to bit 6 for g, the middle bar.
+display.segment[0] = $77    # A
+display.segment[1] = $6d    # S
+display.segment[2] = $79    # E
+display.segment[3] = $38    # L
+display.segment[4] = 0
+display.segment[5] = 0
+loop
+    display.show()
+end

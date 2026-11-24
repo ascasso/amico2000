@@ -56,6 +56,22 @@ includes debouncing, and it uses five more bytes in zero page. The manual's
 transcribed assembly listing occupies 148 bytes and has different timing and
 opponent logic. [Original listing](../docs/manual-extraction/listings/21-fiammiferi-0200.hex)
 
+## A sum, a word, and the LEDs
+
+Three short programs that reach past the hex digits. Each compiles with the
+commands above and starts with `AD 0200 RUN`.
+
+- [sum.amico](examples/sum.amico) is the manual's first program, Tabella 7:
+  it adds the bytes at `0006` and `0007` into `0004`. Key the two numbers in
+  first, `AD 0006 DA 09 + 01`, run it, and read the sum with `AD 0004`. Its 11
+  bytes are the manual's ten with a `CLD` in front.
+- [word.amico](examples/word.amico) writes the manual's word, ASEL, on the
+  displays, a byte of segments to a digit. Change the six bytes for another
+  word. RES ends it.
+- [leds.amico](examples/leds.amico) counts in binary on the four LEDs D4 to
+  D7, twice a second, by writing to the 8255's ports. The displays stay
+  dark, as they should. RES ends it.
+
 ## Language
 
 Write one statement per line. Names start with a lowercase letter and may
@@ -95,6 +111,17 @@ right pairs of hex digits. Each names its byte in the monitor workspace:
 `$FB`, `$FA` and `$F9`.
 Assigning a field changes the value in RAM. `display.scan()` lights all six
 digits once using the PROM. Call it repeatedly to keep a steady display.
+
+`display.segment[0]` to `display.segment[5]` are the six digits again, from
+the left, as raw segments: one byte to a digit, bit 0 for segment a, bit 1
+for b, and so on round to bit 6 for g, the middle bar. They are the monitor's
+bytes at `$8F-$94`, and are a row like any other. `display.show()` lights the
+six digits once from them, as `display.scan()` does from the three hex
+bytes. The two share the displays: what shows is whichever is being called.
+The routine behind `display.show()` leaves the rightmost digit lit when it
+returns, so a program that does much else between calls shows that digit
+brighter; and it leaves Port A an output, so the next key read sets it to
+input again.
 
 `display.hold()` scans the six digits for ever. It is `loop`,
 `display.scan()`, `end` in one word and the same six bytes, and nothing after

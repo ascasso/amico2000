@@ -12,6 +12,13 @@ const NAME = /^[a-z][a-z0-9_]*$/;
 // them round it. The dot is part of the name and takes none.
 const SCAN_CALL = /^display\.scan\s*\(\s*\)$/;
 const HOLD_CALL = /^display\.hold\s*\(\s*\)$/;
+const SHOW_CALL = /^display\.show\s*\(\s*\)$/;
+// The monitor's routine D, START, shows the six bytes at $8F-$94 on the six
+// digits as they are, one bit to a segment, where the scan at $FF0C shows
+// three bytes as hex digits. The language names both the bytes and the
+// routine, as it names the three bytes and the routine of the other.
+const SHOW = 0xff7e;
+const SEGMENTS = { where: 0x8f, count: 6 };
 const KEY_CALL = /^keypad\.(read|press)\s*\(\s*\)$/;
 // What the monitor's key routine at $FF57 gives for the keys that are not
 // hex digits, and for no key at all. A hex key's code is its own digit.
@@ -39,7 +46,7 @@ function compile(source) {
     // every time, so that it can stand for a port, or for a byte that the
     // monitor or the person at the keys changes. Nothing is ever taken to be
     // in the accumulator under such a name.
-    const places = new Map();
+    const places = new Map([['display.segment', SEGMENTS]]);
     const blocks = [];
     let defined = new Set();
     // For the warning at the end: where each name was first assigned, and
@@ -151,7 +158,7 @@ function compile(source) {
             inA = null;
             return;
         }
-        const lookup = /^([a-z][a-z0-9_]*)\[\s*([^\]]+?)\s*\]$/.exec(text);
+        const lookup = /^([a-z][a-z0-9_.]*)\[\s*([^\]]+?)\s*\]$/.exec(text);
         if (lookup && places.has(lookup[1])) {
             const at = element(lookup[1], lookup[2]);
             if (at.index !== undefined) {
@@ -325,7 +332,7 @@ function compile(source) {
         // `if = 1` and `const = 1` assign to a word of the language. Say so
         // before the line is read as a comparison or a declaration gone wrong.
         if (assign && RESERVED.has(assign[1])) variable(assign[1]);
-        if (!assign && !isIf && !isConst && !isByte && !isCall && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text) && !HOLD_CALL.test(text)) {
+        if (!assign && !isIf && !isConst && !isByte && !isCall && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text) && !HOLD_CALL.test(text) && !SHOW_CALL.test(text)) {
             fail('Unknown statement: ' + text);
         }
         if (!reachable) fail('Unreachable statement');
@@ -377,6 +384,11 @@ function compile(source) {
             reachable = false;
         } else if (SCAN_CALL.test(text)) {
             scan();
+        } else if (SHOW_CALL.test(text)) {
+            // A call like any other: START leaves Port A an output, and the
+            // last digit lit, so nothing is known when it comes back.
+            emit('JSR', 'abs', SHOW);
+            forget();
         } else if (isCall) {
             const match = /^call\s+(\S+)$/.exec(text);
             if (!match) fail('Expected call and an address, such as call $FF7E');
