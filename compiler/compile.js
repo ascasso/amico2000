@@ -715,8 +715,11 @@ function compile(source) {
     emit('CLD'); // RUN restores the saved status, including the previous program's D flag.
     // A line ends at LF, at CR LF or at a CR alone, as old Macs wrote it. Split
     // at LF only, a CR-only file is one line, and a `#` in it comments out
-    // every statement after it without a word.
-    for (const raw of source.split(/\r\n|\r|\n/)) {
+    // every statement after it without a word. It ends as well at either of
+    // Unicode's two separators, U+2028 and U+2029, which an editor shows as
+    // the end of a line and which are otherwise spaces: two statements with
+    // one between them would be read as one line.
+    for (const raw of source.split(/\r\n|[\r\n\u2028\u2029]/)) {
         line++;
         const text = raw.split('#', 1)[0].trim();
         if (text) statement(text);

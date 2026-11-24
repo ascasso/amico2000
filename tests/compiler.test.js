@@ -216,6 +216,13 @@ test('a line may end with LF, CR LF or a CR alone, and a comment ends with its l
     assert.deepEqual(commented('\r'), commented('\n'));
     assert.deepEqual([...commented('\r').slice(1, 9)], [0xa9, 1, 0x85, 0xf9, 0xa9, 2, 0x85, 0xf9]);
     assert.throws(() => compile('v = 1\rw = 256\r'), /^Error: Line 2: Byte literal out of range/);
+    // Unicode has two separators of its own, which an editor shows as the
+    // end of a line. They end one here too, and are not spaces inside it.
+    for (const separator of ['\u2028', '\u2029']) {
+        assert.deepEqual(commented(separator), commented('\n'));
+        assert.throws(() => compile('display.data = 1+' + separator + '2'), /^Error: Line 1: Expected a byte literal, a constant or an assigned variable, got 1\+/);
+        assert.throws(() => compile('v = 1' + separator + 'w = 256'), /^Error: Line 2: Byte literal out of range/);
+    }
 });
 
 test('a refusal names the mistake that was made', () => {

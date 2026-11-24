@@ -930,6 +930,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Amico: a line of source ends at either of Unicode's two separators,
+  U+2028 and U+2029, as it does at LF, CR LF and CR. They are spaces to the
+  compiler's reading of a line as pieces, so `display.data = 1+`, a
+  separator and `2`, which an editor shows as two lines, was compiled as one
+  sum. Before the series it was refused, for another reason. Found by Codex
+  in the review of the series.
 - Amico: a line such as `byte()` or `if()`, a word of the language with a
   bracket hard against it, is an unknown statement again. Since the compiler
   began reading a line as pieces, earlier in the same unpushed series, such
