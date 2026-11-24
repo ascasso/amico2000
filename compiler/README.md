@@ -93,7 +93,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
 | `byte sum at $04` | Give a memory location a name. Reading the name reads that byte and assigning to it writes it, each time. Declare it before executable statements. See Memory and ports. |
 | `byte segment[6] at $8f` | Give a row of bytes a name: here six, from `$8F`. `segment[2]` is the third of them, to read or to assign to. A literal index is checked and costs what a single byte costs; a variable index is not checked, and goes through X. A row has 1 to 256 bytes, and the count may be a constant. |
-| `call $ff7e` | Call the routine at an address. When it comes back nothing is taken to be known: not what is in A, and not which way the routine has left Port A, so the next key read sets that again. See Memory and ports. |
+| `call $ff7e` | Call the routine at an address. When it comes back nothing is taken to be known: not what is in A, and not which way the routine has left Port A, so the next key read sets that again. Decimal mode is cleared, in case the routine set it. See Memory and ports. |
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |
 | `const word = table byte = $77, $6d, $79, $38` | Build a table from its bytes, written out with commas between them. Each is a literal or a constant; there may be 256 of them. Declare it before executable statements. |
 | `value = squares[key]` | Read a table entry. A literal index is checked and folded at compile time. A variable index becomes a native indexed load. Guard it with an `if` when its range is uncertain. An out-of-range variable index reads the byte at the resulting address. |
@@ -203,9 +203,10 @@ loop
 end
 ```
 
-That puts an A on the leftmost digit. `display.scan()` is `call $ff0c` with
-one difference: the compiler knows that routine leaves Port A an input, and
-knows nothing of any other.
+That puts an A on the leftmost digit. `display.scan()` is `call $ff0c`
+without the two things the compiler does after a routine it does not know:
+it clears decimal mode, with a `CLD` straight after the call, and it sets
+Port A to input again before the next key read.
 
 `byte segment[6] at $8f` names all six of those bytes at once, as a row.
 `segment[0]` is the first and `segment[5]` the last, and the index may be a

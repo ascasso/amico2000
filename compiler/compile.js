@@ -395,7 +395,11 @@ function compile(source) {
             emit('JSR', 'abs', address(match[1]));
             // The routine is somebody else's. Nothing is known when it comes
             // back: not A, and not which way it has left Port A, so the next
-            // key read sets that again.
+            // key read sets that again. Nor the decimal flag: RTS brings the
+            // routine's flags back with it, and a routine that counts in
+            // decimal would leave every sum after it in decimal, and F and no
+            // key the same code. So it is cleared, as at the program's start.
+            emit('CLD');
             forget();
         } else if (HOLD_CALL.test(text)) {
             // Scan until RES. `stop` hands the board to the monitor, which puts

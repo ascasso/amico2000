@@ -650,15 +650,15 @@ test('a routine can be called by its address, and the manual\'s word shown', () 
     monitorRun(m, '0200');
     tick(m, 200000);
     assert.deepEqual(m.getDisplay(), [0x77, 0x6d, 0x79, 0x38, 0, 0]);
-    assert.deepEqual([...program.binary.slice(-6)], [0x20, 0x7e, 0xff, 0x4c, program.binary.length - 6, 0x02]);
+    assert.deepEqual([...program.binary.slice(-7)], [0x20, 0x7e, 0xff, 0xd8, 0x4c, program.binary.length - 7, 0x02]);
 
     // After a call nothing is known. A value is loaded again, and a key read
     // sets Port A's direction again, which after display.scan() it need not.
-    assert.match(compile('x = 5\ncall $ff0c\ndisplay.data = x').assembly, /JSR \$FF0C .*\n +LDA var_x/);
+    assert.match(compile('x = 5\ncall $ff0c\ndisplay.data = x').assembly, /JSR \$FF0C .*\n +CLD .*\n +LDA var_x/);
     const scanned = compile('display.scan()\nk = keypad.read()\ndisplay.data = k').binary;
     const called = compile('call $ff0c\nk = keypad.read()\ndisplay.data = k').binary;
-    assert.equal(called.length, scanned.length + 5);
-    assert.deepEqual([...called.slice(4, 9)], [0xa9, 0x99, 0x8d, 0x03, 0xfd]);
+    assert.equal(called.length, scanned.length + 6);
+    assert.deepEqual([...called.slice(4, 10)], [0xd8, 0xa9, 0x99, 0x8d, 0x03, 0xfd]);
     // The README's own example: an A on the leftmost digit.
     const first = compile('byte first at $8f\nfirst = $77\nloop\n    call $ff7e\nend');
     const board = bootedMachine();
@@ -743,7 +743,8 @@ test('a row of bytes is named once and indexed', () => {
 test('the six digits have a name as raw segments, and three more examples run', () => {
     const example = (name) => compile(fs.readFileSync(path.join(__dirname, '../compiler/examples', name + '.amico'), 'utf8'));
     // display.segment is the row at $8F-$94, and display.show() the call that shows it.
-    assert.deepEqual(compile('display.segment[2] = $79\ndisplay.show()').binary, compile('byte s[6] at $8f\ns[2] = $79\ncall $ff7e').binary);
+    assert.deepEqual([...compile('display.segment[2] = $79\ndisplay.show()').binary], [0xd8, 0xa9, 0x79, 0x85, 0x91, 0x20, 0x7e, 0xff, 0x4c, 0x22, 0xfe]);
+    assert.deepEqual(compile('display.segment[2] = $79').binary, compile('byte s[6] at $8f\ns[2] = $79').binary);
     assert.deepEqual(compile('i = display.low\ndisplay.data = display.segment[i]').binary, compile('byte s[6] at $8f\ni = display.low\ndisplay.data = s[i]').binary);
     // The routine leaves Port A an output, so a key read after it sets the direction again.
     assert.equal(compile('display.show()\nk = keypad.read()\ndisplay.data = k').binary.length,
@@ -798,4 +799,27 @@ test('the six digits have a name as raw segments, and three more examples run', 
     assert.ok(step > 450000 && step < 550000, 'a step takes ' + step + ' cycles');
     assert.deepEqual(m.getDisplay(), [0, 0, 0, 0, 0, 0]);
     for (const program of [sum, word, leds]) assert.deepEqual(program.warnings, []);
+});
+
+test('decimal mode is cleared after a call, whatever the routine left', () => {
+    // SED, RTS: a routine that counts in decimal and does not put the flag back.
+    const after = (source, key) => {
+        const program = compile(source);
+        const m = bootedMachine();
+        m.loadProgram(program.binary, program.origin);
+        m.cpu.memory.set([0xf8, 0x60], 0x0300);
+        if (key) m.keyDown(key);
+        m.cpu.PC = program.origin;
+        while (m.cpu.PC !== 0xfe22) m.cpu.step();
+        return m.cpu.memory[0xf9];
+    };
+    // In decimal 9 + 1 is $10, and F and no key are both $15 to the key routine
+    // (docs/monitor-rom-review.md, bugs 1 and 2).
+    assert.equal(after('call $0300\ndisplay.data = 9 + 1'), 0x0a);
+    assert.equal(after('call $0300\ndisplay.data = keypad.read()', 'f'), 0x0f);
+    assert.deepEqual([...compile('call $0300').binary], [0xd8, 0x20, 0x00, 0x03, 0xd8, 0x4c, 0x22, 0xfe]);
+    // The monitor's own routines, which the language names, leave the flag alone, and are not followed by a CLD.
+    for (const known of ['display.scan()', 'display.show()', 'k = keypad.read()\ndisplay.data = k']) {
+        assert.equal(compile(known).assembly.split('\n').filter(line => / CLD /.test(line)).length, 1, known);
+    }
 });

@@ -846,6 +846,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed sums going decimal after `call`. A routine that sets decimal mode
+  and returns leaves it set, and the program's `CLD` is only at its start:
+  after such a call `9 + 1` was `$10`, and the key routine gave F and no
+  key the same code. A `CLD` now follows every `call`. Found by a review of
+  the new code before it was pushed.
 - Fixed four of `amicoc`'s messages about tables and constants, found by a
   review of the constants. A third dot in a table's range, `0... 3`, was
   "A table's index starts at 0, not at 0.": a term of the declaration could
