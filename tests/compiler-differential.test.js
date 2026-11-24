@@ -126,7 +126,7 @@ function failure(seed, source, wrong) {
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -138,6 +138,7 @@ test('random programs compute on the board what the reference interpreter comput
         seen.ran++;
         if (/\*\+5/.test(compile(source).assembly)) seen.longBranch++;
         if (made.loops) seen.loops++;
+        if (made.fors) seen.fors++;
         if (made.tableReads) seen.tables++;
         if (made.elseArms) seen.elseArms++;
         if (made.depth >= 4) seen.deep++;
@@ -148,22 +149,23 @@ test('random programs compute on the board what the reference interpreter comput
     }
 
     // A generator can stop making what it was written to make and the test
-    // would go on passing. Measured over 20,000 programs, 74% of those
+    // would go on passing. Measured over 20,000 programs, 70% of those
     // generated fitted the board, and of those that ran:
-    //   20% had a long branch          64% a constant or a key's name
+    //   26% had a long branch          64% a constant or a key's name
     //   57% a loop                     38% a table written out
-    //   53% a table read               51% a named memory location
-    //   66% an else                    40% a byte of a row read or written
-    //   43% ifs four deep
+    //   64% a for                      50% a named memory location
+    //   54% a table read               40% a byte of a row read or written
+    //   66% an else                    50% blocks four deep
     // The floors are about half of each: there to notice a collapse, not a
     // drift.
     const share = (count) => count / seen.ran;
-    assert.ok(seen.ran / PROGRAMS > 0.37, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
+    assert.ok(seen.ran / PROGRAMS > 0.35, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
     assert.ok(share(seen.loops) > 0.28, `a loop in only ${seen.loops} of ${seen.ran}`);
+    assert.ok(share(seen.fors) > 0.32, `a for in only ${seen.fors} of ${seen.ran}`);
     assert.ok(share(seen.tables) > 0.26, `a table read in only ${seen.tables} of ${seen.ran}`);
     assert.ok(share(seen.elseArms) > 0.33, `an else in only ${seen.elseArms} of ${seen.ran}`);
-    assert.ok(share(seen.deep) > 0.21, `ifs four deep in only ${seen.deep} of ${seen.ran}`);
+    assert.ok(share(seen.deep) > 0.21, `blocks four deep in only ${seen.deep} of ${seen.ran}`);
     assert.ok(share(seen.constants) > 0.32, `a constant in only ${seen.constants} of ${seen.ran}`);
     assert.ok(share(seen.written) > 0.19, `a table written out in only ${seen.written} of ${seen.ran}`);
     assert.ok(share(seen.places) > 0.25, `a named memory location in only ${seen.places} of ${seen.ran}`);
@@ -188,7 +190,8 @@ test('display.scan() and display.show() among the statements change nothing a pr
 // in and on the way back alike. In each of these the last thing assigned
 // before the loop is the first thing read inside it, and the way back leaves
 // something else in A. A compiler that did not forget A at a loop head fails
-// five of the six; that was tried on a copy with the forgetting taken out.
+// five of the six that have a `loop`; that was tried on a copy with the
+// forgetting taken out.
 const LOOP_HEADS = {
     'a variable in A on the way in': `
 n = 0
@@ -261,6 +264,16 @@ loop
         display.high = s
     end
 end`,
+    // A `for` has its count in A at the top, by either way in, and not the
+    // number the count started from.
+    'the first value of a for in A on the way in': `
+total = 0
+for i in 3..6
+    x = 3
+    total = total + x
+end
+display.data = total
+display.low = i`,
     'a table index in A on the way in': `
 const t = table byte [n in 0..15] = n * 3
 sum = 0

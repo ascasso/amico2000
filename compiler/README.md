@@ -77,8 +77,8 @@ commands above and starts with `AD 0200 RUN`.
 
 Write one statement per line. Names start with a lowercase letter and may
 contain lowercase letters, digits and underscores. The words of the language
-cannot be names: `if`, `else`, `end`, `loop`, `stop`, `const`, `table`, `byte`,
-`in`, `display`, `keypad` and `call`. A `#` begins a comment.
+cannot be names: `if`, `else`, `end`, `loop`, `for`, `stop`, `const`, `table`,
+`byte`, `in`, `display`, `keypad` and `call`. A `#` begins a comment.
 All values are unsigned bytes. Write decimal literals as `21` or hex as
 `$15`. Leading zeros change nothing, so `021` is 21 and not an octal number,
 and hex digits may be capitals or small letters: `$0f`, `$0F` and `15` are
@@ -89,7 +89,8 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `left = 21` | Introduce or update a byte. Reading a named variable requires an assignment on every path reaching that read. |
 | `left = left - take` | Compute one binary operation per expression. The operators are `+`, `-`, `&`, `\|`, and `^`. Both operands are literals, constants, variables, display fields or named locations. |
 | `if left >= 10` | Compare bytes using `<`, `>=`, `==`, or `!=`. The left side may be an operation, a read from a table or a row, or a key read; the right side is one value: a literal, a constant, a variable, a display field or a named location. An optional `else` starts the other arm. Close with `end`. |
-| `loop` | Repeat the enclosed statements. Close with `end`. Blocks can nest. |
+| `loop` | Repeat the enclosed statements for ever. Close with `end`. Blocks can nest. |
+| `for i in 0..5` | Repeat the enclosed statements once for each value from the first to the last, both included, with the name holding the value. Close with `end`. See Loops. |
 | `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. The monitor then puts its own address and data on the displays, `0000` and the byte there, so whatever the program was showing is gone. To end with a result showing, end with `display.hold()`. |
 | `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
 | `byte sum at $04` | Give a memory location a name. Reading the name reads that byte and assigning to it writes it, each time. Declare it before executable statements. See Memory and ports. |
@@ -104,6 +105,32 @@ The compiler warns of a name that is assigned and never read:
 such a name, so the value goes nowhere. The program is compiled all the same,
 and `amicoc` prints the warning on standard error. The usual cause is one name
 spelt two ways.
+
+## Loops
+
+`loop` repeats its statements for ever. `for` repeats them a counted number
+of times:
+
+```
+for i in 0..5
+    display.segment[i] = word[i]
+end
+```
+
+The statements run once for each value from the first to the last, both
+included, and the name holds the value: here 0, 1, 2, 3, 4 and 5. The two
+ends are literals or constants, so the count is known when the program is
+compiled: once round at least, 256 times at most. When the first is the
+greater the count goes down, and `for i in 5..0` takes 5, 4, 3, 2, 1 and 0.
+
+The name is a variable like any other, and may be read inside the loop and
+after it. Inside its own loop it cannot be assigned: the loop keeps the
+count. When the loop is over, the name is one step past the last value: 6
+after `0..5`. A byte wraps, so after `0..255` it is 0 and after `5..0` it is
+255.
+
+A `for` adds twelve bytes to its statements: four to start the count, and at
+the foot an increment or a decrement, a load, a compare and a branch.
 
 ## Display and keys
 

@@ -54,7 +54,7 @@ function pieces(text) {
         calls(name) { return found.length === 3 && this.term(0) === name && this.mark(1) === '(' && this.mark(2) === ')'; }
     };
 }
-const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call']);
+const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call', 'for']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
 
@@ -72,6 +72,9 @@ function compile(source) {
     // in the accumulator under such a name.
     const places = new Map([['display.segment', SEGMENTS]]);
     const blocks = [];
+    // The names that are counting a `for` not yet closed. The loop keeps its
+    // own count, so nothing inside it may assign to the name.
+    const counting = new Set();
     let defined = new Set();
     // For the warning at the end: where each name was first assigned, and
     // which names any line reads.
@@ -90,6 +93,9 @@ function compile(source) {
     function emit(op, mode = 'implied', arg) { items.push({ op, mode, arg, line }); }
     function mark(name) { items.push({ label: name }); }
     function forget() { inA = null; inputReady = false; }
+    // Where several paths meet, a name can be read only if it was assigned
+    // on every one of them. Each path brings the names it has.
+    function onEvery(paths) { return new Set([...paths[0]].filter((name) => paths.every((path) => path.has(name)))); }
 
     function number(text) {
         if (constants.has(text)) return constants.get(text);
@@ -386,6 +392,19 @@ function compile(source) {
                 if (block.kind === 'loop') {
                     if (reachable) emit('JMP', 'abs', block.start);
                     reachable = false;
+                } else if (block.kind === 'for') {
+                    // One step, and round again unless that was the last
+                    // value. The count is left one step past it, which is
+                    // what the compare looks for: after 0..5 it is 6, and
+                    // after 0..255 it is 0, where a byte wraps. A is left
+                    // holding the count, as it is on the way in.
+                    counting.delete(block.name);
+                    if (reachable) {
+                        emit(block.down ? 'DEC' : 'INC', 'zp', block.count);
+                        emit('LDA', 'zp', block.count);
+                        emit('CMP', 'imm', block.past);
+                        emit('BNE', 'rel', block.top);
+                    }
                 } else {
                     const other = block.then || { defined: block.entry, reachable: true };
                     mark(block.then ? block.end : block.otherwise);
@@ -414,13 +433,14 @@ function compile(source) {
         const isConst = first === 'const';
         const isByte = first === 'byte';
         const isCall = first === 'call';
+        const isFor = first === 'for';
         const scans = L.calls('display.scan');
         const holds = L.calls('display.hold');
         const shows = L.calls('display.show');
         // `if = 1` and `const = 1` assign to a word of the language. Say so
         // before the line is read as a comparison or a declaration gone wrong.
         if (assign && RESERVED.has(assign[1])) variable(assign[1]);
-        if (!assign && !isIf && !isConst && !isByte && !isCall && !alone('loop') && !alone('stop') && !scans && !holds && !shows) {
+        if (!assign && !isIf && !isConst && !isByte && !isCall && !isFor && !alone('loop') && !alone('stop') && !scans && !holds && !shows) {
             fail('Unknown statement: ' + text);
         }
         if (!reachable) fail('Unreachable statement');
@@ -443,6 +463,39 @@ function compile(source) {
             blocks.push({ kind: 'loop', start, line });
             mark(start);
             forget();
+        } else if (isFor) {
+            // for name in first..last. Both ends are numbers the compiler
+            // has, so it knows the count: at least once round, 256 at most,
+            // and downwards when the first is the greater.
+            if (L.length !== 6 || L.term(1) === undefined || L.term(2) !== 'in' || L.term(3) === undefined ||
+                L.mark(4) !== '..' || L.term(5) === undefined) {
+                fail('Expected for name in first..last, such as for i in 0..5');
+            }
+            const name = L.term(1);
+            if (FIELDS.has(name)) fail('A for counts in a variable of the program\'s own, not in ' + name);
+            const count = variable(name);
+            if (counting.has(name)) fail(name + ' is already counting the for that this one is inside');
+            const [from, to] = [L.term(3), L.term(5)].map((written) => {
+                const value = number(written);
+                if (value === null) fail('A for runs from one number or constant to another, and ' + written + ' is neither; for an end that varies, count in a loop');
+                return value;
+            });
+            load(L.term(3));
+            emit('STA', 'zp', count);
+            defined.add(name);
+            // The loop reads its own count, so the name is not one that is
+            // assigned and never read, whatever the statements inside do.
+            read.add(name);
+            counting.add(name);
+            const top = label();
+            mark(top);
+            const down = from > to;
+            blocks.push({ kind: 'for', name, count, top, down, past: (to + (down ? -1 : 1)) & 255, line });
+            // The count is in A at the top whichever way the top is reached:
+            // it was loaded to be stored, and the step at the foot loads it
+            // to compare it. Of Port A nothing is known, as at any loop's top.
+            inA = name;
+            inputReady = false;
         } else if (isIf) {
             const test = comparison(L, 1, L.length);
             expression(test.left);
@@ -507,6 +560,7 @@ function compile(source) {
                 mayTurnPortA(places.get(name).where, 1);
                 return;
             }
+            if (counting.has(name)) fail(name + ' is the count of the for it is in, and only the for changes it');
             const zeroPage = FIELDS.get(name) ?? variable(name);
             expression(value.trim());
             emit('STA', 'zp', zeroPage);
@@ -525,7 +579,7 @@ function compile(source) {
         const text = raw.split('#', 1)[0].trim();
         if (text) statement(text);
     }
-    if (blocks.length) { line = blocks.at(-1).line; fail('Missing end for ' + blocks.at(-1).kind); }
+    if (blocks.length) { line = blocks.at(-1).line; fail('Missing end: this ' + blocks.at(-1).kind + ' is never closed'); }
     // No line can be named: none of them is a statement. `line` here is the
     // number of lines read, which is one past the end of a file that finishes
     // with a newline, so the message used to point at a line that is not there.

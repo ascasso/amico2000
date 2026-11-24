@@ -89,6 +89,12 @@ function parse(source) {
             into.push(loop);
             open.push(loop);
             into = loop.body;
+        } else if ((match = /^for\s+([a-z][a-z0-9_]*)\s+in\s+(\S+?)\s*\.\.\s*(\S+)$/.exec(line))) {
+            // Both ends are literals or constants.
+            const loop = { kind: 'for', name: match[1], first: literal(match[2], constants), last: literal(match[3], constants), body: [] };
+            into.push(loop);
+            open.push(loop);
+            into = loop.body;
         } else if ((match = /^if\s+(.+?)\s*(>=|==|!=|<)\s*(\S+)$/.exec(line))) {
             const test = { kind: 'if', left: match[1], compare: match[2], right: match[3], then: [], otherwise: null };
             into.push(test);
@@ -206,6 +212,20 @@ function run(source, memory, maxSteps = 200000) {
                     if (holds(statement)) execute(statement.then);
                     else if (statement.otherwise) execute(statement.otherwise);
                     break;
+                case 'for': {
+                    // Once for each value from the first to the last, both
+                    // included, downwards when the first is the greater.
+                    const step = statement.first <= statement.last ? 1 : -1;
+                    for (let value = statement.first; ; value += step) {
+                        variables.set(statement.name, value);
+                        execute(statement.body);
+                        if (value === statement.last) break;
+                    }
+                    // Over: the name is one step past the last value, and a
+                    // byte wraps.
+                    variables.set(statement.name, (statement.last + step) & 255);
+                    break;
+                }
                 default:
                     // A loop: only `stop`, somewhere inside, ends it.
                     for (;;) execute(statement.body);

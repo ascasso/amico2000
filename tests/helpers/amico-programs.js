@@ -9,8 +9,10 @@
 // made again from its seed alone.
 //
 // What it leans on: nested `if`s with and without `else`, arms long enough to
-// need a long branch, tables by a formula and written out, read by a literal
-// and by a variable, memory locations and rows of bytes named in page zero
+// need a long branch, `for` loops that count up and down, between numbers and
+// between constants, to the edges of a byte, one inside another, with their
+// names read inside and afterwards, tables by a formula and written out, read
+// by a literal and by a variable, memory locations and rows of bytes named in page zero
 // and above it, the row of segments the language starts with, two names for
 // one byte, display
 // fields as operands and as targets, constants and the key names standing
@@ -20,10 +22,10 @@
 // What it does not make, and what covers that instead:
 // - programs the compiler should refuse: tests/compiler-assignment.test.js
 //   tries every small one;
-// - a loop that has one thing in the accumulator on the way in and another on
-//   the way back. Its loops count in a variable that is in the accumulator
-//   both times, so they cannot show a value wrongly kept across a loop head.
-//   The differential test has programs written by hand for that;
+// - a `loop` that has one thing in the accumulator on the way in and another
+//   on the way back. Its `loop`s count in a variable that is in the
+//   accumulator both times, so they cannot show a value wrongly kept across a
+//   loop head. The differential test has programs written by hand for that;
 // - the key routines, which need the monitor and real time, and `call`, since
 //   what a routine does to memory is not the language's to say;
 // - `display.hold()`, which never comes back, so that there is no moment at
@@ -72,7 +74,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
+    const made = { longArm: false, loops: 0, fors: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -309,7 +311,11 @@ function generate(seed, { scans = false, long = false } = {}) {
                 lines.push(`${indent}${chance(0.3) ? 'display.show()' : 'display.scan()'}`);
                 made.scans++;
             }
-            if (depth < 7 && random.next() < (depth < 4 ? 0.36 : 0.15)) {
+            if (depth < 6 && chance(depth < 3 ? 0.1 : 0.04)) {
+                const over = countedLoop(indent, assigned, depth);
+                if (over.ends) return { assigned, ends: true };
+                assigned = over.assigned;
+            } else if (depth < 7 && random.next() < (depth < 4 ? 0.36 : 0.15)) {
                 lines.push(`${indent}if ${condition(assigned)}`);
                 const longArm = !made.longArm && long && chance(0.5);
                 if (longArm) made.longArm = true;
@@ -339,6 +345,37 @@ function generate(seed, { scans = false, long = false } = {}) {
             return { assigned, ends: true };
         }
         return { assigned, ends: false };
+    }
+
+    // A `for`: a few rounds, up or down, between literals or constants,
+    // sometimes at the edge of a byte, where the count wraps as it leaves.
+    // Its name is read like any other, inside and afterwards, and is never
+    // assigned inside. Every round runs all of the statements, so what they
+    // assign on every path is assigned when the loop is over.
+    function countedLoop(indent, assigned, depth) {
+        made.fors++;
+        const name = 'f' + counterNumber++;
+        const rounds = chance(0.15) ? 1 : between(2, 6);
+        const down = chance(0.4);
+        const edge = random.next();
+        // The first value: against 0 or 255 a time in three, so that the
+        // step past the last value is the wrap.
+        const low = edge < 0.2 ? 0 : edge < 0.35 ? 256 - rounds : between(0, 256 - rounds);
+        const [first, last] = down ? [low + rounds - 1, low] : [low, low + rounds - 1];
+        const written = (value) => {
+            const named = chance(0.25) ? constants.filter((constant) => constant.value === value) : [];
+            if (!named.length) return spell(value);
+            made.constants++;
+            return pick(named).name;
+        };
+        lines.push(`${indent}for ${name} in ${written(first)}${chance(0.2) ? ' .. ' : '..'}${written(last)}`);
+        counters.add(name);
+        const inside = new Set(assigned);
+        inside.add(name);
+        const body = block(indent + '    ', inside, depth + 1, between(0, 4), depth < 3 && chance(0.3));
+        lines.push(`${indent}end`);
+        counters.delete(name);
+        return body;
     }
 
     // A loop that counts a few rounds in a variable of its own and stops:

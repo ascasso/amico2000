@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico has a loop that counts: `for i in 0..5`, closed with `end`. Its
+  statements run once for each value from the first to the last, both
+  included, and the name holds the value. The two ends are literals or
+  constants, so the count is known when the program is compiled; when the
+  first is the greater it counts down, as `for i in 5..0` does. Inside its
+  loop the name is read and cannot be assigned, and afterwards it is one step
+  past the last value. The manual's word is now copied to the displays in
+  three lines where it took seven. A `for` costs twelve bytes besides its
+  statements. `for` joins the words that cannot be names.
 - Amico names the six digits as raw segments, `display.segment[0]` to
   `display.segment[5]`, and the monitor's routine that shows them,
   `display.show()`, beside the three hex bytes and `display.scan()` it

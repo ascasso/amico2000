@@ -16,7 +16,7 @@ const OPCODES = {
     // The absolute forms are for a memory location the program names, which
     // may be anywhere; the compiler's own variables are all in page zero.
     LDA: { imm: 0xa9, zp: 0xa5, abs: 0xad, zpX: 0xb5, absX: 0xbd },
-    STA: { zp: 0x85, abs: 0x8d, zpX: 0x95, absX: 0x9d }, DEC: { zp: 0xc6 },
+    STA: { zp: 0x85, abs: 0x8d, zpX: 0x95, absX: 0x9d }, INC: { zp: 0xe6 }, DEC: { zp: 0xc6 },
     // X is loaded on its own only to store into a row of bytes: A holds the
     // value by then, and a load of the index into A would lose it.
     LDX: { imm: 0xa2, zp: 0xa6, abs: 0xae },

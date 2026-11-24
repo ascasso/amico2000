@@ -29,6 +29,17 @@ function rawRun(source) {
     m.cpu.PC = origin;
     return m;
 }
+// Runs a program until it hands the board back, and gives the memory it
+// leaves. The board is read at the monitor's entry, before the monitor puts
+// its own address and data into the display fields.
+function finished(source) {
+    const m = rawRun(source);
+    for (let steps = 0; m.cpu.PC !== 0xfe22; steps++) {
+        assert.ok(steps < 2e6, 'the program did not come back to the monitor:\n' + source);
+        m.cpu.step();
+    }
+    return m.cpu.memory;
+}
 
 test('CLI assembly and binary describe the same 40-byte square program', () => {
     const bin = execFileSync(process.execPath, [cli, '--bin', squares]);
@@ -241,7 +252,7 @@ test('a refusal names the mistake that was made', () => {
         .split(',').map(word => word.trim().replace(/'/g, ''));
     const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
     const listed = /cannot be names: ([^.]+)\./.exec(readme.replace(/\n/g, ' '))[1];
-    assert.equal(words.length, 12);
+    assert.equal(words.length, 13);
     for (const word of words) {
         assert.ok(listed.includes('`' + word + '`'), `the README does not list ${word}`);
         assert.throws(() => compile(word + ' = 1'), new RegExp(`^Error: Line 1: ${word} is a word of the language`));
@@ -936,4 +947,84 @@ test('a named location is a value like any other: an operand, and the right side
     const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
     assert.match(readme, /Both operands are literals, constants, variables, display fields or named\s+locations/);
     assert.match(readme, /the right side is one value: a literal, a constant, a variable, a display field or a named location/);
+});
+
+test('for counts through a range, up or down, and leaves its name one step past the end', () => {
+    const bytes = (source) => [...compile(source).binary];
+    const fields = (source) => { const memory = finished(source); return [memory[0xfb], memory[0xfa], memory[0xf9]]; };
+    // Twelve bytes round the statements, as the README says: the count
+    // started, and at the foot a step, a load, a compare and a branch. The
+    // count is in A at the top, so the first statement does not load it.
+    assert.deepEqual(bytes('for i in 0..5\ndisplay.data = i\nend'),
+        [0xd8, 0xa9, 0x00, 0x85, 0x20, 0x85, 0xf9, 0xe6, 0x20, 0xa5, 0x20, 0xc9, 0x06, 0xd0, 0xf6, 0x4c, 0x22, 0xfe]);
+    assert.equal(bytes('for i in 0..5\ndisplay.data = 1\nend').length, bytes('display.data = 1').length + 12);
+    // Downwards it is a DEC, and the compare is with one below the last value.
+    assert.deepEqual(bytes('for i in 5..1\ndisplay.data = i\nend').slice(7, 13), [0xc6, 0x20, 0xa5, 0x20, 0xc9, 0x00]);
+    // A first value that A is known to hold already is not loaded again.
+    assert.equal(bytes('byte p at $80\np = 0\nfor i in 0..5\ndisplay.data = i\nend').length,
+        bytes('byte p at $80\np = 1\nfor i in 0..5\ndisplay.data = i\nend').length - 2);
+
+    // high, low, data: a sum over the values, how many rounds, and the name afterwards.
+    const counted = (range) => fields(`sum = 0\nrounds = 0\nfor i in ${range}\nsum = sum + i\nrounds = rounds + 1\nend\ndisplay.high = sum\ndisplay.low = rounds\ndisplay.data = i`);
+    assert.deepEqual(counted('0..5'), [15, 6, 6]);
+    assert.deepEqual(counted('5..0'), [15, 6, 255]);
+    assert.deepEqual(counted('2..4'), [9, 3, 5]);
+    assert.deepEqual(counted('4..2'), [9, 3, 1]);
+    // One value is once round, wherever it is.
+    assert.deepEqual(counted('3..3'), [3, 1, 4]);
+    assert.deepEqual(counted('0..0'), [0, 1, 1]);
+    assert.deepEqual(counted('255..255'), [255, 1, 0]);
+    // The whole of a byte is 256 rounds, which the round count wraps on, and
+    // the name wraps as it leaves: to 0 going up and to 255 going down.
+    assert.deepEqual(counted('0..255'), [(255 * 256 / 2) & 255, 0, 0]);
+    assert.deepEqual(counted('255..0'), [(255 * 256 / 2) & 255, 0, 255]);
+    assert.deepEqual(counted('250..255'), [(250 + 251 + 252 + 253 + 254 + 255) & 255, 6, 0]);
+    assert.deepEqual(counted('3..0'), [6, 4, 255]);
+    // The order of the values, kept in a row of bytes.
+    const order = finished('byte seen[4] at $80\nn = 0\nfor i in 5..2\nseen[n] = i\nn = n + 1\nend');
+    assert.deepEqual([...order.slice(0x80, 0x84)], [5, 4, 3, 2]);
+    // Constants for the ends are the same program as the numbers.
+    assert.deepEqual(bytes('const first = 2\nconst last = 4\nfor i in first..last\ndisplay.data = i\nend'), bytes('for i in 2..4\ndisplay.data = i\nend'));
+    assert.deepEqual(bytes('for i in $0 .. 05\ndisplay.data = i\nend'), bytes('for i in 0..5\ndisplay.data = i\nend'));
+    // One inside another, and inside a loop that the program leaves by stop.
+    assert.deepEqual(fields('n = 0\nfor i in 0..2\nfor j in 0..3\nn = n + 1\nend\nend\ndisplay.high = n\ndisplay.low = i\ndisplay.data = j'), [12, 3, 4]);
+    assert.deepEqual(fields('n = 0\nloop\nfor i in 1..3\nn = n + i\nend\nif n >= 18\ndisplay.high = n\ndisplay.low = i\ndisplay.data = 0\nstop\nend\nend'), [18, 4, 0]);
+    // With nothing inside it a for is a pause, and its name is no name that
+    // is assigned and never read: the loop reads it.
+    assert.deepEqual(compile('for wait in 0..200\nend\ndisplay.data = 1').warnings, []);
+    assert.deepEqual(compile('i = 9\nfor i in 0..3\nend\ndisplay.data = 1').warnings, []);
+    // A loop that never goes round has no step at its foot: nothing would run it.
+    assert.deepEqual(bytes('for i in 0..5\nstop\nend'), [0xd8, 0xa9, 0x00, 0x4c, 0x22, 0xfe]);
+    assert.deepEqual(fields('display.high = 0\ndisplay.low = 0\nfor wait in 0..200\nend\ndisplay.data = wait'), [0, 0, 201]);
+    // Which way Port A faces is not known at the top of a for: a store in
+    // the loop may have turned it since the scan before the loop. So a key
+    // read inside sets it, which straight after a scan it need not.
+    const turned = 'byte control at $fd03\ndisplay.scan()\nfor i in 0..1\nk = keypad.read()\ndisplay.data = k\ncontrol = $89\nend';
+    assert.match(compile(turned).assembly, /flow_1:\n +LDA #\$99 .*\n +STA \$FD03 .*\n +JSR \$FF57/);
+    // After its loop the name is a variable again and may be assigned.
+    assert.deepEqual(fields('display.high = 0\ndisplay.low = 0\nfor i in 0..5\nend\ni = i + 1\ndisplay.data = i'), [0, 0, 7]);
+
+    // The README's own loop: the manual's word, copied to the displays.
+    const m = rawRun('const word = table byte = $77, $6d, $79, $38, 0, 0\nfor i in 0..5\n    display.segment[i] = word[i]\nend\nloop\n    display.show()\nend');
+    tick(m, 200000);
+    assert.deepEqual(m.getDisplay(), [0x77, 0x6d, 0x79, 0x38, 0, 0]);
+
+    for (const [source, error] of [
+        ['for i in 0..5\ni = 2\nend', /^Error: Line 2: i is the count of the for it is in, and only the for changes it/],
+        ['for i in 0..5\nif i == 2\ni = keypad.read()\nend\nend', /^Error: Line 3: i is the count of the for it is in/],
+        ['for i in 0..5\nfor i in 0..2\nend\nend', /^Error: Line 2: i is already counting the for that this one is inside/],
+        ['n = 3\nfor i in 0..n\nend', /^Error: Line 2: A for runs from one number or constant to another, and n is neither; for an end that varies, count in a loop/],
+        ['for i in display.low..5\nend', /^Error: Line 1: A for runs from one number or constant to another, and display.low is neither/],
+        ['for display.data in 0..5\nend', /^Error: Line 1: A for counts in a variable of the program's own, not in display.data/],
+        ['byte p at $80\nfor p in 0..5\nend', /^Error: Line 2: p is a memory name, not a variable/],
+        ['const c = 1\nfor c in 0..5\nend', /^Error: Line 2: c is a constant, not a variable/],
+        ['for I in 0..5\nend', /^Error: Line 1: Invalid byte variable: I/],
+        ['for i in 0..256\nend', /^Error: Line 1: Byte literal out of range: 256/],
+        ['for i in 0..5\ndisplay.data = i', /^Error: Line 1: Missing end: this for is never closed/],
+        ['stop\nfor i in 0..5\nend', /^Error: Line 2: Unreachable statement/],
+        ['display.data = i\nfor i in 0..5\nend', /^Error: Line 1: Expected a byte literal, a constant or an assigned variable, got i/]
+    ]) assert.throws(() => compile(source), error, source);
+    for (const line of ['for', 'for i', 'for i 0..5', 'for i in 0...5', 'for i in 0 5', 'for in 0..5', 'for i in 0..', 'for i in ..5', 'for i in 0..5 loop', 'for i, j in 0..5']) {
+        assert.throws(() => compile(line + '\nend'), /^Error: Line 1: Expected for name in first\.\.last, such as for i in 0\.\.5/, line);
+    }
 });

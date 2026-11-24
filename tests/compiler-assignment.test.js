@@ -13,68 +13,78 @@
 // arms of an `if`, or in what it takes to follow a `loop` or a `stop`, would
 // have to be made here too, in a different shape, to go unnoticed.
 //
-// "Every small program" means every nesting of `if`, `else`, `loop` and
-// `stop` with assignments and reads, up to a number of statements. The
+// "Every small program" means every nesting of `if`, `else`, `loop`, `for`
+// and `stop` with assignments and reads, up to a number of statements. The
 // compiler has to accept exactly the programs the oracle accepts, and refuse
 // the others at the same line and for the same reason. To go deeper:
 //
-//     AMICO_STATEMENTS=7 node --test tests/compiler-assignment.test.js
+//     AMICO_STATEMENTS=6 node --test tests/compiler-assignment.test.js
 //
-// which is 5.6 million programs, 4.1 million with one name and 1.5 million
-// with two, and takes about half a minute. It was one
-// reviewer's harness in the check of 2026-11-23 (AGENTS.md, A Review by
-// Several Agents), run then to seven statements with one name and to six
-// with two.
+// which takes about half a minute. It was one reviewer's harness in the
+// check of 2026-11-23 (AGENTS.md, A Review by Several Agents), run then to
+// seven statements with one name and to six with two, before there was a
+// `for`; with one it is the programs of six statements that take the half
+// minute.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { compile } = require('../compiler/compile');
 
 const STATEMENTS = Number(process.env.AMICO_STATEMENTS) || 5;
+// Every `for` in these programs counts in this one name, which nothing else
+// assigns. So a read of it is a read of a name that only a `for` can have
+// assigned, and a `for` inside a `for` is the mistake of counting two loops
+// in one name.
+const COUNT = 'k';
 
 // A program is a list of statements, each a small array:
 //   ['assign', name]             name = 1
 //   ['read', name]               display.data = name
 //   ['stop']
 //   ['loop', body]
+//   ['for', body]                for k in 0..1
 //   ['if', then, otherwise]      otherwise is null when there is no else
 // A statement's size is the number of lines it takes apart from each `end`:
 // an `else` counts as one.
 function size(statement) {
     const of = (body) => body.reduce((total, inner) => total + size(inner), 0);
-    if (statement[0] === 'loop') return 1 + of(statement[1]);
+    if (statement[0] === 'loop' || statement[0] === 'for') return 1 + of(statement[1]);
     if (statement[0] === 'if') return 1 + of(statement[1]) + (statement[2] ? 1 + of(statement[2]) : 0);
     return 1;
 }
 
 // Every list of statements of exactly this size, nested no deeper than this.
-function* bodies(total, depth, names) {
+// `made` says what the programs are made of: `names`, the names assigned and
+// read, and `counts`, whether there are `for` loops and reads of their name.
+function* bodies(total, depth, made) {
     if (total === 0) {
         yield [];
         return;
     }
-    for (const first of statements(total, depth, names)) {
-        for (const rest of bodies(total - size(first), depth, names)) yield [first, ...rest];
+    for (const first of statements(total, depth, made)) {
+        for (const rest of bodies(total - size(first), depth, made)) yield [first, ...rest];
     }
 }
 
-function* statements(most, depth, names) {
-    for (const name of names) {
+function* statements(most, depth, made) {
+    for (const name of made.names) {
         yield ['assign', name];
         yield ['read', name];
     }
+    if (made.counts) yield ['read', COUNT];
     yield ['stop'];
     if (depth === 0) return;
     for (let inside = 0; inside <= most - 1; inside++) {
-        for (const body of bodies(inside, depth - 1, names)) {
+        for (const body of bodies(inside, depth - 1, made)) {
             yield ['loop', body];
             yield ['if', body, null];
+            if (made.counts) yield ['for', body];
         }
     }
     for (let inside = 0; inside <= most - 2; inside++) {
         for (let first = 0; first <= inside; first++) {
-            for (const then of bodies(first, depth - 1, names)) {
-                for (const otherwise of bodies(inside - first, depth - 1, names)) yield ['if', then, otherwise];
+            for (const then of bodies(first, depth - 1, made)) {
+                for (const otherwise of bodies(inside - first, depth - 1, made)) yield ['if', then, otherwise];
             }
         }
     }
@@ -89,8 +99,8 @@ function sourceOf(body, ending, lines = [], indent = '') {
         if (statement[0] === 'assign') lines.push(`${indent}${statement[1]} = 1`);
         else if (statement[0] === 'read') lines.push(`${indent}display.data = ${statement[1]}`);
         else if (statement[0] === 'stop') lines.push(indent + ending);
-        else if (statement[0] === 'loop') {
-            lines.push(`${indent}loop`);
+        else if (statement[0] === 'loop' || statement[0] === 'for') {
+            lines.push(indent + (statement[0] === 'loop' ? 'loop' : `for ${COUNT} in 0..1`));
             sourceOf(statement[1], ending, lines, indent + '    ');
             lines.push(`${indent}end`);
         } else {
@@ -115,26 +125,34 @@ function oracle(body, names) {
     const AFTER = -1; // where control goes when it runs off the program's end
 
     // Give each statement a node and its line, in source order. An `else`
-    // and each `end` take a line and no node.
+    // and each `end` take a line and no node. A `for` is two nodes: the
+    // statement, which starts the count and so assigns its name, and the
+    // step at its foot, which is no statement and has no line.
     let line = 0;
-    (function number(list) {
+    (function number(list, counting) {
         for (const statement of list) {
             line++;
             statement.node = nodes.length;
-            nodes.push({ kind: statement[0], name: statement[1], line, next: [] });
-            if (statement[0] === 'loop') {
-                number(statement[1]);
+            nodes.push({ kind: statement[0], name: statement[0] === 'for' ? COUNT : statement[1], line, next: [] });
+            if (statement[0] === 'for') {
+                nodes[statement.node].twice = counting;
+                statement.step = nodes.length;
+                nodes.push({ kind: 'step', next: [] });
+                number(statement[1], true);
+                line++;
+            } else if (statement[0] === 'loop') {
+                number(statement[1], counting);
                 line++;
             } else if (statement[0] === 'if') {
-                number(statement[1]);
+                number(statement[1], counting);
                 if (statement[2]) {
                     line++;
-                    number(statement[2]);
+                    number(statement[2], counting);
                 }
                 line++;
             }
         }
-    })(body);
+    })(body, false);
 
     // Link a list backwards: each statement leads to the one after it, the
     // last to wherever the whole list leads. Returns where the list begins,
@@ -146,7 +164,13 @@ function oracle(body, names) {
             const node = nodes[statement.node];
             if (statement[0] === 'stop') node.next = [];
             else if (statement[0] === 'loop') node.next = [link(statement[1], statement.node)];
-            else if (statement[0] === 'if') {
+            else if (statement[0] === 'for') {
+                // Into the statements, which lead to the step; from the step
+                // round again, or on when the count is done.
+                const inside = link(statement[1], statement.step);
+                node.next = [inside];
+                nodes[statement.step].next = [inside, following];
+            } else if (statement[0] === 'if') {
                 node.next = [link(statement[1], following), statement[2] ? link(statement[2], following) : following];
             } else node.next = [following];
             following = statement.node;
@@ -167,14 +191,14 @@ function oracle(body, names) {
     // The names certainly assigned on arrival at a node: those assigned on
     // every path into it. Start by supposing all of them everywhere but at
     // the first statement, and take away whatever some path lacks.
-    const assignedAt = nodes.map(() => new Set(names));
+    const assignedAt = nodes.map(() => new Set([...names, COUNT]));
     if (first !== AFTER) assignedAt[first] = new Set();
     let changed = true;
     while (changed) {
         changed = false;
         for (const node of reached) {
             const leaving = new Set(assignedAt[node]);
-            if (nodes[node].kind === 'assign') leaving.add(nodes[node].name);
+            if (nodes[node].kind === 'assign' || nodes[node].kind === 'for') leaving.add(nodes[node].name);
             for (const next of nodes[node].next) {
                 if (next === AFTER) continue;
                 for (const name of [...assignedAt[next]]) {
@@ -188,7 +212,9 @@ function oracle(body, names) {
     }
 
     for (let node = 0; node < nodes.length; node++) {
+        if (nodes[node].kind === 'step') continue;
         if (!reached.has(node)) return { accepted: false, line: nodes[node].line, why: 'Unreachable statement' };
+        if (nodes[node].twice) return { accepted: false, line: nodes[node].line, why: 'already counting' };
         if (nodes[node].kind === 'read' && !assignedAt[node].has(nodes[node].name)) {
             return { accepted: false, line: nodes[node].line, why: 'assigned variable' };
         }
@@ -196,15 +222,15 @@ function oracle(body, names) {
     return { accepted: true };
 }
 
-// Tries every program of up to `most` statements over these names, and
+// Tries every program of up to `most` statements made of these things, and
 // returns how many there were, how many are valid, and the first few on
 // which compiler and oracle part.
-function tryAll(most, depth, names, ending = 'stop') {
+function tryAll(most, depth, made, ending = 'stop') {
     const result = { programs: 0, accepted: 0, disagreements: [] };
     for (let total = 1; total <= most; total++) {
-        for (const body of bodies(total, depth, names)) {
+        for (const body of bodies(total, depth, made)) {
             result.programs++;
-            const expected = oracle(body, names);
+            const expected = oracle(body, made.names);
             const source = sourceOf(body, ending).join('\n');
             let said = 'accepted';
             try {
@@ -226,7 +252,7 @@ function tryAll(most, depth, names, ending = 'stop') {
 }
 
 test('one name: the compiler accepts and refuses exactly what the oracle does', () => {
-    const result = tryAll(STATEMENTS, 3, ['x']);
+    const result = tryAll(STATEMENTS, 3, { names: ['x'] });
     assert.deepEqual(result.disagreements, []);
     // The counts are a check on the test itself: an enumerator that stopped
     // short would still agree with the compiler on everything it tried.
@@ -234,7 +260,7 @@ test('one name: the compiler accepts and refuses exactly what the oracle does', 
 });
 
 test('two names: an assignment to one does not stand for the other', () => {
-    const result = tryAll(STATEMENTS - 1, 3, ['x', 'y']);
+    const result = tryAll(STATEMENTS - 1, 3, { names: ['x', 'y'] });
     assert.deepEqual(result.disagreements, []);
     if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [9136, 1844]);
 });
@@ -243,7 +269,17 @@ test('two names: an assignment to one does not stand for the other', () => {
 // the displays for ever, so for these two rules it is the same thing: a
 // statement that nothing follows.
 test('display.hold() ends a path as stop does', () => {
-    const result = tryAll(STATEMENTS - 1, 3, ['x'], 'display.hold()');
+    const result = tryAll(STATEMENTS - 1, 3, { names: ['x'] }, 'display.hold()');
     assert.deepEqual(result.disagreements, []);
     if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [3464, 854]);
+});
+
+// A `for` assigns its own name before its statements run, which they do at
+// least once, so the name can be read inside the loop and after it, and what
+// the statements assign on every path through them is assigned afterwards.
+// One name cannot count two loops at once.
+test('for: the loop assigns its name, and runs its statements at least once', () => {
+    const result = tryAll(STATEMENTS, 3, { names: ['x'], counts: true });
+    assert.deepEqual(result.disagreements, []);
+    if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [187126, 26321]);
 });
