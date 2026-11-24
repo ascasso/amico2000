@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico can call a routine by its address: `call $ff7e`. With a name for a
+  memory location, that reaches the monitor's routine for showing six raw
+  patterns, which is how a program puts letters on the displays: the
+  manual's word ASEL is six names, six assignments and a call in a loop.
+  When a call comes back the compiler takes nothing to be known, not the
+  accumulator and not Port A's direction. `call` joins the words that
+  cannot be names. The third of the three additions that open the whole
+  board to Amico.
 - Amico can name a memory location: `byte sum at $04`. Reading the name
   reads that byte and assigning to it writes it, each time, so a name can
   stand for a byte keyed in before RUN, a result to look at afterwards, or

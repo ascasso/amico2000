@@ -23,7 +23,8 @@
 //   the way back. Its loops count in a variable that is in the accumulator
 //   both times, so they cannot show a value wrongly kept across a loop head.
 //   The differential test has programs written by hand for that;
-// - the key routines, which need the monitor and real time;
+// - the key routines, which need the monitor and real time, and `call`, since
+//   what a routine does to memory is not the language's to say;
 // - `display.hold()`, which never comes back, so that there is no moment at
 //   which to read the board. tests/compiler.test.js runs it, and the oracle
 //   in tests/compiler-assignment.test.js tries it as the end of a path.

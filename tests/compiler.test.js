@@ -241,7 +241,7 @@ test('a refusal names the mistake that was made', () => {
         .split(',').map(word => word.trim().replace(/'/g, ''));
     const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
     const listed = /cannot be names: ([^.]+)\./.exec(readme.replace(/\n/g, ' '))[1];
-    assert.equal(words.length, 11);
+    assert.equal(words.length, 12);
     for (const word of words) {
         assert.ok(listed.includes('`' + word + '`'), `the README does not list ${word}`);
         assert.throws(() => compile(word + ' = 1'), new RegExp(`^Error: Line 1: ${word} is a word of the language`));
@@ -635,4 +635,47 @@ test('a named location is read and written every time it is named, never remembe
     ]) assert.throws(() => compile(source), error);
     // Two names for one byte are allowed, and a name for a display field's byte.
     assert.ok(compile('byte seconds at $f9\nbyte again at $f9\nseconds = 5\ndisplay.low = again').binary.length > 4);
+});
+
+test('a routine can be called by its address, and the manual\'s word shown', () => {
+    // The supplement's exercise (PDF page 68): the monitor's routine at $FF7E
+    // shows the six bytes at $8F-$94, one bit to a segment, and the manual's
+    // word is ASEL, 77 6D 79 38 00 00.
+    const word = ['$77', '$6d', '$79', '$38', '0', '0'];
+    const source = word.map((_, i) => 'byte d' + i + ' at $' + (0x8f + i).toString(16)).join('\n') + '\n' +
+        word.map((pattern, i) => 'd' + i + ' = ' + pattern).join('\n') + '\nloop\n    call $ff7e\nend';
+    const program = compile(source);
+    const m = bootedMachine();
+    m.loadProgram(program.binary, program.origin);
+    monitorRun(m, '0200');
+    tick(m, 200000);
+    assert.deepEqual(m.getDisplay(), [0x77, 0x6d, 0x79, 0x38, 0, 0]);
+    assert.deepEqual([...program.binary.slice(-6)], [0x20, 0x7e, 0xff, 0x4c, program.binary.length - 6, 0x02]);
+
+    // After a call nothing is known. A value is loaded again, and a key read
+    // sets Port A's direction again, which after display.scan() it need not.
+    assert.match(compile('x = 5\ncall $ff0c\ndisplay.data = x').assembly, /JSR \$FF0C .*\n +LDA var_x/);
+    const scanned = compile('display.scan()\nk = keypad.read()\ndisplay.data = k').binary;
+    const called = compile('call $ff0c\nk = keypad.read()\ndisplay.data = k').binary;
+    assert.equal(called.length, scanned.length + 5);
+    assert.deepEqual([...called.slice(4, 9)], [0xa9, 0x99, 0x8d, 0x03, 0xfd]);
+    // The README's own example: an A on the leftmost digit.
+    const first = compile('byte first at $8f\nfirst = $77\nloop\n    call $ff7e\nend');
+    const board = bootedMachine();
+    board.loadProgram(first.binary, first.origin);
+    board.cpu.PC = first.origin;
+    tick(board, 200000);
+    assert.equal(board.getDisplay()[0], 0x77);
+    // In decimal, and with spaces, it is the same call.
+    assert.deepEqual(compile('call 65406').binary, compile('call   $FF7E').binary);
+
+    for (const [source, error] of [
+        ['call', /^Error: Line 1: Expected call and an address, such as call \$FF7E/],
+        ['call $ff7e $ff0c', /^Error: Line 1: Expected call and an address/],
+        ['call here', /^Error: Line 1: An address is a number, such as \$04 or \$FD01, not here/],
+        ['call $10000', /^Error: Line 1: An address is \$FFFF at most/],
+        ['x = call $ff7e', /^Error: Line 1: Expected a byte literal/],
+        ['call = 1', /^Error: Line 1: call is a word of the language/],
+        ['stop\ncall $ff7e', /^Error: Line 2: Unreachable statement/]
+    ]) assert.throws(() => compile(source), error);
 });

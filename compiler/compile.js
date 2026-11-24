@@ -23,7 +23,7 @@ const KEY_CODES = [['keypad.ad', 0x10], ['keypad.da', 0x11], ['keypad.inc', 0x12
 const TERM = '[\\w$]+(?:\\.[\\w$]+)*';
 const TABLE = new RegExp('^const\\s+(\\w+)\\s*=\\s*table\\s+byte\\s*\\[\\s*(\\w+)\\s+in\\s+(' + TERM +
     ')\\s*\\.\\.\\s*(' + TERM + ')\\s*\\]\\s*=\\s*(' + TERM + ')(?:\\s*([*+-])\\s*(' + TERM + '))?$');
-const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad']);
+const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
 
@@ -284,10 +284,11 @@ function compile(source) {
         const isIf = /^if(?:\s|$)/.test(text);
         const isConst = /^const(?:\s|$)/.test(text);
         const isByte = /^byte(?:\s|$)/.test(text);
+        const isCall = /^call(?:\s|$)/.test(text);
         // `if = 1` and `const = 1` assign to a word of the language. Say so
         // before the line is read as a comparison or a declaration gone wrong.
         if (assign && RESERVED.has(assign[1])) variable(assign[1]);
-        if (!assign && !isIf && !isConst && !isByte && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text) && !HOLD_CALL.test(text)) {
+        if (!assign && !isIf && !isConst && !isByte && !isCall && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text) && !HOLD_CALL.test(text)) {
             fail('Unknown statement: ' + text);
         }
         if (!reachable) fail('Unreachable statement');
@@ -339,6 +340,14 @@ function compile(source) {
             reachable = false;
         } else if (SCAN_CALL.test(text)) {
             scan();
+        } else if (isCall) {
+            const match = /^call\s+(\S+)$/.exec(text);
+            if (!match) fail('Expected call and an address, such as call $FF7E');
+            emit('JSR', 'abs', address(match[1]));
+            // The routine is somebody else's. Nothing is known when it comes
+            // back: not A, and not which way it has left Port A, so the next
+            // key read sets that again.
+            forget();
         } else if (HOLD_CALL.test(text)) {
             // Scan until RES. `stop` hands the board to the monitor, which puts
             // its own address and data on the displays; this keeps what the
