@@ -11,6 +11,7 @@ const NAME = /^[a-z][a-z0-9_]*$/;
 // A call takes spaces before and inside its brackets, as an operator takes
 // them round it. The dot is part of the name and takes none.
 const SCAN_CALL = /^display\.scan\s*\(\s*\)$/;
+const HOLD_CALL = /^display\.hold\s*\(\s*\)$/;
 const KEY_CALL = /^keypad\.(read|press)\s*\(\s*\)$/;
 // What the monitor's key routine at $FF57 gives for the keys that are not
 // hex digits, and for no key at all. A hex key's code is its own digit.
@@ -201,7 +202,7 @@ function compile(source) {
         // `if = 1` and `const = 1` assign to a word of the language. Say so
         // before the line is read as a comparison or a declaration gone wrong.
         if (assign && RESERVED.has(assign[1])) variable(assign[1]);
-        if (!assign && !isIf && !isConst && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text)) {
+        if (!assign && !isIf && !isConst && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text) && !HOLD_CALL.test(text)) {
             fail('Unknown statement: ' + text);
         }
         if (!reachable) fail('Unreachable statement');
@@ -248,6 +249,16 @@ function compile(source) {
             reachable = false;
         } else if (SCAN_CALL.test(text)) {
             scan();
+        } else if (HOLD_CALL.test(text)) {
+            // Scan until RES. `stop` hands the board to the monitor, which puts
+            // its own address and data on the displays; this keeps what the
+            // program put there. It is `loop`, `display.scan()`, `end` in one
+            // word and the same six bytes, and nothing after it is reached.
+            const again = label();
+            mark(again);
+            scan();
+            emit('JMP', 'abs', again);
+            reachable = false;
         } else {
             const [, name, value] = assign;
             const address = FIELDS.get(name) ?? variable(name);

@@ -420,3 +420,42 @@ test('a constant stands wherever a literal may, and the keys that are not digits
     // A constant nobody uses is no fault, and is not a name that was never read.
     assert.deepEqual(compile('const spare = 9\ndisplay.data = 1').warnings, []);
 });
+
+test('display.hold() keeps a result on the displays until RES, where stop loses it', () => {
+    const shown = (m) => m.getDisplay().map(pattern => {
+        const digit = [...m.cpu.memory.slice(0xffea, 0xfffa)].findIndex(entry => (entry & 127) === pattern);
+        return digit < 0 ? '?' : digit.toString(16);
+    }).join('');
+    const result = 'display.high = $12\ndisplay.low = $34\ndisplay.data = $56\n';
+
+    // With stop, the monitor takes the displays back for its own address and data.
+    const stopped = bootedMachine();
+    let program = compile(result + 'stop');
+    stopped.loadProgram(program.binary, program.origin);
+    monitorRun(stopped, '0200');
+    tick(stopped, 200000);
+    assert.equal(shown(stopped), '000000');
+
+    // With display.hold(), the result stays, whatever is pressed, until RES.
+    const held = bootedMachine();
+    program = compile(result + 'display.hold()');
+    held.loadProgram(program.binary, program.origin);
+    monitorRun(held, '0200');
+    tick(held, 200000);
+    assert.equal(shown(held), '123456');
+    for (const key of ['5', 'ArrowUp', 'Enter', 'r']) press(held, key);
+    tick(held, 1000000);
+    assert.equal(shown(held), '123456');
+    held.res();
+    tick(held, 200000);
+    assert.equal(shown(held), '000000');
+
+    // It is `loop`, `display.scan()`, `end` in one word: the same six bytes, and
+    // nothing after it is reached.
+    assert.deepEqual(compile('display.data = 1\ndisplay.hold()').binary, compile('display.data = 1\nloop\ndisplay.scan()\nend').binary);
+    assert.deepEqual([...compile('display.data = 1\ndisplay.hold ( )').binary.slice(5)], [0x20, 0x0c, 0xff, 0x4c, 0x05, 0x02]);
+    assert.throws(() => compile('display.hold()\ndisplay.data = 1'), /^Error: Line 2: Unreachable statement/);
+    assert.throws(() => compile('x = display.hold()'), /^Error: Line 1: Expected a byte literal/);
+    // In one arm of an `if`, the program goes on by the other.
+    assert.ok(compile('k = display.low\nif k == 1\ndisplay.hold()\nend\ndisplay.data = 2').binary.length > 8);
+});

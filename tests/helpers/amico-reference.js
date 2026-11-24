@@ -82,7 +82,9 @@ function parse(source) {
             open.pop();
             const outer = open[open.length - 1];
             into = outer.kind === 'if' ? (outer.otherwise || outer.then) : outer.body;
-        } else if (line === 'stop') {
+        } else if (line === 'stop' || line === 'display.hold()') {
+            // Holding the displays computes nothing more: for what a program
+            // leaves behind, it is where the program ends.
             into.push({ kind: 'stop' });
         } else if (line === 'display.scan()') {
             into.push({ kind: 'scan' });

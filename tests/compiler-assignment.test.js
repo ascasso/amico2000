@@ -82,21 +82,23 @@ function* statements(most, depth, names) {
 
 // The source the compiler is given. A read goes to a display field, and an
 // `if` tests one, so that nothing but the named variables is in question.
-function sourceOf(body, lines = [], indent = '') {
+// `ending` is how a 'stop' statement is written: the language has two
+// statements that nothing follows, `stop` and `display.hold()`.
+function sourceOf(body, ending, lines = [], indent = '') {
     for (const statement of body) {
         if (statement[0] === 'assign') lines.push(`${indent}${statement[1]} = 1`);
         else if (statement[0] === 'read') lines.push(`${indent}display.data = ${statement[1]}`);
-        else if (statement[0] === 'stop') lines.push(`${indent}stop`);
+        else if (statement[0] === 'stop') lines.push(indent + ending);
         else if (statement[0] === 'loop') {
             lines.push(`${indent}loop`);
-            sourceOf(statement[1], lines, indent + '    ');
+            sourceOf(statement[1], ending, lines, indent + '    ');
             lines.push(`${indent}end`);
         } else {
             lines.push(`${indent}if display.low == 0`);
-            sourceOf(statement[1], lines, indent + '    ');
+            sourceOf(statement[1], ending, lines, indent + '    ');
             if (statement[2]) {
                 lines.push(`${indent}else`);
-                sourceOf(statement[2], lines, indent + '    ');
+                sourceOf(statement[2], ending, lines, indent + '    ');
             }
             lines.push(`${indent}end`);
         }
@@ -197,13 +199,13 @@ function oracle(body, names) {
 // Tries every program of up to `most` statements over these names, and
 // returns how many there were, how many are valid, and the first few on
 // which compiler and oracle part.
-function tryAll(most, depth, names) {
+function tryAll(most, depth, names, ending = 'stop') {
     const result = { programs: 0, accepted: 0, disagreements: [] };
     for (let total = 1; total <= most; total++) {
         for (const body of bodies(total, depth, names)) {
             result.programs++;
             const expected = oracle(body, names);
-            const source = sourceOf(body).join('\n');
+            const source = sourceOf(body, ending).join('\n');
             let said = 'accepted';
             try {
                 compile(source);
@@ -235,4 +237,13 @@ test('two names: an assignment to one does not stand for the other', () => {
     const result = tryAll(STATEMENTS - 1, 3, ['x', 'y']);
     assert.deepEqual(result.disagreements, []);
     if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [9136, 1844]);
+});
+
+// The same programs with `display.hold()` wherever they had `stop`. It scans
+// the displays for ever, so for these two rules it is the same thing: a
+// statement that nothing follows.
+test('display.hold() ends a path as stop does', () => {
+    const result = tryAll(STATEMENTS - 1, 3, ['x'], 'display.hold()');
+    assert.deepEqual(result.disagreements, []);
+    if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [3464, 854]);
 });

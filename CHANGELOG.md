@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico has `display.hold()`, which scans the six digits until RES. A
+  program that ended with `stop`, or ran off its end, handed the board to
+  the monitor, which shows `0000` and the byte there, so a result put on
+  the displays was gone as soon as it was reached. `display.hold()` is
+  `loop`, `display.scan()`, `end` in one word and the same six bytes; the
+  matchstick example ends with it now, byte for byte as before. The README
+  says what `stop` does to the displays. The third of the small fixes
+  agreed for Amico.
 - Amico has named constants: `const start = 21`. The name stands wherever a
   literal may, as an operand, on the right of a comparison, as a table's
   index or last index and in its formula, and costs nothing: it is gone by

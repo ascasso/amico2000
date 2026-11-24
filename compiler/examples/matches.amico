@@ -37,9 +37,7 @@ loop
                     display.data = left + 6
                 end
                 if left == 1
-                    loop
-                        display.scan()
-                    end
+                    display.hold()
                 end
             end
         end

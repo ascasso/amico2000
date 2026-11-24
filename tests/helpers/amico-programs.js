@@ -21,7 +21,10 @@
 //   the way back. Its loops count in a variable that is in the accumulator
 //   both times, so they cannot show a value wrongly kept across a loop head.
 //   The differential test has programs written by hand for that;
-// - the key routines, which need the monitor and real time.
+// - the key routines, which need the monitor and real time;
+// - `display.hold()`, which never comes back, so that there is no moment at
+//   which to read the board. tests/compiler.test.js runs it, and the oracle
+//   in tests/compiler-assignment.test.js tries it as the end of a path.
 
 const NAMES = ['a', 'b', 'x1', 'left', 'take', 'iffy', 'loops', 'end_x', 'stopped', 'constant',
     'elsewhere', 'display_x', 'n', 'k_9', 'zz', 'v_a_r', 'tmp', 'q'];

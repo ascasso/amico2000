@@ -73,7 +73,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `left = left - take` | Compute one binary operation per expression. The operators are `+`, `-`, `&`, `\|`, and `^`. Both operands are literals, variables, or display fields. |
 | `if left >= 10` | Compare bytes using `<`, `>=`, `==`, or `!=`. The left side may be an operation, a table read or a key read; the right side is one literal, variable or display field. An optional `else` starts the other arm. Close with `end`. |
 | `loop` | Repeat the enclosed statements. Close with `end`. Blocks can nest. |
-| `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. |
+| `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. The monitor then puts its own address and data on the displays, `0000` and the byte there, so whatever the program was showing is gone. To end with a result showing, end with `display.hold()`. |
 | `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |
 | `value = squares[key]` | Read a table entry. A literal index is checked and folded at compile time. A variable index becomes a native indexed load. Guard it with an `if` when its range is uncertain. An out-of-range variable index reads the byte at the resulting address. |
@@ -90,6 +90,11 @@ spelt two ways.
 right pairs of hex digits. Each names its byte in the monitor workspace.
 Assigning a field changes the value in RAM. `display.scan()` lights all six
 digits once using the PROM. Call it repeatedly to keep a steady display.
+
+`display.hold()` scans the six digits for ever. It is `loop`,
+`display.scan()`, `end` in one word and the same six bytes, and nothing after
+it is reached. Use it to end a program with its result showing; RES returns
+to the monitor.
 
 `keypad.read()` samples the keypad immediately. It returns 0 through 15 for
 the hex keys, `$10-$14` for AD, DA, increment, RUN and REG, and `$15` for no
