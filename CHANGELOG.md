@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico has two words for the inside of a loop. `break` leaves the `loop` or
+  `for` it is in, and the program goes on after that loop's `end`; `next`
+  goes round again at once, to the top of a `loop` and to the next value of
+  a `for`. Until now nothing left a `loop` but `stop`, which ends the
+  program, so no statement could follow one. What follows a loop is reached
+  through its `break`s, and a name may be read there if every way out had
+  assigned it. A `for` left by `break` leaves its name at the value it had,
+  which says how far it got. Each is one jump, three bytes. `break` and
+  `next` join the words that cannot be names.
 - Amico has a loop that counts: `for i in 0..5`, closed with `end`. Its
   statements run once for each value from the first to the last, both
   included, and the name holds the value. The two ends are literals or

@@ -77,8 +77,9 @@ commands above and starts with `AD 0200 RUN`.
 
 Write one statement per line. Names start with a lowercase letter and may
 contain lowercase letters, digits and underscores. The words of the language
-cannot be names: `if`, `else`, `end`, `loop`, `for`, `stop`, `const`, `table`,
-`byte`, `in`, `display`, `keypad` and `call`. A `#` begins a comment.
+cannot be names: `if`, `else`, `end`, `loop`, `for`, `break`, `next`, `stop`,
+`const`, `table`, `byte`, `in`, `display`, `keypad` and `call`. A `#` begins a
+comment.
 All values are unsigned bytes. Write decimal literals as `21` or hex as
 `$15`. Leading zeros change nothing, so `021` is 21 and not an octal number,
 and hex digits may be capitals or small letters: `$0f`, `$0F` and `15` are
@@ -89,8 +90,10 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `left = 21` | Introduce or update a byte. Reading a named variable requires an assignment on every path reaching that read. |
 | `left = left - take` | Compute one binary operation per expression. The operators are `+`, `-`, `&`, `\|`, and `^`. Both operands are literals, constants, variables, display fields or named locations. |
 | `if left >= 10` | Compare bytes using `<`, `>=`, `==`, or `!=`. The left side may be an operation, a read from a table or a row, or a key read; the right side is one value: a literal, a constant, a variable, a display field or a named location. An optional `else` starts the other arm. Close with `end`. |
-| `loop` | Repeat the enclosed statements for ever. Close with `end`. Blocks can nest. |
+| `loop` | Repeat the enclosed statements until a `break`, or for ever. Close with `end`. Blocks can nest. |
 | `for i in 0..5` | Repeat the enclosed statements once for each value from the first to the last, both included, with the name holding the value. Close with `end`. See Loops. |
+| `break` | Leave the `loop` or `for` the statement is in, and go on after its `end`. See Loops. |
+| `next` | Go round the `loop` or `for` the statement is in again, at once. See Loops. |
 | `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. The monitor then puts its own address and data on the displays, `0000` and the byte there, so whatever the program was showing is gone. To end with a result showing, end with `display.hold()`. |
 | `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
 | `byte sum at $04` | Give a memory location a name. Reading the name reads that byte and assigning to it writes it, each time. Declare it before executable statements. See Memory and ports. |
@@ -108,8 +111,8 @@ spelt two ways.
 
 ## Loops
 
-`loop` repeats its statements for ever. `for` repeats them a counted number
-of times:
+`loop` repeats its statements until a `break` leaves it, and for ever if
+there is none. `for` repeats them a counted number of times:
 
 ```
 for i in 0..5
@@ -131,6 +134,47 @@ after `0..5`. A byte wraps, so after `0..255` it is 0 and after `5..0` it is
 
 A `for` adds twelve bytes to its statements: four to start the count, and at
 the foot an increment or a decrement, a load, a compare and a branch.
+
+`break` leaves the loop it is in, a `loop` or a `for`, and the program goes
+on with what follows that loop's `end`. `next` goes round again at once: to
+the top of a `loop`, and in a `for` to the next value, or out of it if that
+was the last. With one loop inside another, both concern the inner one. They
+are nearly always inside an `if`:
+
+```
+loop
+    key = keypad.press()
+    if key == keypad.run
+        break
+    end
+    if key >= 10
+        next
+    end
+    display.data = key
+end
+display.hold()
+```
+
+That shows each digit from 0 to 9 as it is pressed, passes over the other
+keys, and ends at RUN with the last digit still showing.
+
+Nothing can follow a `break` or a `next` in the same block: no statement
+there could be reached. What follows a `loop` is reached only through a
+`break`, so after a `loop` with none there can be no statement at all.
+
+A `for` left by `break` leaves its name at the value it had, which says how
+far the loop got. This looks for a key's code in a row of six bytes, and
+`i` is 6 only if it was not there:
+
+```
+for i in 0..5
+    if codes[i] == key
+        break
+    end
+end
+```
+
+Each `break` and each `next` is one jump, three bytes.
 
 ## Display and keys
 

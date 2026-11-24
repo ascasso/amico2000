@@ -252,7 +252,7 @@ test('a refusal names the mistake that was made', () => {
         .split(',').map(word => word.trim().replace(/'/g, ''));
     const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
     const listed = /cannot be names: ([^.]+)\./.exec(readme.replace(/\n/g, ' '))[1];
-    assert.equal(words.length, 13);
+    assert.equal(words.length, 15);
     for (const word of words) {
         assert.ok(listed.includes('`' + word + '`'), `the README does not list ${word}`);
         assert.throws(() => compile(word + ' = 1'), new RegExp(`^Error: Line 1: ${word} is a word of the language`));
@@ -1027,4 +1027,75 @@ test('for counts through a range, up or down, and leaves its name one step past 
     for (const line of ['for', 'for i', 'for i 0..5', 'for i in 0...5', 'for i in 0 5', 'for in 0..5', 'for i in 0..', 'for i in ..5', 'for i in 0..5 loop', 'for i, j in 0..5']) {
         assert.throws(() => compile(line + '\nend'), /^Error: Line 1: Expected for name in first\.\.last, such as for i in 0\.\.5/, line);
     }
+});
+
+test('break leaves the loop it is in, and next goes round it again', () => {
+    const bytes = (source) => [...compile(source).binary];
+    const fields = (source) => { const memory = finished(source); return [memory[0xfb], memory[0xfa], memory[0xf9]]; };
+    const zero = 'display.high = 0\ndisplay.low = 0\n';
+    // A loop that a break leaves, and what follows it runs.
+    assert.deepEqual(fields(zero + 'n = 0\nloop\nn = n + 1\nif n == 5\nbreak\nend\nend\ndisplay.data = n'), [0, 0, 5]);
+    // next passes over the rest of the round: 3 is not added.
+    assert.deepEqual(fields('n = 0\nsum = 0\nloop\nn = n + 1\nif n == 6\nbreak\nend\nif n == 3\nnext\nend\nsum = sum + n\nend\ndisplay.high = sum\ndisplay.low = n\ndisplay.data = 0'), [12, 6, 0]);
+    // In a for, next goes on to the next value, and break leaves the name where it was.
+    assert.deepEqual(fields(zero + 'sum = 0\nfor i in 0..9\nif i == 2\nnext\nend\nif i == 7\nbreak\nend\nsum = sum + i\nend\ndisplay.high = sum\ndisplay.data = i'), [19, 0, 7]);
+    assert.deepEqual(fields(zero + 'for i in 9..0\nif i == 4\nbreak\nend\nend\ndisplay.data = i'), [0, 0, 4]);
+    // A next at the last value leaves the for, its name one step past as ever.
+    assert.deepEqual(fields(zero + 'sum = 0\nfor i in 0..3\nif i == 3\nnext\nend\nsum = sum + i\nend\ndisplay.high = sum\ndisplay.data = i'), [3, 0, 4]);
+    // With one loop inside another they concern the inner one.
+    assert.deepEqual(fields('n = 0\nfor i in 0..2\nfor j in 0..9\nif j == 2\nbreak\nend\nn = n + 1\nend\nend\ndisplay.high = n\ndisplay.low = i\ndisplay.data = j'), [6, 3, 2]);
+    assert.deepEqual(fields('n = 0\nfor i in 0..2\nloop\nn = n + 1\nif n >= 2\nbreak\nend\nend\nend\ndisplay.high = n\ndisplay.low = i\ndisplay.data = 0'), [4, 3, 0]);
+    assert.deepEqual(fields('n = 0\nm = 0\nj = 0\nloop\nm = m + 1\nif m == 4\nbreak\nend\nfor j in 0..9\nif j < 8\nnext\nend\nn = n + 1\nend\nend\ndisplay.high = n\ndisplay.low = m\ndisplay.data = j'), [6, 4, 10]);
+    // A break that nothing guards: once round, and no jump back is made.
+    assert.deepEqual(fields(zero + 'n = 0\nloop\nn = n + 1\nbreak\nend\ndisplay.data = n'), [0, 0, 1]);
+    assert.doesNotMatch(compile('loop\ndisplay.scan()\nbreak\nend').assembly, /JMP flow_1\b/);
+    // Each is one jump, three bytes, as the README says.
+    const guarded = (word) => bytes(`loop\ndisplay.scan()\nif display.low == 0\n${word}\nend\nif display.low == 1\nbreak\nend\nend`).length;
+    assert.equal(guarded('break'), guarded('') + 3);
+    assert.equal(guarded('next'), guarded('') + 3);
+
+    // The README's search: where the loop was left says where the code is, and 6 that it is not there.
+    const search = (key) => fields('const codes = table byte = 3, 9, 4, 1, 5, 2\n' + zero + `key = ${key}\nfor i in 0..5\n    if codes[i] == key\n        break\n    end\nend\ndisplay.data = i`)[2];
+    assert.deepEqual([search(3), search(4), search(2), search(8)], [0, 2, 5, 6]);
+    // The README's keys: a digit is shown, another key is passed over, and RUN ends it with the digit showing.
+    const m = rawRun('loop\n    key = keypad.press()\n    if key == keypad.run\n        break\n    end\n    if key >= 10\n        next\n    end\n    display.data = key\nend\ndisplay.hold()');
+    tick(m, 200000);
+    press(m, '7');
+    assert.equal(m.cpu.memory[0xf9], 7);
+    press(m, 'a');
+    assert.equal(m.cpu.memory[0xf9], 7);
+    press(m, '2');
+    assert.equal(m.cpu.memory[0xf9], 2);
+    press(m, 'Enter');
+    tick(m, 200000);
+    press(m, '5');
+    assert.equal(m.cpu.memory[0xf9], 2);
+    assert.deepEqual(m.getDisplay().slice(4), [0x3f, 0x5b]);
+
+    // A name can be read after a loop if every way out of it had assigned it.
+    assert.ok(compile('loop\nx = 1\nif display.low == 0\nbreak\nend\nend\ndisplay.data = x'));
+    assert.ok(compile('for i in 0..3\nx = 1\nif i == 1\nnext\nend\nend\ndisplay.data = x'));
+    assert.ok(compile('for i in 0..3\nif i == 1\nx = 2\nbreak\nend\nx = 1\nend\ndisplay.data = x'));
+    for (const [source, error] of [
+        ['loop\nif display.low == 0\nbreak\nend\nx = 1\nend\ndisplay.data = x', /^Error: Line 7: Expected a byte literal, a constant or an assigned variable, got x/],
+        ['for i in 0..3\nif i == 1\nnext\nend\nx = 1\nend\ndisplay.data = x', /^Error: Line 7: Expected a byte literal, a constant or an assigned variable, got x/],
+        ['for i in 0..3\nif i == 1\nbreak\nend\nx = 1\nend\ndisplay.data = x', /^Error: Line 7: Expected a byte literal, a constant or an assigned variable, got x/],
+        // Two ways out, and only the second has assigned the name.
+        ['loop\nif display.low == 0\nbreak\nend\nx = 1\nbreak\nend\ndisplay.data = x', /^Error: Line 8: Expected a byte literal, a constant or an assigned variable, got x/],
+        ['break', /^Error: Line 1: break leaves a loop or a for, and there is none round it/],
+        ['next', /^Error: Line 1: next goes round a loop or a for again, and there is none round it/],
+        ['if display.low == 0\nbreak\nend', /^Error: Line 2: break leaves a loop or a for, and there is none round it/],
+        ['loop\ndisplay.scan()\nend\nnext', /^Error: Line 4: next goes round a loop or a for again, and there is none round it/],
+        // Wrong wherever it stands, so that is said before that it cannot be reached.
+        ['stop\nbreak', /^Error: Line 2: break leaves a loop or a for, and there is none round it/],
+        ['loop\nbreak\ndisplay.data = 1\nend', /^Error: Line 3: Unreachable statement/],
+        ['loop\nnext\ndisplay.data = 1\nend', /^Error: Line 3: Unreachable statement/],
+        ['for i in 0..3\nnext\nbreak\nend', /^Error: Line 3: Unreachable statement/],
+        ['loop\nstop\nbreak\nend', /^Error: Line 3: Unreachable statement/],
+        // A loop with no break never ends, and one that only a stop ends has nothing after it either.
+        ['loop\ndisplay.scan()\nend\ndisplay.data = 1', /^Error: Line 4: Unreachable statement/],
+        ['for i in 0..3\nstop\nend\ndisplay.data = 1', /^Error: Line 4: Unreachable statement/],
+        ['loop\nbreak 2\nend', /^Error: Line 2: Unknown statement: break 2/],
+        ['loop\nnext i\nend', /^Error: Line 2: Unknown statement: next i/]
+    ]) assert.throws(() => compile(source), error, source);
 });

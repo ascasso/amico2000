@@ -10,21 +10,23 @@
 // an edge wherever control can pass, reachability by search from the first
 // statement, and the names certainly assigned at each node by going round
 // the graph until nothing changes. A mistake in how the compiler joins the
-// arms of an `if`, or in what it takes to follow a `loop` or a `stop`, would
-// have to be made here too, in a different shape, to go unnoticed.
+// arms of an `if`, or in what it takes to follow a `loop`, a `stop` or a
+// `break`, would have to be made here too, in a different shape, to go
+// unnoticed.
 //
-// "Every small program" means every nesting of `if`, `else`, `loop`, `for`
-// and `stop` with assignments and reads, up to a number of statements. The
+// "Every small program" means every nesting of `if`, `else`, `loop`, `for`,
+// `break`, `next` and `stop` with assignments and reads, up to a number of
+// statements. The
 // compiler has to accept exactly the programs the oracle accepts, and refuse
 // the others at the same line and for the same reason. To go deeper:
 //
 //     AMICO_STATEMENTS=6 node --test tests/compiler-assignment.test.js
 //
-// which takes about half a minute. It was one reviewer's harness in the
+// which takes a little over a minute. It was one reviewer's harness in the
 // check of 2026-11-23 (AGENTS.md, A Review by Several Agents), run then to
-// seven statements with one name and to six with two, before there was a
-// `for`; with one it is the programs of six statements that take the half
-// minute.
+// seven statements with one name and to six with two. That was before
+// there was a `for`, a `break` or a `next`; with them there are many more
+// programs of each size.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -41,6 +43,8 @@ const COUNT = 'k';
 //   ['assign', name]             name = 1
 //   ['read', name]               display.data = name
 //   ['stop']
+//   ['break']
+//   ['next']
 //   ['loop', body]
 //   ['for', body]                for k in 0..1
 //   ['if', then, otherwise]      otherwise is null when there is no else
@@ -55,7 +59,8 @@ function size(statement) {
 
 // Every list of statements of exactly this size, nested no deeper than this.
 // `made` says what the programs are made of: `names`, the names assigned and
-// read, and `counts`, whether there are `for` loops and reads of their name.
+// read; `counts`, whether there are `for` loops and reads of their name; and
+// `jumps`, whether there are `break` and `next`.
 function* bodies(total, depth, made) {
     if (total === 0) {
         yield [];
@@ -73,6 +78,10 @@ function* statements(most, depth, made) {
     }
     if (made.counts) yield ['read', COUNT];
     yield ['stop'];
+    if (made.jumps) {
+        yield ['break'];
+        yield ['next'];
+    }
     if (depth === 0) return;
     for (let inside = 0; inside <= most - 1; inside++) {
         for (const body of bodies(inside, depth - 1, made)) {
@@ -99,6 +108,7 @@ function sourceOf(body, ending, lines = [], indent = '') {
         if (statement[0] === 'assign') lines.push(`${indent}${statement[1]} = 1`);
         else if (statement[0] === 'read') lines.push(`${indent}display.data = ${statement[1]}`);
         else if (statement[0] === 'stop') lines.push(indent + ending);
+        else if (statement[0] === 'break' || statement[0] === 'next') lines.push(indent + statement[0]);
         else if (statement[0] === 'loop' || statement[0] === 'for') {
             lines.push(indent + (statement[0] === 'loop' ? 'loop' : `for ${COUNT} in 0..1`));
             sourceOf(statement[1], ending, lines, indent + '    ');
@@ -156,28 +166,34 @@ function oracle(body, names) {
 
     // Link a list backwards: each statement leads to the one after it, the
     // last to wherever the whole list leads. Returns where the list begins,
-    // which for an empty list is where it leads.
-    function link(list, leadsTo) {
+    // which for an empty list is where it leads. `around` is the loop the
+    // list is in, if it is in one: where a `break` goes, `out`, and where a
+    // `next` goes, `again`.
+    function link(list, leadsTo, around) {
         let following = leadsTo;
         for (let i = list.length - 1; i >= 0; i--) {
             const statement = list[i];
             const node = nodes[statement.node];
             if (statement[0] === 'stop') node.next = [];
-            else if (statement[0] === 'loop') node.next = [link(statement[1], statement.node)];
-            else if (statement[0] === 'for') {
+            else if (statement[0] === 'break' || statement[0] === 'next') {
+                node.next = around ? [statement[0] === 'break' ? around.out : around.again] : [];
+                node.astray = !around;
+            } else if (statement[0] === 'loop') {
+                node.next = [link(statement[1], statement.node, { out: following, again: statement.node })];
+            } else if (statement[0] === 'for') {
                 // Into the statements, which lead to the step; from the step
                 // round again, or on when the count is done.
-                const inside = link(statement[1], statement.step);
+                const inside = link(statement[1], statement.step, { out: following, again: statement.step });
                 node.next = [inside];
                 nodes[statement.step].next = [inside, following];
             } else if (statement[0] === 'if') {
-                node.next = [link(statement[1], following), statement[2] ? link(statement[2], following) : following];
+                node.next = [link(statement[1], following, around), statement[2] ? link(statement[2], following, around) : following];
             } else node.next = [following];
             following = statement.node;
         }
         return following;
     }
-    const first = link(body, AFTER);
+    const first = link(body, AFTER, null);
 
     const reached = new Set();
     const pending = [first];
@@ -213,6 +229,8 @@ function oracle(body, names) {
 
     for (let node = 0; node < nodes.length; node++) {
         if (nodes[node].kind === 'step') continue;
+        // Wrong wherever it stands, so told before whether it can be reached.
+        if (nodes[node].astray) return { accepted: false, line: nodes[node].line, why: 'there is none round it' };
         if (!reached.has(node)) return { accepted: false, line: nodes[node].line, why: 'Unreachable statement' };
         if (nodes[node].twice) return { accepted: false, line: nodes[node].line, why: 'already counting' };
         if (nodes[node].kind === 'read' && !assignedAt[node].has(nodes[node].name)) {
@@ -282,4 +300,14 @@ test('for: the loop assigns its name, and runs its statements at least once', ()
     const result = tryAll(STATEMENTS, 3, { names: ['x'], counts: true });
     assert.deepEqual(result.disagreements, []);
     if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [187126, 26321]);
+});
+
+// `break` leads to what follows the loop it is in, and `next` to the top of
+// a `loop` or the foot of a `for`. Nothing follows either in its own block,
+// what follows a `loop` is reached only by a `break`, and a name can be read
+// after a loop only if every way out of it had assigned it.
+test('break and next: what follows a loop is what its ways out lead to', () => {
+    const result = tryAll(STATEMENTS, 3, { names: ['x'], counts: true, jumps: true });
+    assert.deepEqual(result.disagreements, []);
+    if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [457408, 36545]);
 });

@@ -108,6 +108,8 @@ function parse(source) {
             open.pop();
             const outer = open[open.length - 1];
             into = outer.kind === 'if' ? (outer.otherwise || outer.then) : outer.body;
+        } else if (line === 'break' || line === 'next') {
+            into.push({ kind: line });
         } else if (line === 'stop' || line === 'display.hold()') {
             // Holding the displays computes nothing more: for what a program
             // leaves behind, it is where the program ends.
@@ -201,6 +203,9 @@ function run(source, memory, maxSteps = 200000) {
             default: return left !== right;
         }
     }
+    // Runs a list of statements. Returns 'break' or 'next' if one of those
+    // cut the list short, for the loop round it to act on, and nothing if
+    // the list ran to its end.
     function execute(statements) {
         for (const statement of statements) {
             if (++steps > maxSteps) throw new Error('The program did not stop within ' + maxSteps + ' statements');
@@ -208,29 +213,44 @@ function run(source, memory, maxSteps = 200000) {
                 case 'assign': assign(statement.name, statement.index, evaluate(statement.value)); break;
                 case 'stop': throw new Stopped();
                 case 'scan': break;
-                case 'if':
-                    if (holds(statement)) execute(statement.then);
-                    else if (statement.otherwise) execute(statement.otherwise);
+                case 'break':
+                case 'next':
+                    return statement.kind;
+                case 'if': {
+                    // A `break` or a `next` in an arm is not the `if`'s to
+                    // act on: it goes out to the loop.
+                    const cut = holds(statement) ? execute(statement.then) : statement.otherwise ? execute(statement.otherwise) : undefined;
+                    if (cut) return cut;
                     break;
+                }
                 case 'for': {
                     // Once for each value from the first to the last, both
                     // included, downwards when the first is the greater.
                     const step = statement.first <= statement.last ? 1 : -1;
+                    let left = false;
                     for (let value = statement.first; ; value += step) {
                         variables.set(statement.name, value);
-                        execute(statement.body);
+                        // Left by `break`, the name keeps the value it had.
+                        if (execute(statement.body) === 'break') {
+                            left = true;
+                            break;
+                        }
+                        // After the statements, or a `next`: the next value,
+                        // or out if that was the last.
                         if (value === statement.last) break;
                     }
-                    // Over: the name is one step past the last value, and a
-                    // byte wraps.
-                    variables.set(statement.name, (statement.last + step) & 255);
+                    // Run its course: the name is one step past the last
+                    // value, and a byte wraps.
+                    if (!left) variables.set(statement.name, (statement.last + step) & 255);
                     break;
                 }
                 default:
-                    // A loop: only `stop`, somewhere inside, ends it.
-                    for (;;) execute(statement.body);
+                    // A loop: round and round until a `break` leaves it. A
+                    // `next` goes to the top, which the end does anyway.
+                    while (execute(statement.body) !== 'break');
             }
         }
+        return undefined;
     }
 
     try {

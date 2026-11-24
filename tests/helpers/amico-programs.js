@@ -5,14 +5,15 @@
 // Every program it makes is one the compiler has to accept and the reference
 // interpreter can run to an end: each name is assigned on every path before
 // it is read, a table is never read past its end, and a loop always reaches a
-// `stop`. Given the same seed it makes the same program, so a failure can be
+// `stop` or a `break`. Given the same seed it makes the same program, so a failure can be
 // made again from its seed alone.
 //
 // What it leans on: nested `if`s with and without `else`, arms long enough to
 // need a long branch, `for` loops that count up and down, between numbers and
 // between constants, to the edges of a byte, one inside another, with their
-// names read inside and afterwards, tables by a formula and written out, read
-// by a literal and by a variable, memory locations and rows of bytes named in page zero
+// names read inside and afterwards, `break` and `next` in the arms of `if`s
+// inside both kinds of loop, statements after a loop that a `break` leaves,
+// tables by a formula and written out, read by a literal and by a variable, memory locations and rows of bytes named in page zero
 // and above it, the row of segments the language starts with, two names for
 // one byte, display
 // fields as operands and as targets, constants and the key names standing
@@ -74,10 +75,17 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, fors: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
+    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
+    // The loops a statement is inside, the innermost last. A `break` or a
+    // `next` concerns that one, and leaves with it the names assigned where
+    // it stands: `leaves` for each `break`, `rounds` for each `next`. A loop
+    // that counts at its foot cannot take a `next`, which would pass over
+    // the counting and never end.
+    const around = [];
+    const onEvery = (paths) => new Set([...paths[0]].filter((name) => paths.every((path) => path.has(name))));
 
     function spell(value) {
         const roll = random.next();
@@ -312,7 +320,7 @@ function generate(seed, { scans = false, long = false } = {}) {
                 made.scans++;
             }
             if (depth < 6 && chance(depth < 3 ? 0.1 : 0.04)) {
-                const over = countedLoop(indent, assigned, depth);
+                const over = chance(0.65) ? countedLoop(indent, assigned, depth) : leavingLoop(indent, assigned, depth);
                 if (over.ends) return { assigned, ends: true };
                 assigned = over.assigned;
             } else if (depth < 7 && random.next() < (depth < 4 ? 0.36 : 0.15)) {
@@ -337,7 +345,17 @@ function generate(seed, { scans = false, long = false } = {}) {
             }
         }
         if (mayLoop && depth < 5 && chance(depth === 0 ? 0.35 : 0.12)) {
-            countingLoop(indent, assigned, depth);
+            return countingLoop(indent, assigned, depth);
+        }
+        // A way out of the loop this block is in, or round it again: often
+        // at the end of an `if`'s arm, now and then at the end of the loop's
+        // own statements.
+        const loop = around[around.length - 1];
+        if (loop && chance(depth > loop.depth + 1 ? 0.3 : 0.04)) {
+            const word = loop.mayNext && chance(0.5) ? 'next' : 'break';
+            lines.push(indent + word);
+            (word === 'break' ? loop.leaves : loop.rounds).push(new Set(assigned));
+            made[word === 'break' ? 'breaks' : 'nexts']++;
             return { assigned, ends: true };
         }
         if (depth > 0 && chance(0.06)) {
@@ -350,8 +368,9 @@ function generate(seed, { scans = false, long = false } = {}) {
     // A `for`: a few rounds, up or down, between literals or constants,
     // sometimes at the edge of a byte, where the count wraps as it leaves.
     // Its name is read like any other, inside and afterwards, and is never
-    // assigned inside. Every round runs all of the statements, so what they
-    // assign on every path is assigned when the loop is over.
+    // assigned inside. What is assigned when the loop is over is what every
+    // way out of it has assigned: each `break`, and the foot of the loop,
+    // which the end of the statements and each `next` lead to.
     function countedLoop(indent, assigned, depth) {
         made.fors++;
         const name = 'f' + counterNumber++;
@@ -372,10 +391,41 @@ function generate(seed, { scans = false, long = false } = {}) {
         counters.add(name);
         const inside = new Set(assigned);
         inside.add(name);
+        const loop = { depth, leaves: [], rounds: [], mayNext: true };
+        around.push(loop);
         const body = block(indent + '    ', inside, depth + 1, between(0, 4), depth < 3 && chance(0.3));
+        around.pop();
         lines.push(`${indent}end`);
         counters.delete(name);
-        return body;
+        const foot = loop.rounds.concat(body.ends ? [] : [body.assigned]);
+        const out = loop.leaves.concat(foot.length ? [onEvery(foot)] : []);
+        return out.length ? { assigned: onEvery(out), ends: false } : { assigned, ends: true };
+    }
+
+    // A `loop` that a `break` leaves: it counts at its top and leaves when
+    // the count is reached, so a `next` anywhere below is safe. What follows
+    // the loop is reached, and has what every `break` had assigned.
+    function leavingLoop(indent, assigned, depth) {
+        made.loops++;
+        made.breaks++;
+        const counter = 'cnt' + counterNumber++;
+        counters.add(counter);
+        const rounds = between(1, 5);
+        lines.push(`${indent}${counter} = 0`);
+        lines.push(`${indent}loop`);
+        const inside = new Set(assigned);
+        inside.add(counter);
+        lines.push(`${indent}    ${counter} = ${counter} + 1`);
+        lines.push(`${indent}    if ${counter} ${chance(0.5) ? '==' : '>='} ${rounds}`);
+        lines.push(`${indent}        break`);
+        lines.push(`${indent}    end`);
+        const loop = { depth, leaves: [new Set(inside)], rounds: [], mayNext: true };
+        around.push(loop);
+        block(indent + '    ', inside, depth + 1, between(0, 5), false);
+        around.pop();
+        lines.push(`${indent}end`);
+        counters.delete(counter);
+        return { assigned: onEvery(loop.leaves), ends: false };
     }
 
     // A loop that counts a few rounds in a variable of its own and stops:
@@ -391,7 +441,10 @@ function generate(seed, { scans = false, long = false } = {}) {
         lines.push(`${indent}loop`);
         const inside = new Set(assigned);
         inside.add(counter);
+        const loop = { depth, leaves: [], rounds: [], mayNext: false };
+        around.push(loop);
         const body = block(indent + '    ', inside, depth + 1, between(0, 6), false);
+        around.pop();
         if (!body.ends) {
             if (style === 0) {
                 lines.push(`${indent}    ${counter} = ${counter} - 1`);
@@ -409,6 +462,8 @@ function generate(seed, { scans = false, long = false } = {}) {
         }
         lines.push(`${indent}end`);
         counters.delete(counter);
+        // Nothing follows such a loop unless a `break` inside leaves it.
+        return loop.leaves.length ? { assigned: onEvery(loop.leaves), ends: false } : { assigned, ends: true };
     }
 
     // The display fields hold something before the program starts, so they

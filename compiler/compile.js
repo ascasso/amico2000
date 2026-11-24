@@ -54,7 +54,7 @@ function pieces(text) {
         calls(name) { return found.length === 3 && this.term(0) === name && this.mark(1) === '(' && this.mark(2) === ')'; }
     };
 }
-const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call', 'for']);
+const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call', 'for', 'break', 'next']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
 
@@ -391,20 +391,37 @@ function compile(source) {
                 blocks.pop();
                 if (block.kind === 'loop') {
                     if (reachable) emit('JMP', 'abs', block.start);
-                    reachable = false;
-                } else if (block.kind === 'for') {
-                    // One step, and round again unless that was the last
-                    // value. The count is left one step past it, which is
-                    // what the compare looks for: after 0..5 it is 6, and
-                    // after 0..255 it is 0, where a byte wraps. A is left
-                    // holding the count, as it is on the way in.
-                    counting.delete(block.name);
+                    // A loop ends only where a `break` leaves it, and what
+                    // follows it is reached only from those.
+                    reachable = block.leaves.length > 0;
                     if (reachable) {
+                        mark(block.done);
+                        defined = onEvery(block.leaves);
+                    }
+                } else if (block.kind === 'for') {
+                    counting.delete(block.name);
+                    // The foot of the loop is reached by running off the end
+                    // of the statements and from each `next`.
+                    const round = block.rounds.concat(reachable ? [defined] : []);
+                    const out = block.leaves.slice();
+                    if (round.length) {
+                        // One step, and round again unless that was the last
+                        // value. The count is left one step past it, which is
+                        // what the compare looks for: after 0..5 it is 6, and
+                        // after 0..255 it is 0, where a byte wraps. A is left
+                        // holding the count, as it is on the way in.
+                        if (block.step) mark(block.step);
                         emit(block.down ? 'DEC' : 'INC', 'zp', block.count);
                         emit('LDA', 'zp', block.count);
                         emit('CMP', 'imm', block.past);
                         emit('BNE', 'rel', block.top);
+                        out.push(onEvery(round));
                     }
+                    // What follows is reached when the count is done, and
+                    // from each `break`.
+                    if (block.done) mark(block.done);
+                    reachable = out.length > 0;
+                    if (reachable) defined = onEvery(out);
                 } else {
                     const other = block.then || { defined: block.entry, reachable: true };
                     mark(block.then ? block.end : block.otherwise);
@@ -434,15 +451,21 @@ function compile(source) {
         const isByte = first === 'byte';
         const isCall = first === 'call';
         const isFor = first === 'for';
+        // `break` and `next` concern the loop they are in: the innermost.
+        const jumps = alone('break') || alone('next');
+        const around = jumps ? blocks.findLast((block) => block.kind === 'loop' || block.kind === 'for') : undefined;
         const scans = L.calls('display.scan');
         const holds = L.calls('display.hold');
         const shows = L.calls('display.show');
         // `if = 1` and `const = 1` assign to a word of the language. Say so
         // before the line is read as a comparison or a declaration gone wrong.
         if (assign && RESERVED.has(assign[1])) variable(assign[1]);
-        if (!assign && !isIf && !isConst && !isByte && !isCall && !isFor && !alone('loop') && !alone('stop') && !scans && !holds && !shows) {
+        if (!assign && !isIf && !isConst && !isByte && !isCall && !isFor && !jumps && !alone('loop') && !alone('stop') && !scans && !holds && !shows) {
             fail('Unknown statement: ' + text);
         }
+        // Wrong wherever it stands, like a line that is no statement.
+        if (alone('break') && !around) fail('break leaves a loop or a for, and there is none round it');
+        if (alone('next') && !around) fail('next goes round a loop or a for again, and there is none round it');
         if (!reachable) fail('Unreachable statement');
         if (isByte) {
             if (started) fail('Declare constants, tables and memory names before the first statement');
@@ -460,7 +483,7 @@ function compile(source) {
         started = true;
         if (alone('loop')) {
             const start = label();
-            blocks.push({ kind: 'loop', start, line });
+            blocks.push({ kind: 'loop', start, leaves: [], line });
             mark(start);
             forget();
         } else if (isFor) {
@@ -490,7 +513,7 @@ function compile(source) {
             const top = label();
             mark(top);
             const down = from > to;
-            blocks.push({ kind: 'for', name, count, top, down, past: (to + (down ? -1 : 1)) & 255, line });
+            blocks.push({ kind: 'for', name, count, top, down, past: (to + (down ? -1 : 1)) & 255, leaves: [], rounds: [], line });
             // The count is in A at the top whichever way the top is reached:
             // it was loaded to be stored, and the step at the foot loads it
             // to compare it. Of Port A nothing is known, as at any loop's top.
@@ -505,6 +528,24 @@ function compile(source) {
             blocks.push({ kind: 'if', entry: new Set(defined), otherwise, end: label(), line });
         } else if (alone('stop')) {
             emit('JMP', 'abs', 0xfe22);
+            reachable = false;
+        } else if (alone('break')) {
+            // Out to what follows the loop's `end`. The names assigned by
+            // here are what this way out brings there.
+            around.done ??= label();
+            emit('JMP', 'abs', around.done);
+            around.leaves.push(new Set(defined));
+            reachable = false;
+        } else if (alone('next')) {
+            // Round again: to the top of a `loop`, and in a `for` to its
+            // foot, where the count is stepped and tried.
+            if (around.kind === 'loop') {
+                emit('JMP', 'abs', around.start);
+            } else {
+                around.step ??= label();
+                emit('JMP', 'abs', around.step);
+                around.rounds.push(new Set(defined));
+            }
             reachable = false;
         } else if (scans) {
             scan();
