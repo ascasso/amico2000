@@ -823,3 +823,40 @@ test('decimal mode is cleared after a call, whatever the routine left', () => {
         assert.equal(compile(known).assembly.split('\n').filter(line => / CLD /.test(line)).length, 1, known);
     }
 });
+
+test('a store that reaches the 8255 makes the next key read set Port A again', () => {
+    // Which way Port A faces when the monitor's key routine is entered. It has
+    // to be an input: on the board an output would be driving the key lines.
+    const facingInAtTheKeyRoutine = (source) => {
+        const program = compile(source);
+        const m = bootedMachine();
+        m.loadProgram(program.binary, program.origin);
+        m.cpu.PC = program.origin;
+        let facing = null;
+        for (let steps = 0; m.cpu.PC !== 0xfe22 && steps < 200000; steps++) {
+            if (m.cpu.PC === 0xff57 && facing === null) facing = m.pia.portAInput;
+            m.cpu.step();
+        }
+        return facing;
+    };
+    // The scan leaves Port A an input and the compiler knows it; then the
+    // program writes a mode word that turns it round. By a name, by the
+    // register's last echo in the page, and by a row with either kind of index.
+    for (const source of [
+        'byte control at $fd03\ndisplay.scan()\ncontrol = $89\ndisplay.data = keypad.read()',
+        'byte control at $fdff\ndisplay.scan()\ncontrol = $89\ndisplay.data = keypad.read()',
+        'byte io[4] at $fd00\ndisplay.scan()\nio[3] = $89\ndisplay.data = keypad.read()',
+        'byte io[4] at $fd00\ni = 3\ndisplay.scan()\nio[i] = $89\ndisplay.data = keypad.read()'
+    ]) assert.equal(facingInAtTheKeyRoutine(source), true, source);
+    // The emulator reads keys whichever way the port faces, so the value read
+    // would not have shown this; the direction does.
+
+    // A store anywhere else leaves what the compiler knew: no second mode word.
+    const modeWords = (source) => compile(source).assembly.split('\n').filter(line => line.includes('LDA #$99')).length;
+    assert.equal(modeWords('byte p at $0400\ndisplay.scan()\np = 1\ndisplay.data = keypad.read()'), 0);
+    assert.equal(modeWords('byte r[4] at $fcfc\ndisplay.scan()\nr[3] = 1\ndisplay.data = keypad.read()'), 0);
+    // A row that only touches the page by its last byte does reach it by a variable index.
+    assert.equal(modeWords('byte r[5] at $fcfc\ni = 4\ndisplay.scan()\nr[i] = 1\ndisplay.data = keypad.read()'), 1);
+    assert.equal(modeWords('byte r[5] at $fcfc\ndisplay.scan()\nr[3] = 1\ndisplay.data = keypad.read()'), 0);
+    assert.equal(modeWords('byte p at $fe00\ndisplay.scan()\np = 1\ndisplay.data = keypad.read()'), 0);
+});

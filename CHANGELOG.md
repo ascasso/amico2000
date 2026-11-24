@@ -846,6 +846,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed a key read made with Port A an output. After `display.scan()` the
+  compiler knows Port A is an input and does not set it again before a key
+  read; a program that then wrote a mode word to the 8255 through a named
+  location or a row turned the port round without the compiler noticing.
+  A store anywhere in `$FD00-$FDFF` now makes the next key read set the
+  direction again. The emulator reads keys either way, so only the
+  direction showed it. Found by a review of the new code before it was
+  pushed.
 - Fixed sums going decimal after `call`. A routine that sets decimal mode
   and returns leaves it set, and the program's `CLD` is only at its start:
   after such a call `9 + 1` was `$10`, and the key routine gave F and no

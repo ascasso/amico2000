@@ -102,6 +102,14 @@ function compile(source) {
         if (index >= count) fail('Index out of range: ' + name + '[' + written + '], and ' + name + ' has ' + count + (count === 1 ? ' byte' : ' bytes'));
         return { mode: where + index < 0x100 ? 'zp' : 'abs', where: where + index };
     }
+    // The 8255 answers at $FD00-$FDFF, its four registers repeated through the
+    // page. A store anywhere in it may be a mode word, which decides which
+    // way Port A faces, so after one the direction is not known and the next
+    // key read has to set it. Takes the first address a store can reach and
+    // how many it can reach.
+    function mayTurnPortA(where, count) {
+        if (where <= 0xfdff && where + count - 1 >= 0xfd00) inputReady = false;
+    }
     function variable(name) {
         // Three different mistakes, and the reader can only mend the one named.
         if (RESERVED.has(name)) fail(name + ' is a word of the language and cannot be a name');
@@ -422,6 +430,8 @@ function compile(source) {
                 expression(value.trim());
                 if (at.index !== undefined) emit('LDX', ...operand(at.index));
                 emit('STA', at.mode, at.where);
+                // By a variable index, the store may be to any byte of the row.
+                mayTurnPortA(at.where, at.index === undefined ? 1 : places.get(name).count);
                 return;
             }
             if (places.has(name)) {
@@ -430,6 +440,7 @@ function compile(source) {
                 // name: the next reading of it has to be a reading.
                 expression(value.trim());
                 emit('STA', ...place(name));
+                mayTurnPortA(places.get(name).where, 1);
                 return;
             }
             const zeroPage = FIELDS.get(name) ?? variable(name);

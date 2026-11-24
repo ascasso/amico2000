@@ -235,7 +235,9 @@ An address is `$0000` to `$FFFF`, in hex or in decimal. `$20-$7F` is refused:
 the compiler keeps the program's own variables there. A named location needs
 no assignment before it is read, and is never warned of as unread. Two names
 may be given to one byte, and a row may lie over a named byte or another row.
-A store into a PROM is lost, as on the board.
+A store into a PROM is lost, as on the board. After a store anywhere in
+`$FD00-$FDFF`, where the 8255 answers, the compiler no longer takes Port A to
+be an input, and the next key read sets it so again.
 
 ## The ROM and the memory budget
 
