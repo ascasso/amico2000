@@ -56,10 +56,10 @@ includes debouncing, and it uses five more bytes in zero page. The manual's
 transcribed assembly listing occupies 148 bytes and has different timing and
 opponent logic. [Original listing](../docs/manual-extraction/listings/21-fiammiferi-0200.hex)
 
-## A sum, a word, and the LEDs
+## A sum, a word, the LEDs and a clock
 
-Three short programs that reach past the hex digits. Each compiles with the
-commands above and starts with `AD 0200 RUN`.
+Four more short programs. Each compiles with the commands above and starts
+with `AD 0200 RUN`.
 
 - [sum.amico](examples/sum.amico) is the manual's first program, Tabella 7:
   it adds the bytes at `0006` and `0007` into `0004`. Key the two numbers in
@@ -72,13 +72,26 @@ commands above and starts with `AD 0200 RUN`.
 - [leds.amico](examples/leds.amico) counts in binary on the four LEDs D4 to
   D7, twice a second, by writing to the 8255's ports. The displays stay
   dark, as they should. RES ends it.
+- [clock.amico](examples/clock.amico) is a clock, after the one in
+  Sperimentare of May 1979: hours, minutes and seconds on the six digits,
+  counted in a `decimal` block. Key the time to start from first, two decimal
+  digits each for the seconds, the minutes and the hours:
+  `AD 0000 DA 56 + 34 + 12` for 12:34:56. RUN at `0200` when that time comes.
+  On the emulated board one of its seconds is 1,000,002 cycles of the
+  processor. A board's crystal is not so exact, and a line of the program is
+  there to set the clock by, thirteen millionths of a second to a step. It is
+  90 bytes, where the article's is 63 and three in page zero.
+  [The article's listing](../docs/manual-extraction/listings/orologio-1979-05.txt)
+  The time is kept in the display fields, as the article keeps it, so HLT
+  loses it. RES ends the clock.
 
 ## Language
 
 Write one statement per line. Names start with a lowercase letter and may
 contain lowercase letters, digits and underscores. The words of the language
 cannot be names: `if`, `else`, `end`, `and`, `or`, `loop`, `for`, `break`,
-`next`, `stop`, `const`, `table`, `byte`, `in`, `display`, `keypad` and `call`.
+`next`, `stop`, `decimal`, `const`, `table`, `byte`, `in`, `display`, `keypad`
+and `call`.
 A `#` begins a comment.
 All values are unsigned bytes. Write decimal literals as `21` or hex as
 `$15`. Leading zeros change nothing, so `021` is 21 and not an octal number,
@@ -94,6 +107,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `for i in 0..5` | Repeat the enclosed statements once for each value from the first to the last, both included, with the name holding the value. Close with `end`. See Loops. |
 | `break` | Leave the `loop` or `for` the statement is in, and go on after its `end`. See Loops. |
 | `next` | Go round the `loop` or `for` the statement is in again, at once. See Loops. |
+| `decimal` | Count in decimal: in the enclosed statements `+` and `-` take a byte as two decimal digits, so that `$59 + 1` is `$60`. Close with `end`. See Decimal. |
 | `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. The monitor then puts its own address and data on the displays, `0000` and the byte there, so whatever the program was showing is gone. To end with a result showing, end with `display.hold()`. |
 | `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
 | `byte sum at $04` | Give a memory location a name. Reading the name reads that byte and assigning to it writes it, each time. Declare it before executable statements. See Memory and ports. |
@@ -231,6 +245,64 @@ end
 
 Each `break` and each `next` is one jump, three bytes.
 
+## Decimal
+
+The hex displays show a byte as two digits, so a number that is there to be
+read is best kept as two decimal digits, one in each half of its byte:
+fifty-nine as `$59`. The 6502 adds and subtracts such bytes in its decimal
+mode, and a `decimal` block is where a program asks for that:
+
+```
+decimal
+    seconds = seconds + 1
+end
+```
+
+Inside the block `+` and `-` count in decimal. `$59 + 1` is `$60`, where
+outside the block it is `$5A`. A byte holds 00 to 99 and wraps there: `$99 +
+1` is `$00`, and `$00 - 1` is `$99`. The numbers are written in hex, so that
+they read in the program as they will on the displays.
+
+The block is the 6502's `SED` at its head and `CLD` at its `end`, two bytes,
+and the sums between are the instructions they are anywhere. Nothing else
+changes inside it:
+
+- `&`, `|` and `^` work on bits as before, and a comparison compares two
+  bytes as they are. Bytes of decimal digits compare as their numbers do:
+  `$10` is greater than `$09`.
+- A `for` counts as it does anywhere, by one in binary, since its name is
+  most often an index: after `$09` it holds `$0A`.
+- `display.scan()`, `display.show()` and `display.hold()` do no sums and are
+  called as they are.
+- The monitor's key routine does add, and called in decimal mode it gives F
+  and no key the same code. So for `keypad.read()` and `keypad.press()` the
+  compiler leaves decimal mode and comes back to it, two bytes more for each
+  one inside a block, and the codes are the same inside a block as outside.
+  It does the same for a `call`: a routine is always called in binary, and
+  whatever it does with decimal mode, the block has it set again afterwards.
+- A `break` or a `next` that leaves the block, for a loop the block is
+  inside, clears decimal mode on its way, one byte more. `stop` needs none:
+  the monitor clears it.
+
+Both bytes of a sum have to be two decimal digits. A literal or a constant is
+checked: `seconds + 10` is refused, because 10 is the byte `$0A`, and ten is
+written `$10`. What a variable holds cannot be checked. With a byte that is
+not two decimal digits, such as a key's code above 9 or the count of a `for`
+past 9, the result is whatever the 6502 makes of it, and that is the one
+place where the emulator is known not to do what the chip does
+([6502 conformance](../docs/6502-conformance.md)).
+
+A block cannot be inside another: there is one decimal mode, and the inner
+`end` would clear it for the rest of the outer block.
+
+A program halted with HLT inside a block is resumed by RUN where it stopped,
+still counting in decimal. But the monitor keeps the status it saved at the
+halt, decimal mode with it, and gives it to whatever is RUN next, RES or no
+RES. A program compiled from Amico begins with `CLD` and is not troubled. One
+keyed in by hand without a `CLD`, as the manual's are, then adds in decimal;
+the [monitor review](../docs/monitor-rom-review.md) has this as its first
+bug.
+
 ## Display and keys
 
 `display.high`, `display.low`, and `display.data` are the left, middle, and
@@ -365,8 +437,9 @@ be an input, and the next key read sets it so again.
 ## The ROM and the memory budget
 
 RUN restores the status saved in RAM. Generated programs start with `CLD`,
-so addition and subtraction are binary and F (`$0F`) and no key (`$15`)
-remain distinguishable in TASTO. A keypad read sets the 8255 to input mode
+so addition and subtraction are binary wherever a `decimal` block does not
+ask otherwise, and F (`$0F`) and no key (`$15`) remain distinguishable in
+TASTO, which is never called in decimal mode. A keypad read sets the 8255 to input mode
 when needed. A preceding display scan has already done that work. Normal exit
 goes through `$FE22`, which initializes the monitor before it scans again.
 

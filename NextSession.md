@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 288
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 291
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -659,7 +659,23 @@ on 2026-11-23 and its place is the owner's to give.
       memory names, calls and written-out tables. **Done**, with the rows
       of bytes. Then `for`, `break` and `next`, and the richer conditions.
       **Done**, after the compiler was first made to read a line as
-      pieces, which changed no program's bytes. Then decimal: **next**.
+      pieces, which changed no program's bytes. Then decimal: **built on
+      2026-11-23 and pushed unreviewed**, because the session ran out of
+      usage. `decimal ... end` and the example `clock.amico` (90 bytes, a
+      second of 1,000,002 cycles) are in, with their tests, 41 planted
+      defects all caught, and the day's log. Still owed, first thing:
+      the review by Codex and a Claude subagent on another model
+      (`AGENTS.md`, A Review by Several Agents), with the planted list
+      handed over; `AMICO_PROGRAMS=30000` and `AMICO_STATEMENTS=6`; a
+      changelog and log entry for the clock; and the owner's view of the
+      small print the agent settled: the display routines are called in
+      decimal as they are, the key routine and every `call` in binary; a
+      `break` or `next` leaving a block clears decimal mode; a `for`
+      counts in binary in a block; a number added or subtracted in a
+      block must be two decimal digits (`x + 10` refused); no block
+      inside a block. For tighter code later: `INC` and `DEC` must not
+      stand for `+ 1` and `- 1` in a block, and the flags after a
+      decimal sum are not its result's, so the `CMP #0` stays there.
       After it, in no settled order: subroutines, the routine for HLT,
       words on the displays as a table, shifts, a key read or a table
       read as an operand, tighter code, and the listing as Tavola A. One

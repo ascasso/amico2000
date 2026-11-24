@@ -259,7 +259,7 @@ test('a refusal names the mistake that was made', () => {
         .split(',').map(word => word.trim().replace(/'/g, ''));
     const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
     const listed = /cannot be names: ([^.]+)\./.exec(readme.replace(/\n/g, ' '))[1];
-    assert.equal(words.length, 17);
+    assert.equal(words.length, 18);
     for (const word of words) {
         assert.ok(listed.includes('`' + word + '`'), `the README does not list ${word}`);
         assert.throws(() => compile(word + ' = 1'), new RegExp(`^Error: Line 1: ${word} is a word of the language`));
@@ -1424,10 +1424,14 @@ test('a line that is nearly a statement is refused, and not read as the statemen
         ['display.hold() now', unknown('display.hold() now')],
         ['display.show() 5', unknown('display.show() 5')],
         ['display.scan', unknown('display.scan')],
+        ['decimal now\nend', unknown('decimal now')],
+        ['decimal 5\nend', unknown('decimal 5')],
+        ['decimal()\nend', unknown('decimal()')],
         // An else belongs to an if, and to nothing else that is open.
         ['for i in 0..1\nelse\nend', /^Error: Line 2: Unexpected else/],
         ['loop\nelse\nend', /^Error: Line 2: Unexpected else/],
-        ['for i in 0..1\nelse if i == 0\nend', /^Error: Line 2: Unexpected else/]
+        ['for i in 0..1\nelse if i == 0\nend', /^Error: Line 2: Unexpected else/],
+        ['decimal\nelse\nend', /^Error: Line 2: Unexpected else/]
     ]) assert.throws(() => compile(source), error, source);
     // Nothing here is refused for its spacing: the same lines, well formed, compile.
     assert.ok(compile('a = 1\nb = 2\nx = a+b\ndisplay.data = x'));
@@ -1435,4 +1439,239 @@ test('a line that is nearly a statement is refused, and not read as the statemen
     // One spacing was refused before the compiler read a line as pieces and
     // is taken now, as it always was round an index: no space before `at`.
     assert.deepEqual([...compile('byte row[6]at $8f\nrow[0] = 1').binary], [...compile('byte row[6] at $8f\nrow[0] = 1').binary]);
+});
+
+test('inside decimal, + and - count in two decimal digits to a byte', () => {
+    const bytes = (source) => [...compile(source).binary];
+    const listed = (source, what) => compile(source).assembly.split('\n').filter((line) => new RegExp('^    ' + what + ' ').test(line)).length;
+    const fields = (memory) => [memory[0xfb], memory[0xfa], memory[0xf9]];
+    const digits = (number) => (Math.floor(number / 10) << 4) | (number % 10);
+
+    // The block is SED at its head and CLD at its end, and the sum between is the sum it is anywhere.
+    assert.deepEqual(bytes('decimal\ndisplay.data = display.data + 1\nend'),
+        [0xd8, 0xf8, 0xa5, 0xf9, 0x18, 0x69, 0x01, 0x85, 0xf9, 0xd8, 0x4c, 0x22, 0xfe]);
+    assert.deepEqual(bytes('display.data = display.data + 1'), [0xd8, 0xa5, 0xf9, 0x18, 0x69, 0x01, 0x85, 0xf9, 0x4c, 0x22, 0xfe]);
+    // Neither changes A, so what is in A before the block is in it inside, and after.
+    assert.deepEqual(bytes('x = 5\ndecimal\ny = x + 1\nend\ndisplay.data = y'), [0xd8, 0xa9, 0x05, 0xf8, 0x18, 0x69, 0x01, 0xd8, 0x85, 0xf9, 0x4c, 0x22, 0xfe]);
+
+    // The README's own numbers: $59 + 1 outside a block, inside it, and after it; and the wrap at a hundred.
+    assert.deepEqual(fields(finished('x = $59\ndisplay.high = x + 1\ndecimal\n    display.low = x + 1\nend\ndisplay.data = x + 1')), [0x5a, 0x60, 0x5a]);
+    assert.deepEqual(fields(finished('a = $99\nb = 0\ndecimal\n    display.high = a + 1\n    display.low = b - 1\n    display.data = a - a\nend')), [0x00, 0x99, 0x00]);
+
+    // Every pair of two-digit bytes, added and subtracted on the board, whatever the flags were at RUN.
+    const sums = compile('byte a at $06\nbyte b at $07\nbyte sum at $04\nbyte difference at $05\ndecimal\n    sum = a + b\n    difference = a - b\nend');
+    const m = bootedMachine();
+    m.loadProgram(sums.binary, sums.origin);
+    for (let a = 0; a < 100; a++) {
+        for (let b = 0; b < 100; b++) {
+            m.cpu.memory.set([digits(a), digits(b)], 0x06);
+            m.cpu.setP((a * 37 + b * 11) & 255);
+            m.cpu.PC = sums.origin;
+            while (m.cpu.PC !== 0xfe22) m.cpu.step();
+            assert.deepEqual([m.cpu.memory[0x04], m.cpu.memory[0x05]], [digits((a + b) % 100), digits((a - b + 100) % 100)], `${a} and ${b}`);
+        }
+    }
+
+    // Nothing else changes: the three operators on bits, and a comparison, whose left side may be a sum in decimal.
+    assert.deepEqual(fields(finished('x = $59\ndecimal\n    display.high = x & $0f\n    display.low = x | $06\n    display.data = x ^ $ff\nend')), [0x09, 0x5f, 0xa6]);
+    assert.deepEqual(fields(finished('x = $59\ny = $09\nz = $10\ndisplay.high = 0\ndisplay.low = 0\ndisplay.data = 0\ndecimal\n' +
+        '    if x + 1 == $60\n        display.high = 1\n    end\n    if z > y\n        display.low = 1\n    end\n    if y - $10 >= $99\n        display.data = 1\n    end\nend')), [1, 1, 1]);
+    // A for counts by one in binary there as anywhere: 8, 9, $0A, $0B, and $0C when it is over.
+    let memory = finished('byte seen[4] at $80\nn = 0\ndecimal\n    for i in 8..11\n        k = i & 3\n        seen[k] = i\n        n = n + 1\n    end\nend\ndisplay.low = i\ndisplay.data = n');
+    assert.deepEqual([...memory.slice(0x80, 0x84), memory[0xfa], memory[0xf9]], [8, 9, 0x0a, 0x0b, 0x0c, 4]);
+
+    // A break that leaves the block for a loop outside it clears decimal mode on its way: what follows is in binary.
+    const leaving = 'total = 0\nloop\n    decimal\n        total = total + 5\n        if total == $20\n            break\n        end\n    end\nend\ndisplay.data = total + $0a';
+    assert.equal(finished(leaving)[0xf9], 0x2a);
+    assert.equal(listed(leaving, 'CLD'), 3);
+    assert.match(compile(leaving).assembly, /CLD +; \$[0-9A-F]{4}  D8  line 6\n    JMP flow_\d+ +; \$[0-9A-F]{4}  4C [0-9A-F]{2} 02  line 6\n/);
+    // So does a next, to the foot of a for: on the last round the loop is then over, and in binary.
+    const round = 'total = 0\nfor i in 1..3\n    decimal\n        total = total + 5\n        if i == 3\n            next\n        end\n        total = total + 5\n    end\nend\ndisplay.data = total + $0a';
+    assert.equal(finished(round)[0xf9], 0x2f);
+    assert.equal(listed(round, 'CLD'), 3);
+    // And to the top of a loop, where the count before the block has to be in binary every time round.
+    const again = 'count = 0\ntotal = 0\nloop\n    count = count + 1\n    if count == 12\n        break\n    end\n    decimal\n        total = total + 1\n        next\n    end\nend\ndisplay.low = count\ndisplay.data = total';
+    assert.deepEqual(fields(finished(again)).slice(1), [0x0c, 0x11]);
+    assert.equal(listed(again, 'CLD'), 2); // The first of all, and the one before the next: nothing reaches the block's end.
+    // A loop that is itself inside the block is left, and gone round, with decimal mode as it is.
+    const inner = 'decimal\n    n = 0\n    loop\n        n = n + 1\n        if n == 3\n            break\n        end\n    end\n    display.low = n + $09\n    t = 0\n' +
+        '    for i in 0..3\n        if i == 1\n            next\n        end\n        t = t + 5\n    end\n    display.data = t\nend';
+    assert.deepEqual(fields(finished(inner)).slice(1), [0x12, 0x15]);
+    assert.equal(listed(inner, 'CLD'), 2);
+    // The same loop with no block is three bytes shorter: the SED, the CLD at the end, and the one at the break.
+    assert.equal(bytes(leaving).length, bytes('total = 0\nloop\n    total = total + 5\n    if total == $20\n        break\n    end\nend\ndisplay.data = total + $0a').length + 3);
+
+    // stop needs no CLD: the monitor's entry clears decimal mode itself, and its keys are then what they are.
+    assert.deepEqual(bytes('decimal\nstop\nend'), [0xd8, 0xf8, 0x4c, 0x22, 0xfe]);
+    const stopped = rawRun('decimal\n    display.data = display.data + 1\n    stop\nend');
+    tick(stopped, 200000);
+    assert.equal(stopped.cpu.flags.D, 0);
+    press(stopped, 'a');
+    assert.equal(stopped.cpu.memory[0xfa], 0x0a); // A is the digit A in the address, not AD (docs/monitor-rom-review.md, bug 3).
+
+    // The routines that show the displays do no sums and are called as they are, with decimal mode set.
+    assert.deepEqual(bytes('decimal\ndisplay.scan()\ndisplay.show()\nend'), [0xd8, 0xf8, 0x20, 0x0c, 0xff, 0x20, 0x7e, 0xff, 0xd8, 0x4c, 0x22, 0xfe]);
+    const held = rawRun('display.high = $12\ndisplay.low = $34\ndisplay.data = $56\ndecimal\n    display.hold()\nend');
+    tick(held, 200000);
+    assert.equal(held.cpu.flags.D, 1);
+    assert.deepEqual(held.getDisplay(), [1, 2, 3, 4, 5, 6].map((digit) => held.cpu.memory[0xffea + digit] & 127));
+
+    // The key routine adds, so it is called with decimal mode clear and the mode is set again after it.
+    const reads = 'decimal\n    display.low = keypad.read()\n    display.data = 9 + 1\nend';
+    assert.deepEqual(bytes(reads), [0xd8, 0xf8, 0xa9, 0x99, 0x8d, 0x03, 0xfd, 0xd8, 0x20, 0x57, 0xff, 0xf8, 0x85, 0xfa,
+        0xa9, 0x09, 0x18, 0x69, 0x01, 0x85, 0xf9, 0xd8, 0x4c, 0x22, 0xfe]);
+    for (const [key, code] of [['f', 0x0f], ['a', 0x0a], ['Enter', 0x13], [null, 0x15], ['7', 0x07]]) {
+        const read = rawRun(reads);
+        if (key) read.keyDown(key);
+        while (read.cpu.PC !== 0xfe22) read.cpu.step();
+        assert.deepEqual([read.cpu.memory[0xfa], read.cpu.memory[0xf9]], [code, 0x10], String(key));
+    }
+    // A second read in the block clears and sets it again, and does not set Port A again.
+    const twice = 'decimal\n    a = keypad.read()\n    b = keypad.read()\n    display.data = a ^ b\nend';
+    assert.deepEqual([listed(twice, 'CLD'), listed(twice, 'SED'), listed(twice, 'STA \\$FD03')], [4, 3, 1]);
+    // keypad.press() too: its codes are the same inside a block, and the count of presses beside it is in decimal.
+    const presses = 'decimal\n    loop\n        display.low = keypad.press()\n        display.data = display.data + 1\n    end\nend';
+    // Three bytes more than the loop alone: SED, and a CLD and a SED at the call. Nothing reaches the block's end, so it has no CLD.
+    assert.equal(bytes(presses).length, bytes('loop\n    display.low = keypad.press()\n    display.data = display.data + 1\nend').length + 3);
+    const pressed = rawRun(presses);
+    tick(pressed); // The helper first waits to see no key down.
+    const codes = [];
+    for (const key of ['f', 'a', 'Enter', '9', 'c', 'b', '0', 'e', 'd', 'f']) {
+        press(pressed, key);
+        codes.push(pressed.cpu.memory[0xfa]);
+    }
+    assert.deepEqual(codes, [0x0f, 0x0a, 0x13, 0x09, 0x0c, 0x0b, 0x00, 0x0e, 0x0d, 0x0f]);
+    assert.equal(pressed.cpu.memory[0xf9], 0x10);
+
+    // A routine called by its address is called in binary too, and the block is in decimal again when it
+    // comes back, whatever the routine did. This one notes the status it was called with and sets or clears the flag.
+    assert.deepEqual(bytes('decimal\ncall $0300\nend'), [0xd8, 0xf8, 0xd8, 0x20, 0x00, 0x03, 0xf8, 0xd8, 0x4c, 0x22, 0xfe]);
+    for (const leaves of [0xd8, 0xf8]) {
+        const called = rawRun('decimal\n    call $0300\n    display.low = 9 + 1\nend\ndisplay.data = 9 + 1');
+        called.cpu.memory.set([0x08, 0x68, 0x85, 0x10, leaves, 0x60], 0x0300); // PHP, PLA, STA $10, CLD or SED, RTS
+        while (called.cpu.PC !== 0xfe22) called.cpu.step();
+        assert.deepEqual([called.cpu.memory[0x10] & 8, called.cpu.memory[0xfa], called.cpu.memory[0xf9]], [0, 0x10, 0x0a]);
+    }
+
+    // What each costs, as the README has it: two bytes for a block, two more for a key read or a call in it.
+    const plain = 'k = keypad.read()\ndisplay.data = k + 1';
+    assert.equal(bytes('decimal\n' + plain + '\nend').length, bytes(plain).length + 4);
+    assert.equal(bytes('decimal\ncall $0300\nend').length, bytes('call $0300').length + 3); // CLD, JSR, SED where it was JSR, CLD.
+
+    // A number that is added or subtracted there has to be two decimal digits itself.
+    const digitsOnly = (written, byte) => new RegExp('^Error: Line \\d: ' + written.replace('$', '\\$') + ' is the byte \\$' + byte + ', which is not two decimal digits: inside decimal, ten is written \\$10$');
+    for (const [source, error] of [
+        ['decimal\nx = display.low + 10\nend', digitsOnly('10', '0A')],
+        ['decimal\nx = display.low - 10\nend', digitsOnly('10', '0A')],
+        ['decimal\nx = 10 + display.low\nend', digitsOnly('10', '0A')],
+        ['decimal\nx = $1f - display.low\nend', digitsOnly('$1f', '1F')],
+        ['decimal\nx = display.low + $a0\nend', digitsOnly('$a0', 'A0')],
+        ['decimal\nx = display.low + 255\nend', digitsOnly('255', 'FF')],
+        ['const ten = 10\ndecimal\nx = display.low - ten\nend', digitsOnly('ten', '0A')],
+        ['decimal\nx = display.low + keypad.none\nx = x + keypad.reg\nx = x + keypad.run\nx = x + keypad.inc\nx = x + keypad.da\nx = x + keypad.ad\nx = 1 + 154\nend', digitsOnly('154', '9A')],
+        ['decimal\nif display.low + 10 == 0\nend\nend', digitsOnly('10', '0A')],
+        ['loop\ndecimal\nif display.low == 0\nx = display.low + 12\nend\nend\nend', digitsOnly('12', '0C')],
+        // One block is not inside another, however far inside.
+        ['decimal\ndecimal\nend\nend', /^Error: Line 2: The sums here are in decimal already: this decimal is inside another$/],
+        ['decimal\nif display.low == 0\nloop\ndecimal\nend\nend\nend\nend', /^Error: Line 4: The sums here are in decimal already/],
+        // It is a block like the others: closed by an end, a statement, and no place for a declaration.
+        ['decimal\ndisplay.data = 1', /^Error: Line 1: Missing end: this decimal is never closed$/],
+        ['decimal\nconst c = 1\nend', /^Error: Line 2: Declare constants, tables and memory names before the first statement/],
+        ['stop\ndecimal\nend', /^Error: Line 2: Unreachable statement/],
+        ['decimal\nstop\nend\ndisplay.data = 1', /^Error: Line 4: Unreachable statement/],
+        ['loop\ndecimal\nbreak\ndisplay.data = 1\nend\nend', /^Error: Line 4: Unreachable statement/]
+    ]) assert.throws(() => compile(source), error, source);
+    // The same numbers are bytes like any other where nothing is added in decimal: outside a block, and
+    // inside one as a value, with an operator on bits, and in a comparison. A byte of two decimal digits
+    // may be written in decimal: 153 is $99.
+    for (const source of ['x = display.low + 10\ndisplay.data = x', 'decimal\nx = 10\ny = x & 10\nz = y | 200\nw = z ^ $ff\nif w == 10\ndisplay.data = w\nend\nend',
+        'decimal\nx = display.low + 153\ndisplay.data = x - 9\nend', 'decimal\nend\nx = display.low + 10\ndisplay.data = x - 200',
+        'decimal\nend\ndecimal\ndisplay.data = display.low + $99\nend']) {
+        assert.ok(compile(source).binary.length > 4, source);
+    }
+    assert.equal(finished('decimal\nend\ndisplay.data = 9 + 10')[0xf9], 19);
+
+    // A program halted in a block goes on in decimal when RUN resumes it.
+    const counting = compile('byte count at $10\ncount = 0\ndecimal\n    loop\n        count = count + 1\n        display.scan()\n    end\nend');
+    const halted = bootedMachine();
+    halted.loadProgram(counting.binary, counting.origin);
+    monitorRun(halted, '0200');
+    const twoDigits = (machine) => {
+        for (let sample = 0; sample < 300; sample++) {
+            machine.cpu.run(997);
+            const count = machine.cpu.memory[0x10];
+            assert.ok((count & 15) <= 9 && count <= 0x99, 'the count is $' + count.toString(16));
+        }
+    };
+    twoDigits(halted);
+    halted.hlt();
+    tick(halted, 200000);
+    assert.ok(halted.cpu.PC >= 0xfe00);
+    assert.equal(halted.cpu.flags.D, 0); // The monitor itself runs in binary.
+    const reached = halted.cpu.memory[0x10];
+    press(halted, 'Enter');
+    twoDigits(halted);
+    assert.notEqual(halted.cpu.memory[0x10], reached);
+    // And the status the monitor saved at a halt goes to whatever is RUN next, RES or no RES: the manual's
+    // sum, which has no CLD, then adds in decimal, and a program compiled here, which begins with one, does not.
+    halted.hlt();
+    tick(halted, 200000);
+    halted.res();
+    tick(halted);
+    halted.cpu.memory.set([0x18, 0xa5, 0x06, 0x65, 0x07, 0x85, 0x04, 0x4c, 0x22, 0xfe], 0x000a);
+    halted.cpu.memory.set([0x09, 0x01], 0x06);
+    monitorRun(halted, '000a');
+    tick(halted, 200000);
+    assert.equal(halted.cpu.memory[0x04], 0x10);
+    const sum = compile(fs.readFileSync(path.join(__dirname, '../compiler/examples/sum.amico'), 'utf8'));
+    halted.loadProgram(sum.binary, sum.origin);
+    monitorRun(halted, '0200');
+    tick(halted, 200000);
+    assert.equal(halted.cpu.memory[0x04], 0x0a);
+});
+
+test('the clock example keeps a second to a second, and turns the minute, the hour and the day', () => {
+    const clock = compile(fs.readFileSync(path.join(__dirname, '../compiler/examples/clock.amico'), 'utf8'));
+    assert.equal(clock.binary.length, 90);
+    assert.deepEqual(clock.warnings, []);
+    // Once round its one loop is a second, and the listing says where the loop begins.
+    const top = parseInt(/^flow_1:\n.*; \$([0-9A-F]{4})/m.exec(clock.assembly)[1], 16);
+    const keys = (byte) => [...byte.toString(16).padStart(2, '0')];
+    // Keyed as its first lines say: the time into 0000 to 0002, seconds first, then RUN at 0200.
+    // Returns the time at each of the next seconds, and how many cycles each of them took.
+    const run = (hours, minutes, seconds, count) => {
+        const m = bootedMachine();
+        m.loadProgram(clock.binary, clock.origin);
+        tick(m);
+        for (const key of ['ArrowUp', '0', '0', '0', '0', 'ArrowDown', ...keys(seconds), '+', ...keys(minutes), '+', ...keys(hours)]) press(m, key);
+        monitorRun(m, '0200');
+        const at = [];
+        const shown = [];
+        while (at.length <= count) {
+            if (m.cpu.PC === top) {
+                at.push(m.cpu.cycles);
+                shown.push([0xfb, 0xfa, 0xf9].map((address) => m.cpu.memory[address]));
+            }
+            m.cpu.step();
+        }
+        return { m, shown, took: at.slice(1).map((cycles, second) => cycles - at[second]) };
+    };
+
+    const minute = run(0x12, 0x34, 0x56, 5);
+    assert.deepEqual(minute.shown, [[0x12, 0x34, 0x57], [0x12, 0x34, 0x58], [0x12, 0x34, 0x59], [0x12, 0x35, 0x00], [0x12, 0x35, 0x01], [0x12, 0x35, 0x02]]);
+    // A second is a million cycles of the board's 1 MHz, to within five: under half a second a day.
+    // The one that turns the minute does a little more, and is within fifty.
+    minute.took.forEach((cycles, second) => {
+        assert.ok(Math.abs(cycles - 1e6) <= (second === 2 ? 50 : 5), `second ${second} took ${cycles} cycles`);
+    });
+    // What the time is, the six digits show.
+    tick(minute.m, 100000);
+    assert.deepEqual(minute.m.getDisplay(), [1, 2, 3, 5, 0, 2].map((digit) => minute.m.cpu.memory[0xffea + digit] & 127));
+
+    // Nine is followed by ten, in the minutes and in the hours, and midnight by 00:00:00.
+    assert.deepEqual(run(0x12, 0x09, 0x58, 1).shown, [[0x12, 0x09, 0x59], [0x12, 0x10, 0x00]]);
+    assert.deepEqual(run(0x09, 0x59, 0x58, 1).shown, [[0x09, 0x59, 0x59], [0x10, 0x00, 0x00]]);
+    const midnight = run(0x23, 0x59, 0x57, 3);
+    assert.deepEqual(midnight.shown, [[0x23, 0x59, 0x58], [0x23, 0x59, 0x59], [0x00, 0x00, 0x00], [0x00, 0x00, 0x01]]);
+    midnight.took.forEach((cycles, second) => assert.ok(Math.abs(cycles - 1e6) <= 50, `second ${second} took ${cycles} cycles`));
 });

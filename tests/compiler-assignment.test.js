@@ -15,8 +15,8 @@
 // unnoticed.
 //
 // "Every small program" means every nesting of `if`, `else`, `loop`, `for`,
-// `break`, `next` and `stop` with assignments and reads, up to a number of
-// statements. The compiler has to accept exactly the programs the oracle
+// `decimal`, `break`, `next` and `stop` with assignments and reads, up to a
+// number of statements. The compiler has to accept exactly the programs the oracle
 // accepts, and refuse the others at the same line and for the same reason.
 // To go deeper:
 //
@@ -47,20 +47,22 @@ const COUNT = 'k';
 //   ['next']
 //   ['loop', body]
 //   ['for', body]                for k in 0..1
+//   ['decimal', body]
 //   ['if', then, otherwise]      otherwise is null when there is no else
 // A statement's size is the number of lines it takes apart from each `end`:
 // an `else` counts as one.
 function size(statement) {
     const of = (body) => body.reduce((total, inner) => total + size(inner), 0);
-    if (statement[0] === 'loop' || statement[0] === 'for') return 1 + of(statement[1]);
+    if (statement[0] === 'loop' || statement[0] === 'for' || statement[0] === 'decimal') return 1 + of(statement[1]);
     if (statement[0] === 'if') return 1 + of(statement[1]) + (statement[2] ? 1 + of(statement[2]) : 0);
     return 1;
 }
 
 // Every list of statements of exactly this size, nested no deeper than this.
 // `made` says what the programs are made of: `names`, the names assigned and
-// read; `counts`, whether there are `for` loops and reads of their name; and
-// `jumps`, whether there are `break` and `next`.
+// read; `counts`, whether there are `for` loops and reads of their name;
+// `jumps`, whether there are `break` and `next`; and `decimals`, whether
+// there are `decimal` blocks.
 function* bodies(total, depth, made) {
     if (total === 0) {
         yield [];
@@ -88,6 +90,7 @@ function* statements(most, depth, made) {
             yield ['loop', body];
             yield ['if', body, null];
             if (made.counts) yield ['for', body];
+            if (made.decimals) yield ['decimal', body];
         }
     }
     for (let inside = 0; inside <= most - 2; inside++) {
@@ -112,10 +115,11 @@ function sourceOf(body, how, lines = [], indent = '') {
         else if (statement[0] === 'read') lines.push(`${indent}display.data = ${statement[1]}`);
         else if (statement[0] === 'stop') lines.push(indent + how.ending);
         else if (statement[0] === 'break' || statement[0] === 'next') lines.push(indent + statement[0]);
-        else if (statement[0] === 'loop' || statement[0] === 'for') lines.push(indent + (statement[0] === 'loop' ? 'loop' : `for ${COUNT} in 0..1`));
+        else if (statement[0] === 'loop' || statement[0] === 'decimal') lines.push(indent + statement[0]);
+        else if (statement[0] === 'for') lines.push(`${indent}for ${COUNT} in 0..1`);
         else lines.push(`${indent}if display.low == 0`);
         statement.line = lines.length;
-        if (statement[0] === 'loop' || statement[0] === 'for') {
+        if (statement[0] === 'loop' || statement[0] === 'for' || statement[0] === 'decimal') {
             sourceOf(statement[1], how, lines, indent + '    ');
             lines.push(`${indent}end`);
         } else if (statement[0] === 'if') {
@@ -150,8 +154,10 @@ function oracle(body, names) {
     // Give each statement a node, in source order, with the line the source
     // has it on. A `for` is two nodes: the statement, which starts the count
     // and so assigns its name, and the step at its foot, which is no
-    // statement and has no line.
-    (function number(list, counting) {
+    // statement and has no line. `counting` is whether the list is inside a
+    // `for`, and `decimal` whether it is inside a `decimal` block: a second
+    // of either inside the first is a mistake.
+    (function number(list, counting, decimal) {
         for (const statement of list) {
             statement.node = nodes.length;
             nodes.push({ kind: statement[0], name: statement[0] === 'for' ? COUNT : statement[1], line: statement.line, next: [] });
@@ -159,15 +165,18 @@ function oracle(body, names) {
                 nodes[statement.node].twice = counting;
                 statement.step = nodes.length;
                 nodes.push({ kind: 'step', next: [] });
-                number(statement[1], true);
+                number(statement[1], true, decimal);
+            } else if (statement[0] === 'decimal') {
+                nodes[statement.node].nested = decimal;
+                number(statement[1], counting, true);
             } else if (statement[0] === 'loop') {
-                number(statement[1], counting);
+                number(statement[1], counting, decimal);
             } else if (statement[0] === 'if') {
-                number(statement[1], counting);
-                if (statement[2]) number(statement[2], counting);
+                number(statement[1], counting, decimal);
+                if (statement[2]) number(statement[2], counting, decimal);
             }
         }
-    })(body, false);
+    })(body, false, false);
 
     // Link a list backwards: each statement leads to the one after it, the
     // last to wherever the whole list leads. Returns where the list begins,
@@ -191,6 +200,11 @@ function oracle(body, names) {
                 const inside = link(statement[1], statement.step, { out: following, again: statement.step });
                 node.next = [inside];
                 nodes[statement.step].next = [inside, following];
+            } else if (statement[0] === 'decimal') {
+                // No branch and no loop: into its statements, which lead
+                // where the block leads. A `break` or a `next` inside is
+                // still the business of the loop round the block.
+                node.next = [link(statement[1], following, around)];
             } else if (statement[0] === 'if') {
                 node.next = [link(statement[1], following, around), statement[2] ? link(statement[2], following, around) : following];
             } else node.next = [following];
@@ -238,6 +252,7 @@ function oracle(body, names) {
         if (nodes[node].astray) return { accepted: false, line: nodes[node].line, why: 'there is none round it' };
         if (!reached.has(node)) return { accepted: false, line: nodes[node].line, why: 'Unreachable statement' };
         if (nodes[node].twice) return { accepted: false, line: nodes[node].line, why: 'already counting' };
+        if (nodes[node].nested) return { accepted: false, line: nodes[node].line, why: 'in decimal already' };
         if (nodes[node].kind === 'read' && !assignedAt[node].has(nodes[node].name)) {
             return { accepted: false, line: nodes[node].line, why: 'assigned variable' };
         }
@@ -332,4 +347,18 @@ test('else if: a chain is the nest it stands for', () => {
     const loops = tryAll(STATEMENTS - 1, 3, { names: ['x'], counts: true, jumps: true }, { chains: true });
     assert.deepEqual(loops.disagreements, []);
     if (STATEMENTS === 5) assert.deepEqual([loops.programs, loops.accepted, loops.chains], [27007, 3569, 41]);
+});
+
+// A `decimal` block changes how sums are done and nothing about where control
+// goes: its statements are reached if it is, what they assign is assigned
+// after it, a `break` or a `next` inside it concerns the loop round it, and
+// if its statements cannot be passed nothing follows its `end`. One cannot
+// be inside another.
+test('decimal: a block that is no branch and no loop', () => {
+    const plain = tryAll(STATEMENTS, 3, { names: ['x'], decimals: true });
+    assert.deepEqual(plain.disagreements, []);
+    if (STATEMENTS === 5) assert.deepEqual([plain.programs, plain.accepted], [110191, 19246]);
+    const loops = tryAll(STATEMENTS - 1, 3, { names: ['x'], counts: true, jumps: true, decimals: true });
+    assert.deepEqual(loops.disagreements, []);
+    if (STATEMENTS === 5) assert.deepEqual([loops.programs, loops.accepted], [47958, 7403]);
 });

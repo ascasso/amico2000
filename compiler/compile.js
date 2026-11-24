@@ -57,7 +57,7 @@ function pieces(text) {
         calls(name) { return found.length === 3 && this.term(0) === name && this.mark(1) === '(' && this.mark(2) === ')'; }
     };
 }
-const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call', 'for', 'break', 'next', 'and', 'or']);
+const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call', 'for', 'break', 'next', 'and', 'or', 'decimal']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 // CMP leaves the carry set when A is not below what it was compared with,
 // and Z set when the two are equal. Four of the six comparisons are one
@@ -90,6 +90,11 @@ function compile(source) {
     const read = new Set();
     let inA = null;
     let inputReady = false;
+    // Whether the 6502's decimal flag is set where the code now being written
+    // runs. It is set from a `decimal` to its `end` and nowhere else, so the
+    // source says which it is at every instruction, and nothing has to be
+    // found out when the program runs.
+    let decimal = false;
     let reachable = true;
     let started = false;
     let needsPress = false;
@@ -182,23 +187,51 @@ function compile(source) {
         if (inA !== holds) emit('LDA', ...arg);
         inA = holds;
     }
+    // The monitor's two routines that show the displays do no sums, and the
+    // decimal flag is nothing to them: the clock in Sperimentare of May 1979
+    // calls this one with the flag set from its first instruction to its
+    // last. So inside a `decimal` block they are called as anywhere.
     function scan() {
         emit('JSR', 'abs', SCAN);
         inputReady = true;
         inA = null;
+    }
+    // A routine that may add is another matter. The monitor's key routine
+    // builds a key's code with ADC, and with the decimal flag set gives A to
+    // F and the function keys their codes in decimal, and F the code of no
+    // key at all (docs/monitor-rom-review.md, bug 2). A routine called by its
+    // address is somebody else's, and was written to be called from the keys,
+    // where the flag is clear. So inside a `decimal` block the flag is cleared
+    // for either and set again when it comes back: SED and CLD change no
+    // other flag and no register, so what the routine returned is untouched.
+    function inBinary(call) {
+        if (decimal) emit('CLD');
+        call();
+        if (decimal) emit('SED');
+    }
+    // Inside a `decimal` block a byte is two decimal digits, one to each half,
+    // and the 6502 adds and subtracts them so only if both bytes are. What a
+    // variable holds is not known here, but a number is: 10 is $0A, which is
+    // no two digits, and the sum would be whatever the 6502 makes of it.
+    function twoDigits(written) {
+        const value = number(written);
+        if (value !== null && ((value & 15) > 9 || value > 0x99)) {
+            fail(written + ' is the byte $' + value.toString(16).toUpperCase().padStart(2, '0') +
+                ', which is not two decimal digits: inside decimal, ten is written $10');
+        }
     }
     function expression(text) {
         const E = pieces(text);
         if (E.calls('keypad.press') || E.calls('keypad.read')) {
             if (E.calls('keypad.press')) {
                 needsPress = true;
-                emit('JSR', 'abs', 'wait_press');
+                inBinary(() => emit('JSR', 'abs', 'wait_press'));
             } else {
                 if (!inputReady) {
                     emit('LDA', 'imm', 0x99);
                     emit('STA', 'abs', 0xfd03);
                 }
-                emit('JSR', 'abs', READ_KEY);
+                inBinary(() => emit('JSR', 'abs', READ_KEY));
             }
             inputReady = true;
             inA = null;
@@ -239,6 +272,10 @@ function compile(source) {
         // One operation: a term, an operator, a term.
         const pair = E.length === 3 && E.term(0) !== undefined && ARITHMETIC.has(E.mark(1)) && E.term(2) !== undefined;
         if (!pair) { load(text); return; }
+        if (decimal && (E.mark(1) === '+' || E.mark(1) === '-')) {
+            twoDigits(E.term(0));
+            twoDigits(E.term(2));
+        }
         load(E.term(0));
         if (E.mark(1) === '+') emit('CLC');
         if (E.mark(1) === '-') emit('SEC');
@@ -487,6 +524,16 @@ function compile(source) {
             }
             {
                 blocks.pop();
+                if (block.kind === 'decimal') {
+                    // Back to binary. The block is no branch and no loop: its
+                    // `end` is reached only from its last statement, so what
+                    // is known there is known here, and CLD changes none of
+                    // it. If the last statement cannot be passed, nothing
+                    // comes this way to need the flag cleared.
+                    if (reachable) emit('CLD');
+                    decimal = false;
+                    return;
+                }
                 if (block.kind === 'loop') {
                     if (reachable) emit('JMP', 'abs', block.start);
                     // A loop ends only where a `break` leaves it, and what
@@ -507,7 +554,9 @@ function compile(source) {
                         // value. The count is left one step past it, which is
                         // what the compare looks for: after 0..5 it is 6, and
                         // after 0..255 it is 0, where a byte wraps. A is left
-                        // holding the count, as it is on the way in.
+                        // holding the count, as it is on the way in. INC and
+                        // DEC take no notice of the decimal flag, so a `for`
+                        // counts the same inside a `decimal` block as out.
                         if (block.step) mark(block.step);
                         emit(block.down ? 'DEC' : 'INC', 'zp', block.count);
                         emit('LDA', 'zp', block.count);
@@ -558,13 +607,18 @@ function compile(source) {
         // `break` and `next` concern the loop they are in: the innermost.
         const jumps = alone('break') || alone('next');
         const around = jumps ? blocks.findLast((block) => block.kind === 'loop' || block.kind === 'for') : undefined;
+        // A jump from inside a `decimal` block to a loop that the block is
+        // inside leaves the block, by another way than its `end`, and has to
+        // leave decimal mode behind as the `end` does. A loop that is itself
+        // inside the block is left with the flag as it is.
+        const leavesDecimal = around !== undefined && blocks.indexOf(around) < blocks.findIndex((block) => block.kind === 'decimal');
         const scans = L.calls('display.scan');
         const holds = L.calls('display.hold');
         const shows = L.calls('display.show');
         // `if = 1` and `const = 1` assign to a word of the language. Say so
         // before the line is read as a comparison or a declaration gone wrong.
         if (assign && RESERVED.has(assign[1])) variable(assign[1]);
-        if (!assign && !isIf && !isConst && !isByte && !isCall && !isFor && !jumps && !alone('loop') && !alone('stop') && !scans && !holds && !shows) {
+        if (!assign && !isIf && !isConst && !isByte && !isCall && !isFor && !jumps && !alone('loop') && !alone('stop') && !alone('decimal') && !scans && !holds && !shows) {
             fail('Unknown statement: ' + text);
         }
         // Wrong wherever it stands, like a line that is no statement.
@@ -627,19 +681,33 @@ function compile(source) {
             const otherwise = label();
             condition(L, 1, L.length, otherwise);
             blocks.push({ kind: 'if', entry: new Set(defined), otherwise, end: label(), arms: [], line });
+        } else if (alone('decimal')) {
+            // From here to the block's `end` the 6502 adds and subtracts in
+            // decimal: the same ADC and SBC, with its D flag set. One flag
+            // cannot be set twice, and a second block inside the first would
+            // end by clearing it for the rest of the first.
+            if (decimal) fail('The sums here are in decimal already: this decimal is inside another');
+            emit('SED');
+            decimal = true;
+            blocks.push({ kind: 'decimal', line });
         } else if (alone('stop')) {
+            // Also from inside a `decimal` block, with no CLD: the monitor's
+            // entry at $FE22 clears decimal mode itself, at $FEE8, before it
+            // adds anything.
             emit('JMP', 'abs', 0xfe22);
             reachable = false;
         } else if (alone('break')) {
             // Out to what follows the loop's `end`. The names assigned by
             // here are what this way out brings there.
             around.done ??= label();
+            if (leavesDecimal) emit('CLD');
             emit('JMP', 'abs', around.done);
             around.leaves.push(new Set(defined));
             reachable = false;
         } else if (alone('next')) {
             // Round again: to the top of a `loop`, and in a `for` to its
             // foot, where the count is stepped and tried.
+            if (leavesDecimal) emit('CLD');
             if (around.kind === 'loop') {
                 emit('JMP', 'abs', around.start);
             } else {
@@ -659,14 +727,19 @@ function compile(source) {
             // The address is whatever follows, and is one run of characters.
             const written = L.slice(1);
             if (!written || /\s/.test(written)) fail('Expected call and an address, such as call $FF7E');
-            emit('JSR', 'abs', address(written));
+            const where = address(written);
             // The routine is somebody else's. Nothing is known when it comes
             // back: not A, and not which way it has left Port A, so the next
             // key read sets that again. Nor the decimal flag: RTS brings the
             // routine's flags back with it, and a routine that counts in
             // decimal would leave every sum after it in decimal, and F and no
             // key the same code. So it is cleared, as at the program's start.
-            emit('CLD');
+            // Inside a `decimal` block the routine is still called with the
+            // flag clear, as from anywhere else, and the flag is set again
+            // when it comes back, whatever the routine left.
+            if (decimal) emit('CLD');
+            emit('JSR', 'abs', where);
+            emit(decimal ? 'SED' : 'CLD');
             forget();
         } else if (holds) {
             // Scan until RES. `stop` hands the board to the monitor, which puts

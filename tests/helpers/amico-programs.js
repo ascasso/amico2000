@@ -20,7 +20,11 @@
 // one byte, display
 // fields as operands and as targets, constants and the key names standing
 // where a literal may, names that begin like words of the language, literals
-// spelt several ways, and operators written with and without spaces.
+// spelt several ways, and operators written with and without spaces. And
+// `decimal` blocks: sums of bytes that are two decimal digits, kept in names
+// that never hold anything else, with `if`s, loops and the other operators
+// among them, in and under loops, left by their `end` and by a `break` or a
+// `next` to a loop outside, and followed by sums that have to be binary again.
 //
 // What it does not make, and what covers that instead:
 // - programs the compiler should refuse: tests/compiler-assignment.test.js
@@ -33,10 +37,17 @@
 //   what a routine does to memory is not the language's to say;
 // - `display.hold()`, which never comes back, so that there is no moment at
 //   which to read the board. tests/compiler.test.js runs it, and the oracle
-//   in tests/compiler-assignment.test.js tries it as the end of a path.
+//   in tests/compiler-assignment.test.js tries it as the end of a path;
+// - a sum in decimal of a byte that is not two decimal digits, which the
+//   language leaves to the 6502. Inside a `decimal` block `+` and `-` are
+//   given only numbers of two digits and the names kept for them.
 
 const NAMES = ['a', 'b', 'x1', 'left', 'take', 'iffy', 'loops', 'end_x', 'stopped', 'constant',
-    'elsewhere', 'display_x', 'n', 'k_9', 'zz', 'v_a_r', 'tmp', 'q'];
+    'elsewhere', 'display_x', 'n', 'k_9', 'zz', 'v_a_r', 'tmp', 'q', 'decimal_x'];
+// Names that hold two decimal digits and nothing else, wherever they are
+// assigned: a number of two digits, one another, or a sum made in decimal of
+// those. So any of them can be added or subtracted in a `decimal` block.
+const DECIMAL_NAMES = ['secs', 'mins', 'tens'];
 const FIELDS = ['display.high', 'display.low', 'display.data'];
 const OPERATORS = ['+', '-', '&', '|', '^'];
 const COMPARISONS = ['<', '<=', '>', '>=', '==', '!='];
@@ -78,7 +89,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
+    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0, decimals: 0, sums: 0, leftDecimal: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -88,6 +99,10 @@ function generate(seed, { scans = false, long = false } = {}) {
     // that counts at its foot cannot take a `next`, which would pass over
     // the counting and never end.
     const around = [];
+    // Whether the statements being made are inside a `decimal` block, and
+    // the depth of the block that the `decimal` line is in.
+    let inDecimal = false;
+    let decimalAt = 0;
     const onEvery = (paths) => new Set([...paths[0]].filter((name) => paths.every((path) => path.has(name))));
 
     function spell(value) {
@@ -129,6 +144,34 @@ function generate(seed, { scans = false, long = false } = {}) {
     function joined(left, operator, right) {
         return chance(0.15) ? `${left}${operator}${right}` : `${left} ${operator} ${right}`;
     }
+    // A byte of two decimal digits: often one at an edge, where a sum carries
+    // from the units or wraps at a hundred. Written in hex as a rule, as it
+    // would be, and now and then as the same byte in decimal or by a
+    // constant that happens to be one.
+    const isDigits = (value) => (value & 15) <= 9 && value <= 0x99;
+    function twoDigits() {
+        const named = constants.filter((constant) => isDigits(constant.value));
+        if (named.length && chance(0.15)) {
+            made.constants++;
+            return pick(named).name;
+        }
+        const value = chance(0.35) ? pick([0, 1, 9, 0x10, 0x49, 0x50, 0x90, 0x99]) : between(0, 9) * 16 + between(0, 9);
+        return chance(0.75) ? '$' + value.toString(16).padStart(2, '0') : spell(value);
+    }
+    // Something that is certainly two decimal digits: one of the names kept
+    // for them, if it is assigned on every path to here, or a number.
+    function inDigits(assigned) {
+        const kept = DECIMAL_NAMES.filter((name) => assigned.has(name));
+        return kept.length && chance(0.65) ? pick(kept) : twoDigits();
+    }
+    // A sum for a `decimal` block: both its bytes are two decimal digits.
+    function decimalSum(assigned) {
+        made.sums++;
+        return joined(inDigits(assigned), pick(['+', '-']), inDigits(assigned));
+    }
+    // Inside a `decimal` block the generator's other operations keep to the
+    // operators that decimal mode leaves alone: their operands are anything.
+    const operator = () => pick(inDecimal ? ['&', '|', '^'] : OPERATORS);
 
     // Half the programs name memory locations: one in page zero, often one
     // above it, which different instructions reach, and often a third. The
@@ -275,7 +318,28 @@ function generate(seed, { scans = false, long = false } = {}) {
         }
     }
 
+    // One of the names kept for decimal digits is given a number or another
+    // of them, anywhere; inside a `decimal` block it is more often a sum, and
+    // the sum sometimes goes to a display field or to any other name.
+    function decimalAssignment(indent, assigned) {
+        if (inDecimal && chance(0.8)) {
+            const value = decimalSum(assigned);
+            const into = chance(0.7) ? pick(DECIMAL_NAMES) : target(false);
+            lines.push(`${indent}${into} = ${value}`);
+            assigned.add(into);
+            return;
+        }
+        const value = inDigits(assigned);
+        const into = pick(DECIMAL_NAMES);
+        lines.push(`${indent}${into} = ${value}`);
+        assigned.add(into);
+    }
+
     function assignment(indent, assigned) {
+        if (chance(inDecimal ? 0.5 : 0.06)) {
+            decimalAssignment(indent, assigned);
+            return;
+        }
         if (rows.length && chance(0.2)) {
             rowUse(indent, assigned);
             return;
@@ -286,7 +350,7 @@ function generate(seed, { scans = false, long = false } = {}) {
             tableRead(indent, assigned, into);
             return;
         }
-        const value = roll < 0.4 ? operand(assigned) : joined(operand(assigned), pick(OPERATORS), operand(assigned));
+        const value = roll < 0.4 ? operand(assigned) : joined(operand(assigned), operator(), operand(assigned));
         lines.push(`${indent}${into} = ${value}`);
         assigned.add(into);
     }
@@ -309,7 +373,7 @@ function generate(seed, { scans = false, long = false } = {}) {
         const roll = random.next();
         let left;
         if (roll < 0.15) {
-            left = joined(operand(assigned), pick(OPERATORS), operand(assigned));
+            left = inDecimal && chance(0.5) ? decimalSum(assigned) : joined(operand(assigned), operator(), operand(assigned));
         } else if (roll < 0.2 && tables.length) {
             const table = pick(tables);
             left = `${table.name}[${spell(between(0, table.length - 1))}]`;
@@ -348,6 +412,19 @@ function generate(seed, { scans = false, long = false } = {}) {
                 const over = chance(0.65) ? countedLoop(indent, assigned, depth) : leavingLoop(indent, assigned, depth);
                 if (over.ends) return { assigned, ends: true };
                 assigned = over.assigned;
+            } else if (!inDecimal && depth < 6 && chance(0.07)) {
+                // A `decimal` block: a few statements, sums among them. It
+                // is no branch, so what it assigns is assigned after it, and
+                // if its statements cannot be passed nothing follows it.
+                lines.push(`${indent}decimal`);
+                made.decimals++;
+                inDecimal = true;
+                decimalAt = depth;
+                const inside = block(indent + '    ', assigned, depth + 1, between(1, 4), depth < 3 && chance(0.15));
+                inDecimal = false;
+                lines.push(`${indent}end`);
+                if (inside.ends) return { assigned, ends: true };
+                assigned = inside.assigned;
             } else if (depth < 7 && random.next() < (depth < 4 ? 0.36 : 0.15)) {
                 lines.push(`${indent}if ${condition(assigned)}`);
                 const longArm = !made.longArm && long && chance(0.5);
@@ -392,6 +469,9 @@ function generate(seed, { scans = false, long = false } = {}) {
             lines.push(indent + word);
             (word === 'break' ? loop.leaves : loop.rounds).push(new Set(assigned));
             made[word === 'break' ? 'breaks' : 'nexts']++;
+            // A jump to a loop that the `decimal` block is inside leaves the
+            // block, and what follows it has to be in binary.
+            if (inDecimal && loop.depth < decimalAt) made.leftDecimal++;
             return { assigned, ends: true };
         }
         if (depth > 0 && chance(0.06)) {
@@ -471,7 +551,9 @@ function generate(seed, { scans = false, long = false } = {}) {
         made.loops++;
         const counter = 'cnt' + counterNumber++;
         counters.add(counter);
-        const style = between(0, 2);
+        // The third kind counts from 250, which is no two decimal digits, so
+        // a loop inside a `decimal` block is one of the first two.
+        const style = between(0, inDecimal ? 1 : 2);
         const rounds = between(1, 5);
         lines.push(`${indent}${counter} = ${style === 0 ? rounds : style === 1 ? 0 : 250}`);
         lines.push(`${indent}loop`);

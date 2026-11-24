@@ -1,0 +1,35 @@
+# A clock: hours, minutes and seconds on the six digits, counted in decimal.
+# After the clock in Sperimentare of May 1979. Key the time to start from into
+# 0000 (seconds), 0001 (minutes) and 0002 (hours), two decimal digits to each,
+# and RUN at 0200 when that time comes. RES ends it.
+byte start_seconds at $00
+byte start_minutes at $01
+byte start_hours at $02
+
+display.data = start_seconds
+display.low = start_minutes
+display.high = start_hours
+loop
+    # A second is 235 scans of the displays and a little more.
+    for scans in 1..235
+        display.scan()
+    end
+    # The little more, to set the clock by. A round is thirteen millionths of
+    # a second: for each second a day that the clock gains, one round more.
+    for fine in 1..94
+    end
+    decimal
+        display.data = display.data + 1
+        if display.data == $60
+            display.data = 0
+            display.low = display.low + 1
+            if display.low == $60
+                display.low = 0
+                display.high = display.high + 1
+                if display.high == $24
+                    display.high = 0
+                end
+            end
+        end
+    end
+end

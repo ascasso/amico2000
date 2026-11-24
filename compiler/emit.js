@@ -12,7 +12,9 @@ const LIMIT = 0x03fc; // The four bytes here are the monitor's interrupt vectors
 // what the manual's listings fill with (supplement, page 99).
 const FILLER = 0xea;
 const OPCODES = {
-    CLD: 0xd8, CLC: 0x18, SEC: 0x38, TAX: 0xaa, RTS: 0x60,
+    // SED is written only where a `decimal` block begins, and after a routine
+    // that such a block had to call with the flag clear.
+    CLD: 0xd8, SED: 0xf8, CLC: 0x18, SEC: 0x38, TAX: 0xaa, RTS: 0x60,
     // The absolute forms are for a memory location the program names, which
     // may be anywhere; the compiler's own variables are all in page zero.
     LDA: { imm: 0xa9, zp: 0xa5, abs: 0xad, zpX: 0xb5, absX: 0xbd },

@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico has a `decimal` block. Between `decimal` and its `end`, `+` and `-`
+  count in two decimal digits to a byte, which is how the hex displays show
+  one: `$59 + 1` is `$60`, and a byte wraps at a hundred. It is the 6502's
+  decimal mode, a `SED` and a `CLD`, two bytes, and the sums between are the
+  instructions they are anywhere. The monitor's key routine adds, and in
+  decimal mode gives F and no key the same code, so for `keypad.read()` and
+  `keypad.press()` inside a block the compiler leaves decimal mode and comes
+  back to it; it does the same for a `call`. The routines that show the
+  displays do no sums and are called as they are. A `break` or a `next` that
+  leaves a block clears decimal mode on its way. A number added or
+  subtracted in a block has to be two decimal digits itself, so `x + 10` is
+  refused there and ten is written `$10`. A block cannot be inside another,
+  and `decimal` joins the words that cannot be names.
 - Amico has `else if`: an `if` can go on to try other conditions before its
   `else` or its `end`, and one `end` closes the whole chain. The conditions
   are tried in order and the statements under the first that holds are run.

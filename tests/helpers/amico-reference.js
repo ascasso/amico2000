@@ -53,6 +53,19 @@ function tableBytes(indexName, last, formula, constants) {
     return bytes;
 }
 
+// Inside a `decimal` block a byte is two decimal digits, one in each half:
+// $59 is fifty-nine. The README says what a sum is only when both its bytes
+// are that, so a sum of any other byte is an error here, and no test may
+// depend on one.
+function digits(byte, expression) {
+    if ((byte & 15) > 9 || (byte >> 4) > 9) {
+        throw new Error('A sum in decimal of a byte that is not two decimal digits: ' + expression);
+    }
+    return (byte >> 4) * 10 + (byte & 15);
+}
+// A number from 0 to 99 as such a byte.
+const asDigits = (number) => (Math.floor(number / 10) << 4) | (number % 10);
+
 // A condition: one comparison, or several joined all by `and` or all by `or`.
 function conditionOf(written) {
     const joined = written.split(/\s+(and|or)\s+/);
@@ -94,8 +107,8 @@ function parse(source) {
                 address: literal(match[3], new Map()),
                 count: match[2] === undefined ? null : literal(match[2], constants)
             });
-        } else if (line === 'loop') {
-            const loop = { kind: 'loop', body: [] };
+        } else if (line === 'loop' || line === 'decimal') {
+            const loop = { kind: line, body: [] };
             into.push(loop);
             open.push(loop);
             into = loop.body;
@@ -156,6 +169,8 @@ function run(source, memory, maxSteps = 200000) {
     const cells = Uint8Array.from(memory);
     const variables = new Map();
     let steps = 0;
+    // Whether the statement being run is inside a `decimal` block.
+    let decimal = false;
 
     // The address a name stands for, if it stands for one: a display field or
     // a single location the program has named.
@@ -196,6 +211,11 @@ function run(source, memory, maxSteps = 200000) {
         if ((match = /^(\S+?)\s*([-+&|^])\s*(\S+)$/.exec(expression))) {
             const left = valueOf(match[1]);
             const right = valueOf(match[3]);
+            // In decimal a byte holds 00 to 99 and wraps there.
+            if (decimal && (match[2] === '+' || match[2] === '-')) {
+                const [a, b] = [digits(left, expression), digits(right, expression)];
+                return asDigits(match[2] === '+' ? (a + b) % 100 : (a - b + 100) % 100);
+            }
             switch (match[2]) {
                 case '+': return (left + right) & 255;
                 case '-': return (left - right) & 255;
@@ -249,9 +269,21 @@ function run(source, memory, maxSteps = 200000) {
                     if (cut) return cut;
                     break;
                 }
+                case 'decimal': {
+                    // The statements as they are, with `+` and `-` counting
+                    // in decimal. A `break` or a `next` inside goes out to
+                    // the loop, and leaves the block as its `end` does. A
+                    // block is never inside another.
+                    decimal = true;
+                    const cut = execute(statement.body);
+                    decimal = false;
+                    if (cut) return cut;
+                    break;
+                }
                 case 'for': {
                     // Once for each value from the first to the last, both
-                    // included, downwards when the first is the greater.
+                    // included, downwards when the first is the greater. In
+                    // a `decimal` block too: a `for` counts by one in binary.
                     const step = statement.first <= statement.last ? 1 : -1;
                     let left = false;
                     for (let value = statement.first; ; value += step) {

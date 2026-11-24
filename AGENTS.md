@@ -1246,13 +1246,13 @@ under Node on another computer and produces a listing, a binary or an
   gains a construct, the interpreter and the generator beside it gain it
   too, or the construct goes untested.
 - `tests/compiler-assignment.test.js` tries every small nesting of `if`,
-  `else`, `else if`, `loop`, `for`, `break`, `next` and `stop`, and again
-  with `display.hold()` for `stop`, against an oracle for the two flow
-  rules: a name assigned on every path before it is read, and no statement
-  out of reach. It expects the compiler's messages for those two,
-  "Unreachable statement" and "assigned variable", and for two mistakes of
-  placing, "there is none round it" and "already counting"; reword them
-  there too. A new way for control to move needs its edges in that oracle:
+  `else`, `else if`, `loop`, `for`, `decimal`, `break`, `next` and `stop`,
+  and again with `display.hold()` for `stop`, against an oracle for the two
+  flow rules: a name assigned on every path before it is read, and no
+  statement out of reach. It expects the compiler's messages for those two,
+  "Unreachable statement" and "assigned variable", and for three mistakes of
+  placing, "there is none round it", "already counting" and "in decimal
+  already"; reword them there too. A new way for control to move needs its edges in that oracle:
   subroutines and the routine for HLT, when they are built.
 - **Test the tests.** Each construct added on 2026-11-23 had defects
   planted in a scratch copy of the compiler, one at a time, to see the
@@ -1289,9 +1289,10 @@ What an agent has to know before touching it:
 - **What it has to keep.** A line of source is a handful of instructions
   that someone could key in, and everything a program runs shows in its
   listing. Generated code starts with `CLD`, sets Port A to input before the
-  key routine, and leaves through `$FE22` unless it ends in
-  `display.hold()`, which never leaves: the monitor's faults
-  (`docs/monitor-rom-review.md`) allowed for, each held by
+  key routine, calls that routine and any routine named by its address with
+  decimal mode clear, from inside a `decimal` block too, and leaves through
+  `$FE22` unless it ends in `display.hold()`, which never leaves: the
+  monitor's faults (`docs/monitor-rom-review.md`) allowed for, each held by
   `tests/compiler.test.js`.
 
 ## Development Guidelines

@@ -126,7 +126,7 @@ function failure(seed, source, wrong) {
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0, decimals: 0, sums: 0, leftDecimal: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -150,20 +150,30 @@ test('random programs compute on the board what the reference interpreter comput
         if (made.writtenTables) seen.written++;
         if (made.places) seen.places++;
         if (made.rowUses) seen.rows++;
+        if (made.decimals) seen.decimals++;
+        if (made.sums) seen.sums++;
+        if (made.leftDecimal) seen.leftDecimal++;
+    }
+    // To measure the shares again after a change to the generator.
+    if (process.env.AMICO_SHARES) {
+        console.log(Object.entries(seen).map(([what, count]) =>
+            `${what} ${(100 * count / (what === 'ran' || what === 'tooLong' ? PROGRAMS : seen.ran)).toFixed(1)}%`).join('  '));
     }
 
     // A generator can stop making what it was written to make and the test
-    // would go on passing. Measured over 20,000 programs, 59% of those
+    // would go on passing. Measured over 20,000 programs, 57% of those
     // generated fitted the board, and of those that ran:
-    //   26% had a long branch          64% a constant or a key's name
+    //   27% had a long branch          63% a constant or a key's name
     //   62% a loop                     38% a table written out
-    //   49% a for                      50% a named memory location
-    //   47% a break                    38% a byte of a row read or written
-    //   18% a next                     45% blocks four deep
-    //   54% an and or an or            62% an else
-    //   36% an else if                 51% a table read
+    //   51% a for                      50% a named memory location
+    //   50% a break                    38% a byte of a row read or written
+    //   20% a next                     50% blocks four deep
+    //   54% an and or an or            63% an else
+    //   36% an else if                 50% a table read
+    //   54% a decimal block            46% a sum in decimal
+    //   18% a break or a next that leaves a decimal block
     // The floors are about half of each: there to notice a collapse, not a
-    // drift.
+    // drift. AMICO_SHARES=1 prints the shares.
     const share = (count) => count / seen.ran;
     assert.ok(seen.ran / PROGRAMS > 0.30, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
@@ -180,6 +190,9 @@ test('random programs compute on the board what the reference interpreter comput
     assert.ok(share(seen.written) > 0.19, `a table written out in only ${seen.written} of ${seen.ran}`);
     assert.ok(share(seen.places) > 0.25, `a named memory location in only ${seen.places} of ${seen.ran}`);
     assert.ok(share(seen.rows) > 0.19, `a row of bytes in only ${seen.rows} of ${seen.ran}`);
+    assert.ok(share(seen.decimals) > 0.27, `a decimal block in only ${seen.decimals} of ${seen.ran}`);
+    assert.ok(share(seen.sums) > 0.23, `a sum in decimal in only ${seen.sums} of ${seen.ran}`);
+    assert.ok(share(seen.leftDecimal) > 0.09, `a jump out of a decimal block in only ${seen.leftDecimal} of ${seen.ran}`);
 });
 
 test('display.scan() and display.show() among the statements change nothing a program can see', () => {
