@@ -519,6 +519,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `NextSession.md` is short again: 89 lines where it had 1,000. It says what
+  to work on next, what is waiting for the owner, and what else is open, a
+  line or two to an item. Nothing was thrown away that is not in the
+  changelog, the logs or `AGENTS.md` already. What the owner decided about
+  Amico, the small print still to be looked at and what is not built are in
+  `docs/amico-design.md`; the plan for the shelf of programs is in
+  `docs/program-shelf.md`; the detail of every other open item is in
+  `docs/open-work.md`, under the number it had. How to check the page in a
+  browser moved to `AGENTS.md`, which also says now where each kind of
+  thing goes, so that the file stays short.
 - `AGENTS.md` records what the review of Amico's loops and conditions
   showed about testing tests: the author's 51 planted defects were all
   caught, and 20 of a reviewer's 51 others were not, most of them of a

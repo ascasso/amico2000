@@ -1869,7 +1869,7 @@ test('table segments makes a table from a text, in the manual\'s alphabet for th
     // A step is known by the six bytes changing. The digits are read a little after it, when the copy is
     // done and the emulator has let go of what a digit showed before: it takes no notice of a blank sent
     // to a digit, so a place that turns from a letter to a space goes on showing the letter for a tenth
-    // of a second, where a board would go dark at once (NextSession.md has this as a fault of the emulator's).
+    // of a second, where a board would go dark at once (docs/open-work.md, item 14, has this as a fault of the emulator's).
     const row = () => m.cpu.memory.slice(0x8f, 0x95).join(' ');
     const seen = [];
     const at = [];

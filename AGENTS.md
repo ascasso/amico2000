@@ -19,6 +19,21 @@ This file provides repository guidance for agents working in this repository.
   stay in English, and so does the browser console.
 - Fully document every change, including its purpose, scope, and verification;
   commit the complete change and push it before handoff.
+- Keep `NextSession.md` short. It says what to work on next and lists what
+  else is open, a line or two to an item, and the owner reads it at the
+  start of a session. It was cut to 102 lines on 2026-11-21 at the owner's
+  request and was 1,000 three days later, so on 2026-11-24 the owner asked
+  again. Everything else has a place of its own:
+  - what was done, found or reviewed: `CHANGELOG.md` and the log;
+  - a decision about Amico, and what is still to be built in it:
+    `docs/amico-design.md`;
+  - the plan for the shelf of programs: `docs/program-shelf.md`;
+  - the detail of any other open item: `docs/open-work.md`, under the
+    item's number;
+  - how something works or is checked: this file.
+
+  When a piece of work ends, its item leaves `NextSession.md` or shrinks
+  to what is still open, and Next is set to what the owner said comes next.
 - Keep the home page's `build-date` stamp in sync with the committer's calendar
   date of the commit being created: `YYYYMMDD` text and `YYYY-MM-DD` in its
   `datetime` attribute. `git show -s --format=%cs HEAD` shows the existing
@@ -130,6 +145,18 @@ python3 -m http.server 8000
 - Use `debug.mem(0x0000, 16)` to dump memory
 - Use `debug.state()` to show CPU state
 - Access emulator internals directly: `amico.cpu.PC`, `amico.cpu.A`, etc.
+- To check the page as served, run `python3 -m http.server 8000` and drive
+  headless Chrome over the DevTools protocol in real time: scripts
+  evaluated through the protocol are not subject to the page's CSP, and
+  `requestAnimationFrame` runs at 60 Hz. Avoid `--virtual-time-budget`,
+  which stops `requestAnimationFrame` and so the emulator. The page also
+  runs from `file://`. The cassette in real time has to be watched in real
+  time: a SAVE and a LOAD are over twenty seconds between them
+- A pull request gets an automated review when it is opened. Its findings
+  are worth reading and are not always right: of the two on pull request
+  47, one was a real bug and one misread a commit's date
+- If behavior and documents disagree, trust the ROM, the manual and
+  verified behavior, and fix the documents
 
 ## Code Architecture
 
@@ -898,7 +925,7 @@ stopped itself on an opcode it does not implement.
 **Checking a change.** Nothing automated looks at the drawing. It was checked
 by serving the page, screenshotting it in headless Chrome and putting the
 same window of the photograph beside it at the same scale, driving Chrome
-over the DevTools protocol in real time (How to Verify in `NextSession.md`):
+over the DevTools protocol in real time (Testing the Emulator, above):
 scripts evaluated through the protocol are not subject to the page's CSP, and
 `requestAnimationFrame` fires normally, so the page is checked as served. `tests/display-renderer.test.js` covers the display's
 geometry and nothing else on the board.
@@ -1206,7 +1233,7 @@ GitHub Pages publishes `master` as it is. Checked on the live site on
   sitemap's addresses against the pages' canonical ones, and the guides'
   `hreflang` pairs.
 
-What it lacks is under item 12 of Outstanding in `NextSession.md`.
+What it lacks is under item 12 of `docs/open-work.md`.
 
 ### Amico
 
@@ -1214,9 +1241,10 @@ What it lacks is under item 12 of Outstanding in `NextSession.md`.
 `amicoc`, its compiler. It was added on 2026-11-23. It began as the owner's
 thought experiment, whether such a language was feasible, and Codex built it
 in one prompt. The owner named it and settled its design the same day.
-`NextSession.md` has all of that under item 13 of Outstanding: what is to be
-added, what stays out, what is still open, and the order of work. Read that
-item before changing the language.
+`docs/amico-design.md` has all of that: what the owner decided, what stays
+out, the small print the owner has not yet seen, and what is not built.
+Read it before changing the language, and `NextSession.md` for which step
+is next.
 
 **It is no part of the page.** Nothing in `index.html` loads it. It runs
 under Node on another computer and produces a listing, a binary or an
@@ -1342,7 +1370,7 @@ When implementing changes based on a GitHub issue:
 On 2026-11-23 the owner had the compiler checked "with subagents with
 different models" and one Codex instance, and afterwards asked that what
 worked be written here for the sessions to come. What that check found is in
-`NextSession.md`, item 13. This is how it was run, and how to run the next.
+`docs/amico-design.md`, under History. This is how it was run, and how to run the next.
 
 **What was done.** One session ran the review and took none of the angles
 itself. It wrote a brief, one plain file that every reviewer read first, and
@@ -1485,7 +1513,8 @@ reproduced every finding before passing any on.
   ```
 
 - **Afterwards.** Findings go where the next session will look: what is
-  open in `NextSession.md`, how it was found in the log. A harness worth
+  open in a line of `NextSession.md`, with its detail in the document that
+  line names, and how it was found in the log. A harness worth
   having goes into `tests/`. No link to any agent's session is published,
   as everywhere (Agent Operating Contract); saying which agents did the
   work is fine.

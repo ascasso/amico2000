@@ -6,8 +6,8 @@ into native NMOS 6502 instructions for the board. The compiler and the source
 text take up no space on the board. A program is a file ending in `.amico`.
 
 Amico is new. It was written for this project in 2026; it is not ASEL's
-software and was never part of the machine. What is planned for it is in
-[NextSession.md](../NextSession.md), item 13 under Outstanding.
+software and was never part of the machine. What was decided for it, and
+what is planned, is in [docs/amico-design.md](../docs/amico-design.md).
 
 ## Try the square table
 
