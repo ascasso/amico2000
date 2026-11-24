@@ -8,7 +8,8 @@
 // `stop` or a `break`. Given the same seed it makes the same program, so a failure can be
 // made again from its seed alone.
 //
-// What it leans on: nested `if`s with and without `else`, conditions of two
+// What it leans on: nested `if`s with and without `else`, chains of `else if`
+// with and without an `else` at their end, conditions of two
 // and three comparisons joined by `and` or by `or`, arms long enough to need a
 // long branch, `for` loops that count up and down, between numbers and
 // between constants, to the edges of a byte, one inside another, with their
@@ -77,7 +78,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
+    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -351,19 +352,30 @@ function generate(seed, { scans = false, long = false } = {}) {
                 lines.push(`${indent}if ${condition(assigned)}`);
                 const longArm = !made.longArm && long && chance(0.5);
                 if (longArm) made.longArm = true;
-                const then = block(indent + '    ', new Set(assigned), depth + 1,
-                    longArm ? between(24, 34) : between(0, depth < 4 ? 3 : 2), true);
-                let otherwise = { assigned: new Set(assigned), ends: false };
+                const arms = [block(indent + '    ', new Set(assigned), depth + 1,
+                    longArm ? between(24, 34) : between(0, depth < 4 ? 3 : 2), true)];
+                // One time in seven the `if` goes on to another condition,
+                // and now and then to a third. Their arms are short, or too
+                // few of the programs would fit the board.
+                const others = chance(0.14) ? (chance(0.3) ? 2 : 1) : 0;
+                if (others) made.chains++;
+                for (let other = 0; other < others; other++) {
+                    lines.push(`${indent}else if ${condition(assigned)}`);
+                    arms.push(block(indent + '    ', new Set(assigned), depth + 1, between(0, 2), false));
+                }
+                // With no `else`, the way past every condition brings what
+                // the `if` started with.
                 if (chance(0.45)) {
                     made.elseArms++;
                     lines.push(`${indent}else`);
-                    otherwise = block(indent + '    ', new Set(assigned), depth + 1, between(0, depth < 4 ? 3 : 2), true);
+                    arms.push(block(indent + '    ', new Set(assigned), depth + 1, between(0, depth < 4 ? 3 : 2), true));
+                } else {
+                    arms.push({ assigned: new Set(assigned), ends: false });
                 }
                 lines.push(`${indent}end`);
-                if (then.ends && otherwise.ends) return { assigned, ends: true };
-                if (then.ends) assigned = otherwise.assigned;
-                else if (otherwise.ends) assigned = then.assigned;
-                else assigned = new Set([...then.assigned].filter((name) => otherwise.assigned.has(name)));
+                const open = arms.filter((arm) => !arm.ends).map((arm) => arm.assigned);
+                if (!open.length) return { assigned, ends: true };
+                assigned = onEvery(open);
             } else {
                 assignment(indent, assigned);
             }

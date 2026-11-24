@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico has `else if`: an `if` can go on to try other conditions before its
+  `else` or its `end`, and one `end` closes the whole chain. The conditions
+  are tried in order and the statements under the first that holds are run.
+  It is the same bytes as an `if` inside the `else` of another, which is
+  what a program wrote until now, with one more `end` and one more margin
+  for every condition.
 - Amico joins comparisons into one condition: `if take >= 1 and take < 4`,
   `if key == keypad.run or key == keypad.reg`. With `and` every comparison
   has to hold and with `or` any one. They are tried in the order written

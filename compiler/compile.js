@@ -451,17 +451,38 @@ function compile(source) {
         const L = pieces(text);
         const first = L.term(0);
         const alone = (word) => L.length === 1 && first === word;
-        if (alone('else') || alone('end')) {
+        // `else if` is an `else` with a condition of its own. It leaves the
+        // `if` open, and one `end` closes the whole chain.
+        const elseIf = first === 'else' && L.term(1) === 'if';
+        if (alone('else') || alone('end') || elseIf) {
             const block = blocks.at(-1);
-            if (!block) fail('Unexpected ' + text);
-            if (text === 'else') {
-                if (block.kind !== 'if' || block.then) fail('Unexpected else');
-                block.then = { defined, reachable };
-                if (reachable) emit('JMP', 'abs', block.end);
+            if (!block) fail('Unexpected ' + (elseIf ? 'else' : text));
+            if (first === 'else') {
+                // After a plain `else` nothing is left for another to take.
+                if (block.kind !== 'if' || block.otherwise === null) fail('Unexpected else');
+                // The arm above is over. What it had assigned is what it
+                // brings to the `end`, if it gets there.
+                if (reachable) {
+                    block.arms.push(defined);
+                    emit('JMP', 'abs', block.end);
+                }
+                block.chained = true;
                 mark(block.otherwise);
                 defined = new Set(block.entry);
                 reachable = true;
-            } else {
+                // This is reached from the comparisons that failed, so
+                // nothing is known here, and a condition that follows starts
+                // from that. What the condition leaves is known to its arm.
+                forget();
+                if (elseIf) {
+                    block.otherwise = label();
+                    condition(L, 2, L.length, block.otherwise);
+                } else {
+                    block.otherwise = null;
+                }
+                return;
+            }
+            {
                 blocks.pop();
                 if (block.kind === 'loop') {
                     if (reachable) emit('JMP', 'abs', block.start);
@@ -497,12 +518,17 @@ function compile(source) {
                     reachable = out.length > 0;
                     if (reachable) defined = onEvery(out);
                 } else {
-                    const other = block.then || { defined: block.entry, reachable: true };
-                    mark(block.then ? block.end : block.otherwise);
+                    if (reachable) block.arms.push(defined);
+                    // With no plain `else`, a condition that fails comes
+                    // here with what the `if` started with.
+                    if (block.otherwise !== null) {
+                        mark(block.otherwise);
+                        block.arms.push(block.entry);
+                    }
+                    if (block.chained) mark(block.end);
                     // Only names assigned on every path reaching the join can be read.
-                    if (!reachable) defined = other.defined;
-                    else if (other.reachable) defined = new Set([...defined].filter(v => other.defined.has(v)));
-                    reachable ||= other.reachable;
+                    reachable = block.arms.length > 0;
+                    if (reachable) defined = onEvery(block.arms);
                 }
             }
             forget();
@@ -596,7 +622,7 @@ function compile(source) {
         } else if (isIf) {
             const otherwise = label();
             condition(L, 1, L.length, otherwise);
-            blocks.push({ kind: 'if', entry: new Set(defined), otherwise, end: label(), line });
+            blocks.push({ kind: 'if', entry: new Set(defined), otherwise, end: label(), arms: [], line });
         } else if (alone('stop')) {
             emit('JMP', 'abs', 0xfe22);
             reachable = false;

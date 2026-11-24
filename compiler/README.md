@@ -89,7 +89,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | --- | --- |
 | `left = 21` | Introduce or update a byte. Reading a named variable requires an assignment on every path reaching that read. |
 | `left = left - take` | Compute one binary operation per expression. The operators are `+`, `-`, `&`, `\|`, and `^`. Both operands are literals, constants, variables, display fields or named locations. |
-| `if left >= 10` | Compare bytes using `<`, `<=`, `>`, `>=`, `==`, or `!=`. The left side may be an operation, a read from a table or a row, or a key read; the right side is one value: a literal, a constant, a variable, a display field or a named location. Several comparisons may be joined by `and` or by `or`. An optional `else` starts the other arm. Close with `end`. See Conditions. |
+| `if left >= 10` | Compare bytes using `<`, `<=`, `>`, `>=`, `==`, or `!=`. The left side may be an operation, a read from a table or a row, or a key read; the right side is one value: a literal, a constant, a variable, a display field or a named location. Several comparisons may be joined by `and` or by `or`. `else if` tries another condition, and an optional `else` starts the last arm. Close with `end`. See Conditions. |
 | `loop` | Repeat the enclosed statements until a `break`, or for ever. Close with `end`. Blocks can nest. |
 | `for i in 0..5` | Repeat the enclosed statements once for each value from the first to the last, both included, with the name holding the value. Close with `end`. See Loops. |
 | `break` | Leave the `loop` or `for` the statement is in, and go on after its `end`. See Loops. |
@@ -140,6 +140,25 @@ brackets and no rule for which would come first: put the second question in
 an `if` of its own. `and` and `or` join comparisons; for the bits of a byte
 the operators are `&` and `|`. A condition joined by `and` compiles to
 exactly what the same comparisons cost as one `if` inside another.
+
+An `if` can go on to try other conditions, each with `else if`, before its
+`else` or its `end`:
+
+```
+if key < 10
+    display.data = key
+else if key == keypad.run
+    display.data = $aa
+else
+    display.data = $ee
+end
+```
+
+The conditions are tried in order. The statements under the first that holds
+are run, or those under `else` if none holds and there is an `else`, and the
+program goes on after the `end`. One `end` closes the whole. It is the same
+bytes as an `if` inside the `else` of another, without the second `end` and
+the deeper margin.
 
 ## Loops
 

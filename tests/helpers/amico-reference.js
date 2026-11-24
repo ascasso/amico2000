@@ -53,6 +53,16 @@ function tableBytes(indexName, last, formula, constants) {
     return bytes;
 }
 
+// A condition: one comparison, or several joined all by `and` or all by `or`.
+function conditionOf(written) {
+    const joined = written.split(/\s+(and|or)\s+/);
+    const tests = joined.filter((_, at) => at % 2 === 0).map((comparison) => {
+        const [, left, compare, right] = /^(.+?)\s*(>=|<=|==|!=|<|>)\s*(\S+)$/.exec(comparison);
+        return { left, compare, right };
+    });
+    return { tests, join: joined[1] || 'and' };
+}
+
 // Reads a program into its declarations and a tree of statements. It is as
 // strict as it needs to be for programs the compiler accepts, and no
 // stricter: what the compiler should refuse is another test's business.
@@ -96,14 +106,15 @@ function parse(source) {
             open.push(loop);
             into = loop.body;
         } else if ((match = /^if\s+(.+)$/.exec(line))) {
-            // One comparison, or several joined all by `and` or all by `or`.
-            const joined = match[1].split(/\s+(and|or)\s+/);
-            const tests = joined.filter((_, at) => at % 2 === 0).map((written) => {
-                const [, left, compare, right] = /^(.+?)\s*(>=|<=|==|!=|<|>)\s*(\S+)$/.exec(written);
-                return { left, compare, right };
-            });
-            const test = { kind: 'if', tests, join: joined[1] || 'and', then: [], otherwise: null };
+            const test = { kind: 'if', ...conditionOf(match[1]), then: [], otherwise: null };
             into.push(test);
+            open.push(test);
+            into = test.then;
+        } else if ((match = /^else\s+if\s+(.+)$/.exec(line))) {
+            // An `else` with a condition: what follows is an `if` inside
+            // this `else`, and the one `end` to come closes both.
+            const test = { kind: 'if', ...conditionOf(match[1]), then: [], otherwise: null, chained: true };
+            open[open.length - 1].otherwise = [test];
             open.push(test);
             into = test.then;
         } else if (line === 'else') {
@@ -111,7 +122,8 @@ function parse(source) {
             test.otherwise = [];
             into = test.otherwise;
         } else if (line === 'end') {
-            open.pop();
+            // One `end` closes a whole chain of `else if`.
+            while (open.pop().chained);
             const outer = open[open.length - 1];
             into = outer.kind === 'if' ? (outer.otherwise || outer.then) : outer.body;
         } else if (line === 'break' || line === 'next') {

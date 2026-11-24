@@ -1236,3 +1236,60 @@ test('comparisons joined by and or by or, tried in order and no further than it 
     // A name may have the letters of the two words in it.
     assert.ok(compile('band = 1\nore = 2\nif band == 1 and ore == 2\ndisplay.data = band\nend'));
 });
+
+test('else if tries another condition, and one end closes the chain', () => {
+    const bytes = (source) => [...compile(source).binary];
+    const fields = (source) => { const memory = finished(source); return [memory[0xfb], memory[0xfa], memory[0xf9]]; };
+    // The README's chain, and the nest it stands for: the same bytes.
+    const chain = 'key = display.low\nif key < 10\n    display.data = key\nelse if key == keypad.run\n    display.data = $aa\nelse\n    display.data = $ee\nend';
+    const nest = 'key = display.low\nif key < 10\n    display.data = key\nelse\n    if key == keypad.run\n        display.data = $aa\n    else\n        display.data = $ee\n    end\nend';
+    assert.deepEqual(bytes(chain), bytes(nest));
+    const shown = (key) => fields(chain.replace('display.low', String(key)))[2];
+    assert.deepEqual([shown(7), shown(0x13), shown(12)], [7, 0xaa, 0xee]);
+
+    // Four conditions and an else: the first that holds is the one taken,
+    // though a later one holds too. Each value's arm is noted in a row.
+    const which = finished('byte took[6] at $80\nfor i in 0..5\n    if i == 0\n        took[i] = 10\n    else if i == 1\n        took[i] = 11\n    else if i >= 4\n        took[i] = 14\n    else if i >= 3\n        took[i] = 13\n    else\n        took[i] = 12\n    end\nend');
+    assert.deepEqual([...which.slice(0x80, 0x86)], [10, 11, 12, 13, 14, 14]);
+    // With no else, a value that no condition takes is left as it was.
+    const none = finished('byte took[4] at $80\nfor i in 0..3\n    took[i] = 9\n    if i == 0\n        took[i] = 10\n    else if i == 2\n        took[i] = 12\n    end\nend');
+    assert.deepEqual([...none.slice(0x80, 0x84)], [10, 9, 12, 9]);
+    // A condition of a chain may be joined, like any other.
+    const joined = finished('byte took[6] at $80\nfor i in 0..5\n    if i == 0 or i == 5\n        took[i] = 1\n    else if i >= 2 and i < 4\n        took[i] = 2\n    else\n        took[i] = 3\n    end\nend');
+    assert.deepEqual([...joined.slice(0x80, 0x86)], [1, 3, 2, 2, 3, 1]);
+    // Inside a loop, an arm may leave it or go round.
+    assert.deepEqual(fields('display.low = 0\nsum = 0\nfor i in 0..9\n    if i == 2\n        next\n    else if i == 6\n        break\n    else\n        sum = sum + i\n    end\nend\ndisplay.high = sum\ndisplay.data = i'), [0 + 1 + 3 + 4 + 5, 0, 6]);
+
+    // Where an else if begins is reached from a comparison that failed,
+    // with that comparison's left side in A, whatever the arm above left
+    // there. Here the arm above ends with x in A, and x is what the next
+    // condition asks about.
+    assert.deepEqual(fields('byte p at $80\ndisplay.high = 0\ndisplay.low = 0\ndisplay.data = 0\nx = 5\nif display.low == 1\n    p = x\nelse if x == 5\n    display.data = 1\nend'), [0, 0, 1]);
+    // And what a condition joined by and leaves is known to its arm: the
+    // key read has turned Port A, so the next one does not turn it again.
+    const turned = compile('if display.low == 9\n    display.data = 0\nelse if display.low == 0 and keypad.read() == 5\n    k = keypad.read()\n    display.data = k\nend').assembly;
+    assert.equal(turned.split('STA $FD03').length - 1, 1);
+
+    // A name is assigned after the chain if every arm assigns it and there
+    // is an else; an arm that never reaches the end does not count.
+    assert.ok(compile('if display.low == 0\nx = 1\nelse if display.low == 1\nx = 2\nelse\nx = 3\nend\ndisplay.data = x'));
+    assert.ok(compile('if display.low == 0\nx = 1\nelse if display.low == 1\nstop\nelse\nx = 3\nend\ndisplay.data = x'));
+    for (const [source, error] of [
+        // No else: the way past both conditions has not assigned it.
+        ['if display.low == 0\nx = 1\nelse if display.low == 1\nx = 2\nend\ndisplay.data = x', /^Error: Line 6: Expected a byte literal, a constant or an assigned variable, got x/],
+        ['if display.low == 0\nx = 1\nelse if display.low == 1\ny = 2\nelse\nx = 3\nend\ndisplay.data = x', /^Error: Line 8: Expected a byte literal, a constant or an assigned variable, got x/],
+        // What an arm assigns is not assigned for the condition after it.
+        ['if display.low == 0\nx = 1\nelse if x == 1\nend', /^Error: Line 3: Expected a byte literal, a constant or an assigned variable, got x/],
+        ['if display.low == 0\nstop\nelse if display.low == 1\nstop\nelse\nstop\nend\ndisplay.data = 1', /^Error: Line 8: Unreachable statement/],
+        ['else if display.low == 0\nend', /^Error: Line 1: Unexpected else/],
+        ['loop\nelse if display.low == 0\nend', /^Error: Line 2: Unexpected else/],
+        ['if display.low == 0\nelse\nelse if display.low == 1\nend', /^Error: Line 3: Unexpected else/],
+        ['if display.low == 0\nelse\nelse\nend', /^Error: Line 3: Unexpected else/],
+        ['if display.low == 0\nelse if\nend', /^Error: Line 2: Expected an unsigned comparison/],
+        ['if display.low == 0\nelse if display.low\nend', /^Error: Line 2: Expected an unsigned comparison/],
+        ['if display.low == 0\nelse if display.low == 1 and\nend', /^Error: Line 2: and joins two comparisons, and one of them is missing/],
+        ['if display.low == 0\nelseif display.low == 1\nend', /^Error: Line 2: Unknown statement: elseif display.low == 1/],
+        ['if display.low == 0\nelse display.data = 1\nend', /^Error: Line 2: Unknown statement: else display.data = 1/],
+        ['if display.low == 0\nelse if display.low == 1', /^Error: Line 1: Missing end: this if is never closed/]
+    ]) assert.throws(() => compile(source), error, source);
+});

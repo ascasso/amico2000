@@ -99,26 +99,39 @@ function* statements(most, depth, made) {
     }
 }
 
-// The source the compiler is given. A read goes to a display field, and an
-// `if` tests one, so that nothing but the named variables is in question.
-// `ending` is how a 'stop' statement is written: the language has two
-// statements that nothing follows, `stop` and `display.hold()`.
-function sourceOf(body, ending, lines = [], indent = '') {
+// The source the compiler is given, and with it the line each statement is
+// on, which the oracle reports. A read goes to a display field, and an `if`
+// tests one, so that nothing but the named variables is in question.
+// `how.ending` is how a 'stop' statement is written: the language has two
+// statements that nothing follows, `stop` and `display.hold()`. With
+// `how.chains`, an `else` that holds one `if` and nothing more is written as
+// `else if`, which is the same thing with one `end` fewer.
+function sourceOf(body, how, lines = [], indent = '') {
     for (const statement of body) {
         if (statement[0] === 'assign') lines.push(`${indent}${statement[1]} = 1`);
         else if (statement[0] === 'read') lines.push(`${indent}display.data = ${statement[1]}`);
-        else if (statement[0] === 'stop') lines.push(indent + ending);
+        else if (statement[0] === 'stop') lines.push(indent + how.ending);
         else if (statement[0] === 'break' || statement[0] === 'next') lines.push(indent + statement[0]);
-        else if (statement[0] === 'loop' || statement[0] === 'for') {
-            lines.push(indent + (statement[0] === 'loop' ? 'loop' : `for ${COUNT} in 0..1`));
-            sourceOf(statement[1], ending, lines, indent + '    ');
+        else if (statement[0] === 'loop' || statement[0] === 'for') lines.push(indent + (statement[0] === 'loop' ? 'loop' : `for ${COUNT} in 0..1`));
+        else lines.push(`${indent}if display.low == 0`);
+        statement.line = lines.length;
+        if (statement[0] === 'loop' || statement[0] === 'for') {
+            sourceOf(statement[1], how, lines, indent + '    ');
             lines.push(`${indent}end`);
-        } else {
-            lines.push(`${indent}if display.low == 0`);
-            sourceOf(statement[1], ending, lines, indent + '    ');
-            if (statement[2]) {
-                lines.push(`${indent}else`);
-                sourceOf(statement[2], ending, lines, indent + '    ');
+        } else if (statement[0] === 'if') {
+            for (let test = statement; ;) {
+                sourceOf(test[1], how, lines, indent + '    ');
+                const other = test[2];
+                if (!(how.chains && other && other.length === 1 && other[0][0] === 'if')) {
+                    if (other) {
+                        lines.push(`${indent}else`);
+                        sourceOf(other, how, lines, indent + '    ');
+                    }
+                    break;
+                }
+                test = other[0];
+                lines.push(`${indent}else if display.low == 0`);
+                test.line = lines.length;
             }
             lines.push(`${indent}end`);
         }
@@ -134,32 +147,24 @@ function oracle(body, names) {
     const nodes = [];
     const AFTER = -1; // where control goes when it runs off the program's end
 
-    // Give each statement a node and its line, in source order. An `else`
-    // and each `end` take a line and no node. A `for` is two nodes: the
-    // statement, which starts the count and so assigns its name, and the
-    // step at its foot, which is no statement and has no line.
-    let line = 0;
+    // Give each statement a node, in source order, with the line the source
+    // has it on. A `for` is two nodes: the statement, which starts the count
+    // and so assigns its name, and the step at its foot, which is no
+    // statement and has no line.
     (function number(list, counting) {
         for (const statement of list) {
-            line++;
             statement.node = nodes.length;
-            nodes.push({ kind: statement[0], name: statement[0] === 'for' ? COUNT : statement[1], line, next: [] });
+            nodes.push({ kind: statement[0], name: statement[0] === 'for' ? COUNT : statement[1], line: statement.line, next: [] });
             if (statement[0] === 'for') {
                 nodes[statement.node].twice = counting;
                 statement.step = nodes.length;
                 nodes.push({ kind: 'step', next: [] });
                 number(statement[1], true);
-                line++;
             } else if (statement[0] === 'loop') {
                 number(statement[1], counting);
-                line++;
             } else if (statement[0] === 'if') {
                 number(statement[1], counting);
-                if (statement[2]) {
-                    line++;
-                    number(statement[2], counting);
-                }
-                line++;
+                if (statement[2]) number(statement[2], counting);
             }
         }
     })(body, false);
@@ -243,13 +248,15 @@ function oracle(body, names) {
 // Tries every program of up to `most` statements made of these things, and
 // returns how many there were, how many are valid, and the first few on
 // which compiler and oracle part.
-function tryAll(most, depth, made, ending = 'stop') {
-    const result = { programs: 0, accepted: 0, disagreements: [] };
+function tryAll(most, depth, made, how = {}) {
+    const result = { programs: 0, accepted: 0, chains: 0, disagreements: [] };
     for (let total = 1; total <= most; total++) {
         for (const body of bodies(total, depth, made)) {
             result.programs++;
+            // The source first: writing it gives each statement its line.
+            const source = sourceOf(body, { ending: 'stop', ...how }).join('\n');
             const expected = oracle(body, made.names);
-            const source = sourceOf(body, ending).join('\n');
+            if (source.includes('else if')) result.chains++;
             let said = 'accepted';
             try {
                 compile(source);
@@ -287,7 +294,7 @@ test('two names: an assignment to one does not stand for the other', () => {
 // the displays for ever, so for these two rules it is the same thing: a
 // statement that nothing follows.
 test('display.hold() ends a path as stop does', () => {
-    const result = tryAll(STATEMENTS - 1, 3, { names: ['x'] }, 'display.hold()');
+    const result = tryAll(STATEMENTS - 1, 3, { names: ['x'] }, { ending: 'display.hold()' });
     assert.deepEqual(result.disagreements, []);
     if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [3464, 854]);
 });
@@ -310,4 +317,19 @@ test('break and next: what follows a loop is what its ways out lead to', () => {
     const result = tryAll(STATEMENTS, 3, { names: ['x'], counts: true, jumps: true });
     assert.deepEqual(result.disagreements, []);
     if (STATEMENTS === 5) assert.deepEqual([result.programs, result.accepted], [457408, 36545]);
+});
+
+// The same programs again, with every `else` that holds one `if` and nothing
+// more written as `else if`. It is the same nest, closed by one `end`, so the
+// same programs are valid, and each refusal is at the line the shorter source
+// has the statement on.
+test('else if: a chain is the nest it stands for', () => {
+    const plain = tryAll(STATEMENTS, 3, { names: ['x'] }, { chains: true });
+    assert.deepEqual(plain.disagreements, []);
+    // How many of them have a chain is counted, so that this cannot pass by
+    // having written none.
+    if (STATEMENTS === 5) assert.deepEqual([plain.programs, plain.accepted, plain.chains], [35662, 5974, 398]);
+    const loops = tryAll(STATEMENTS - 1, 3, { names: ['x'], counts: true, jumps: true }, { chains: true });
+    assert.deepEqual(loops.disagreements, []);
+    if (STATEMENTS === 5) assert.deepEqual([loops.programs, loops.accepted, loops.chains], [27007, 3569, 41]);
 });
