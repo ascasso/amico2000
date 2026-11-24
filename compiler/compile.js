@@ -17,6 +17,12 @@ const KEY_CALL = /^keypad\.(read|press)\s*\(\s*\)$/;
 // hex digits, and for no key at all. A hex key's code is its own digit.
 const KEY_CODES = [['keypad.ad', 0x10], ['keypad.da', 0x11], ['keypad.inc', 0x12],
     ['keypad.run', 0x13], ['keypad.reg', 0x14], ['keypad.none', 0x15]];
+// A term of a table's declaration: a number or a name, and a name may have
+// dots in it, as keypad.none has. A dot needs something on both its sides,
+// so that the two dots of the range are never taken into a term.
+const TERM = '[\\w$]+(?:\\.[\\w$]+)*';
+const TABLE = new RegExp('^const\\s+(\\w+)\\s*=\\s*table\\s+byte\\s*\\[\\s*(\\w+)\\s+in\\s+(' + TERM +
+    ')\\s*\\.\\.\\s*(' + TERM + ')\\s*\\]\\s*=\\s*(' + TERM + ')(?:\\s*([*+-])\\s*(' + TERM + '))?$');
 const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
@@ -66,7 +72,7 @@ function compile(source) {
         const value = number(text);
         if (value !== null) return ['imm', value];
         if (FIELDS.has(text)) return ['zp', FIELDS.get(text)];
-        if (!defined.has(text)) fail('Expected a byte literal or an assigned variable, got ' + text);
+        if (!defined.has(text)) fail('Expected a byte literal, a constant or an assigned variable, got ' + text);
         read.add(text);
         return ['zp', variable(text)];
     }
@@ -133,24 +139,24 @@ function compile(source) {
         if (!match) fail('Expected const name = byte, or const name = table byte [n in 0..last] = formula');
         const [, name, written] = match;
         if (constants.has(name)) fail('Constant declared twice: ' + name);
+        if (tables.has(name)) fail(name + ' is already a table');
         variable(name);
         const value = number(written);
         if (value === null) fail('A constant is a byte literal or another constant, not ' + written);
         constants.set(name, value);
     }
     function declareTable(text) {
-        // A term may have a dot in it: the key names are constants like any
-        // other, and a constant stands wherever a literal may.
-        const match = /^const\s+(\w+)\s*=\s*table\s+byte\s*\[\s*(\w+)\s+in\s+([\w.$]+?)\s*\.\.\s*([\w.$]+)\s*\]\s*=\s*([\w.$]+)(?:\s*([*+-])\s*([\w.$]+))?$/.exec(text);
+        const match = TABLE.exec(text);
         if (!match) fail('Expected const name = table byte [n in 0..last] = formula');
         const [, name, index, first, limit, lhs, op, rhs] = match;
         // Zero however it is written: $0 and 00 are the byte the README means.
         if (number(first) !== 0) fail("A table's index starts at 0, not at " + first);
         if (tables.has(name)) fail('Table declared twice: ' + name);
+        if (constants.has(name)) fail(name + ' is already a constant');
         variable(name);
         if (!NAME.test(index) || RESERVED.has(index)) fail('Invalid table index name: ' + index);
         const last = number(limit);
-        if (last === null) fail('Expected a byte literal for the last table index');
+        if (last === null) fail('Expected a byte literal or a constant for the last table index, got ' + limit);
         function term(token, i) {
             if (token === index) return i;
             const value = number(token);

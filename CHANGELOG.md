@@ -805,6 +805,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed four of `amicoc`'s messages about tables and constants, found by a
+  review of the constants. A third dot in a table's range, `0... 3`, was
+  "A table's index starts at 0, not at 0.": a term of the declaration could
+  end in a dot, and now a dot needs something on both sides. A constant
+  and a table of one name said the name was "not a variable"; they say
+  which of the two already has it. A table's last index that is neither a
+  number nor a constant is shown, and the message, like the one for an
+  operand, now allows for constants.
 - Fixed a named constant costing two bytes more than the number it stands
   for. The compiler skips a load when the accumulator already holds the
   value, and knew what it held by how the value had been written, so

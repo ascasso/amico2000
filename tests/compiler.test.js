@@ -414,8 +414,16 @@ test('a constant stands wherever a literal may, and the keys that are not digits
         ['const byte = 1\ndisplay.data = 1', /^Error: Line 1: byte is a word of the language/],
         ['const a = 1 + 2\ndisplay.data = a', /^Error: Line 1: Expected const name = byte, or const name = table/],
         ['const t = table\ndisplay.data = 1', /^Error: Line 1: Expected const name = table byte/],
-        [table + 'const t = 4\ndisplay.data = 1', /^Error: Line 2: t is a table/],
-        ['const t = 4\n' + table + 'display.data = 1', /^Error: Line 2: t is a constant/]
+        // A name taken twice is told what has it, not that it is no variable.
+        [table + 'const t = 4\ndisplay.data = 1', /^Error: Line 2: t is already a table$/],
+        ['const t = 4\n' + table + 'display.data = 1', /^Error: Line 2: t is already a constant$/],
+        // A last index that is neither a number nor a constant is shown, and constants are allowed for.
+        ['const t = table byte [n in 0..keypad.non] = n\nstop', /^Error: Line 1: Expected a byte literal or a constant for the last table index, got keypad.non$/],
+        ['x = y', /^Error: Line 1: Expected a byte literal, a constant or an assigned variable, got y$/],
+        // The dots of the range are the range's: a third one is not part of a term.
+        ['const t = table byte [n in 0... 3] = n\nstop', /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula$/],
+        ['const t = table byte [n in 0..3.] = n\nstop', /^Error: Line 1: Expected const name = table byte/],
+        ['const t = table byte [n in 0..3] = n.\nstop', /^Error: Line 1: Expected const name = table byte/]
     ]) assert.throws(() => compile(source), error);
     // A constant nobody uses is no fault, and is not a name that was never read.
     assert.deepEqual(compile('const spare = 9\ndisplay.data = 1').warnings, []);
