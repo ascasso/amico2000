@@ -855,6 +855,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Fixed the README and two of `amicoc`'s messages listing what may stand as
+  an operand, or on the right of a comparison, as "literals, variables or
+  display fields". A constant and a named location may too, and the
+  README's own sum uses one. The messages now say "a value".
 - Fixed `r [0]`, with a space before the index, being taken as a row's
   byte on the left of `=` and refused on the right of one, and refused for
   a table. It is taken in both places now.

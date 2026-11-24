@@ -211,11 +211,11 @@ test('a refusal names the mistake that was made', () => {
     const table = 'const t = table byte [n in 0..3] = n\n';
     for (const [source, error] of [
         // The operator is one of the four; it is the right side that is too much.
-        ['a = 1\nb = 1\nif a == b + 1\nend', /^Error: Line 3: The right side of a comparison is one literal/],
+        ['a = 1\nb = 1\nif a == b + 1\nend', /^Error: Line 3: The right side of a comparison is a single value; write an operation, a read by index or a key read on the left/],
         ['if display.low == keypad.read()\nend', /^Error: Line 1: The right side of a comparison/],
         [table + 'if display.low < t[1]\nend', /^Error: Line 2: The right side of a comparison/],
         // Nothing on the right at all.
-        ['if 0 ==', /^Error: Line 1: A comparison needs a literal, variable or display field on its right/],
+        ['if 0 ==', /^Error: Line 1: A comparison needs a value on its right/],
         ['a = 1\nif a <', /^Error: Line 2: A comparison needs/],
         // Here it is the operator, also when a `<` can be found inside it.
         ['a = 1\nif a <= 2\nend', /^Error: Line 2: Expected an unsigned comparison using <, >=, == or !=/],
@@ -920,4 +920,20 @@ test('the edges of where a name may be: $1F and $80 yes, $20 and $7F no, and $FF
     refused('byte r[3] at $fffe', /^Error: Line 1: r would run past \$FFFF/);
     accepted('byte r[256] at $ff00');
     refused('byte r[256] at $ff01', /^Error: Line 1: r would run past \$FFFF/);
+});
+
+test('a named location is a value like any other: an operand, and the right side of a comparison', () => {
+    // The README's rows for an operation and for a comparison say so.
+    const program = compile('byte limit at $80\nbyte seen at $0400\nx = seen - limit\nif x >= limit\nseen = x | limit\nend\nif limit < seen\ndisplay.data = seen\nend');
+    const m = bootedMachine();
+    m.loadProgram(program.binary, program.origin);
+    m.cpu.memory[0x80] = 3;
+    m.cpu.memory[0x0400] = 10;
+    m.cpu.PC = program.origin;
+    while (m.cpu.PC !== 0xfe22) m.cpu.step();
+    assert.equal(m.cpu.memory[0x0400], 7);  // 10 - 3 is 7, 7 >= 3, and 7 | 3 is 7
+    assert.equal(m.cpu.memory[0xf9], 7);    // 3 < 7
+    const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
+    assert.match(readme, /Both operands are literals, constants, variables, display fields or named\s+locations/);
+    assert.match(readme, /the right side is one value: a literal, a constant, a variable, a display field or a named location/);
 });

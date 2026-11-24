@@ -377,9 +377,9 @@ function compile(source) {
                 // is wrong.
                 const loose = /^if\s+(.+?)\s*(>=|==|!=|<(?!=))\s*(.*)$/.exec(text);
                 if (loose && !/[<>=!]/.test(loose[1])) {
-                    if (!loose[3]) fail('A comparison needs a literal, variable or display field on its right');
+                    if (!loose[3]) fail('A comparison needs a value on its right');
                     if (!/[<>=!]/.test(loose[3])) {
-                        fail('The right side of a comparison is one literal, variable or display field; write an operation, a table read or a key read on the left');
+                        fail('The right side of a comparison is a single value; write an operation, a read by index or a key read on the left');
                     }
                 }
                 fail('Expected an unsigned comparison using <, >=, == or !=');
