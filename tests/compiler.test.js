@@ -1553,10 +1553,13 @@ test('inside decimal, + and - count in two decimal digits to a byte', () => {
         assert.deepEqual([called.cpu.memory[0x10] & 8, called.cpu.memory[0xfa], called.cpu.memory[0xf9]], [0, 0x10, 0x0a]);
     }
 
-    // What each costs, as the README has it: two bytes for a block, two more for a key read or a call in it.
+    // What each costs, as the README has it: two bytes for a block, two more for a key read in it,
+    // and one more for a call, which is CLD, JSR, SED where it was JSR, CLD.
     const plain = 'k = keypad.read()\ndisplay.data = k + 1';
     assert.equal(bytes('decimal\n' + plain + '\nend').length, bytes(plain).length + 4);
-    assert.equal(bytes('decimal\ncall $0300\nend').length, bytes('call $0300').length + 3); // CLD, JSR, SED where it was JSR, CLD.
+    assert.equal(bytes('decimal\ncall $0300\nend').length, bytes('call $0300').length + 3);
+    // An operator on bits is the instruction it is anywhere, with nothing round it.
+    assert.deepEqual(bytes('decimal\ndisplay.data = display.low & 15\nend'), [0xd8, 0xf8, 0xa5, 0xfa, 0x29, 0x0f, 0x85, 0xf9, 0xd8, 0x4c, 0x22, 0xfe]);
 
     // A number that is added or subtracted there has to be two decimal digits itself.
     const digitsOnly = (written, byte) => new RegExp('^Error: Line \\d: ' + written.replace('$', '\\$') + ' is the byte \\$' + byte + ', which is not two decimal digits: inside decimal, ten is written \\$10$');
@@ -1674,4 +1677,68 @@ test('the clock example keeps a second to a second, and turns the minute, the ho
     const midnight = run(0x23, 0x59, 0x57, 3);
     assert.deepEqual(midnight.shown, [[0x23, 0x59, 0x58], [0x23, 0x59, 0x59], [0x00, 0x00, 0x00], [0x00, 0x00, 0x01]]);
     midnight.took.forEach((cycles, second) => assert.ok(Math.abs(cycles - 1e6) <= 50, `second ${second} took ${cycles} cycles`));
+});
+
+// Two reviewers planted defects that the tests above let through, and all
+// were of one kind: something the compiler does everywhere, made to depend on
+// whether it is inside a `decimal` block. A key read is called in binary
+// wherever it stands in a line, and what the compiler forgets after a routine
+// or where two paths meet, it forgets inside a block too.
+test('a decimal block changes the sums and nothing the compiler knows or forgets', () => {
+    const listed = (source, what) => compile(source).assembly.split('\n').filter((line) => new RegExp('^    ' + what + ' ').test(line)).length;
+    const after = (source, { key, routine, presses } = {}) => {
+        const m = rawRun(source);
+        if (routine) m.cpu.memory.set(routine, 0x0300);
+        if (key) m.keyDown(key);
+        if (presses) {
+            tick(m);
+            for (const pressed of presses) press(m, pressed);
+            return m.cpu.memory;
+        }
+        for (let steps = 0; m.cpu.PC !== 0xfe22; steps++) {
+            assert.ok(steps < 2e6, 'the program did not come back to the monitor:\n' + source);
+            m.cpu.step();
+        }
+        return m.cpu.memory;
+    };
+
+    // The key routine is called in binary on the left of a comparison, and into a named byte and into
+    // one byte of a row, as it is into a variable: F is $0F there, and no key $15.
+    const asked = 'display.data = 0\ndecimal\n    if keypad.read() == $0f\n        display.data = 1\n    end\nend';
+    assert.equal(after(asked, { key: 'f' })[0xf9], 1);
+    assert.equal(after(asked)[0xf9], 0);
+    assert.equal(after(asked.replace('$0f', '$15'))[0xf9], 1);
+    for (const key of ['f', 'a', 'Enter']) {
+        const code = { f: 0x0f, a: 0x0a, Enter: 0x13 }[key];
+        assert.equal(after('byte k at $10\ndecimal\n    k = keypad.read()\nend', { key })[0x10], code);
+        assert.equal(after('byte r[2] at $10\ni = 1\ndecimal\n    r[1] = keypad.read()\n    r[i] = keypad.read()\nend', { key })[0x11], code);
+    }
+    // And keypad.press() on the left of a comparison: A is the digit A, and what the helper brings back
+    // is not taken for a number the compiler knows.
+    const waited = 'display.data = $ee\ndecimal\n    loop\n        if keypad.press() == $0a\n            display.data = 0\n            display.low = display.low + 1\n        end\n    end\nend';
+    let memory = after(waited, { presses: ['a', '9', 'a', '1', '0', 'a'] });
+    assert.deepEqual([memory[0xfa], memory[0xf9]], [3, 0]);
+
+    // After a routine the accumulator is not what it was, inside a block as outside: each of these reads,
+    // after the routine, the name that was in it before.
+    assert.equal(after('x = 5\ndecimal\n    call $0300\n    y = x\nend\ndisplay.data = y', { routine: [0xa9, 0x77, 0x60] })[0xf9], 5);
+    assert.equal(after('x = 5\ndecimal\n    if keypad.read() != $99\n        display.data = x\n    end\nend')[0xf9], 5);
+    assert.equal(after('x = 5\ndecimal\n    display.show()\n    display.data = x\nend')[0xf9], 5);
+    assert.equal(after('x = 5\ndecimal\n    display.scan()\n    display.data = x\nend')[0xf9], 5);
+    // Nor where an else begins, which is reached from the comparison and not from the arm above it.
+    assert.equal(after('x = 5\ndisplay.low = 3\ndecimal\n    if display.low == 0\n        x = 7\n    else\n        display.data = x\n    end\nend')[0xf9], 5);
+    assert.equal(after('x = 5\ndisplay.low = 3\ndecimal\n    if display.low == 0\n        x = 7\n    else if display.low == 3\n        display.data = x\n    end\nend')[0xf9], 5);
+
+    // Which way Port A faces is known across the head of a block and across its end, since neither
+    // touches the 8255: a scan on one side spares the key read on the other its mode word.
+    const modeWords = (source) => listed(source, 'STA \\$FD03');
+    assert.equal(modeWords('display.scan()\ndecimal\n    k = keypad.read()\n    display.data = k\nend'), 0);
+    assert.equal(modeWords('decimal\n    display.scan()\nend\nk = keypad.read()\ndisplay.data = k'), 0);
+    assert.equal(modeWords('decimal\n    display.scan()\n    k = keypad.read()\n    display.data = k\nend'), 0);
+    assert.equal(modeWords('k = keypad.read()\ndecimal\n    j = keypad.read()\n    display.data = k ^ j\nend\ni = keypad.read()\ndisplay.low = i'), 1);
+    // A call in a block leaves it unknown, as a call anywhere does, and display.show() leaves it an output.
+    assert.equal(modeWords('display.scan()\ndecimal\n    call $0300\n    k = keypad.read()\n    display.data = k\nend'), 1);
+    assert.equal(modeWords('display.scan()\ndecimal\n    display.show()\n    k = keypad.read()\n    display.data = k\nend'), 1);
+    // On the board: the routine turns Port A to an output, and the key is read all the same.
+    assert.equal(after('display.scan()\ndecimal\n    call $0300\n    display.data = keypad.read()\nend', { key: 'f', routine: [0xa9, 0x89, 0x8d, 0x03, 0xfd, 0x60] })[0xf9], 0x0f);
 });

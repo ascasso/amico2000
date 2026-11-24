@@ -25,6 +25,8 @@
 // that never hold anything else, with `if`s, loops and the other operators
 // among them, in and under loops, left by their `end` and by a `break` or a
 // `next` to a loop outside, and followed by sums that have to be binary again.
+// The differential test counts each of those from the source it is given, and
+// holds a floor under it: this file's own counts are not taken on trust.
 //
 // What it does not make, and what covers that instead:
 // - programs the compiler should refuse: tests/compiler-assignment.test.js

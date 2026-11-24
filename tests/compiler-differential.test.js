@@ -121,12 +121,47 @@ function compare(source, seed) {
     return differences.length ? { wrong: differences.join('; ') } : null;
 }
 
+// What a program has of `decimal` blocks, read off its source and not taken
+// from the generator's own word, so that a generator that stopped making one
+// of these, or miscounted it, is noticed: blocks, sums in a block, those with
+// `-`, those on the left of a comparison, loops inside a block, a `break` and
+// a `next` that leave a block for a loop outside it, one that stays inside,
+// and a `+` or a `-` after a block has ended, which has to be binary again.
+function decimalFacts(source) {
+    const facts = { blocks: 0, sums: 0, minus: 0, inConditions: 0, loopsInside: 0, breaksOut: 0, nextsOut: 0, jumpsInside: 0, binaryAfter: 0 };
+    const open = [];
+    for (const raw of source.split('\n')) {
+        const line = raw.trim();
+        if (!line || /^(const|byte) /.test(line)) continue;
+        const inside = open.includes('decimal');
+        if (line === 'end') open.pop();
+        else if (line === 'decimal') { open.push('decimal'); facts.blocks++; }
+        else if (line === 'loop' || /^for /.test(line)) { open.push('loop'); if (inside) facts.loopsInside++; }
+        else if (line === 'break' || line === 'next') {
+            const out = open.lastIndexOf('loop') < open.indexOf('decimal');
+            if (out) facts[line === 'break' ? 'breaksOut' : 'nextsOut']++;
+            else if (inside) facts.jumpsInside++;
+        }
+        const asks = /^(else )?if /.test(line);
+        if (/^if /.test(line)) open.push('if');
+        // An operator stands between two operands: after a letter, a digit or
+        // a bracket, and never first in what is assigned or compared.
+        const sum = /[\w\])]\s*([+-])\s*[\w$]/.exec(asks ? line : line.slice(line.indexOf('=') + 1));
+        if (sum && inside) {
+            facts.sums++;
+            if (sum[1] === '-') facts.minus++;
+            if (asks) facts.inConditions++;
+        } else if (sum && facts.blocks) facts.binaryAfter++;
+    }
+    return facts;
+}
+
 function failure(seed, source, wrong) {
     return `seed ${seed}: ${wrong}\n${source}`;
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0, decimals: 0, sums: 0, leftDecimal: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0, decimals: 0, twoBlocks: 0, sums: 0, minus: 0, inConditions: 0, loopsInside: 0, breaksOut: 0, nextsOut: 0, jumpsInside: 0, binaryAfter: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -150,9 +185,12 @@ test('random programs compute on the board what the reference interpreter comput
         if (made.writtenTables) seen.written++;
         if (made.places) seen.places++;
         if (made.rowUses) seen.rows++;
-        if (made.decimals) seen.decimals++;
-        if (made.sums) seen.sums++;
-        if (made.leftDecimal) seen.leftDecimal++;
+        const facts = decimalFacts(source);
+        // The generator's own counts are held to the source's.
+        assert.deepEqual([made.decimals, made.leftDecimal], [facts.blocks, facts.breaksOut + facts.nextsOut], failure(seed, source, 'the generator miscounts its blocks'));
+        if (facts.blocks) seen.decimals++;
+        if (facts.blocks > 1) seen.twoBlocks++;
+        for (const what of ['sums', 'minus', 'inConditions', 'loopsInside', 'breaksOut', 'nextsOut', 'jumpsInside', 'binaryAfter']) if (facts[what]) seen[what]++;
     }
     // To measure the shares again after a change to the generator.
     if (process.env.AMICO_SHARES) {
@@ -170,8 +208,12 @@ test('random programs compute on the board what the reference interpreter comput
     //   20% a next                     50% blocks four deep
     //   54% an and or an or            63% an else
     //   36% an else if                 50% a table read
-    //   54% a decimal block            46% a sum in decimal
-    //   18% a break or a next that leaves a decimal block
+    //   54% a decimal block            47% a sum in decimal
+    //   25% two blocks or more         38% a - in decimal
+    //   23% a loop inside a block      10% a sum in decimal in a condition
+    //   15% a break that leaves a block, 6% a next that does, 12% a break or
+    //       a next that stays inside one
+    //   40% a + or a - after a block has ended, which has to be binary
     // The floors are about half of each: there to notice a collapse, not a
     // drift. AMICO_SHARES=1 prints the shares.
     const share = (count) => count / seen.ran;
@@ -192,7 +234,13 @@ test('random programs compute on the board what the reference interpreter comput
     assert.ok(share(seen.rows) > 0.19, `a row of bytes in only ${seen.rows} of ${seen.ran}`);
     assert.ok(share(seen.decimals) > 0.27, `a decimal block in only ${seen.decimals} of ${seen.ran}`);
     assert.ok(share(seen.sums) > 0.23, `a sum in decimal in only ${seen.sums} of ${seen.ran}`);
-    assert.ok(share(seen.leftDecimal) > 0.09, `a jump out of a decimal block in only ${seen.leftDecimal} of ${seen.ran}`);
+    // What a block has in it, each counted from the source by decimalFacts().
+    for (const [what, floor, name] of [['twoBlocks', 0.12, 'a second decimal block'], ['minus', 0.18, 'a - in decimal'],
+        ['inConditions', 0.05, 'a sum in decimal on the left of a comparison'], ['loopsInside', 0.11, 'a loop inside a decimal block'],
+        ['breaksOut', 0.07, 'a break that leaves a decimal block'], ['nextsOut', 0.03, 'a next that leaves a decimal block'],
+        ['jumpsInside', 0.06, 'a break or a next that stays inside a decimal block'], ['binaryAfter', 0.20, 'a + or a - after a decimal block']]) {
+        assert.ok(share(seen[what]) > floor, `${name} in only ${seen[what]} of ${seen.ran}`);
+    }
 });
 
 test('display.scan() and display.show() among the statements change nothing a program can see', () => {
@@ -398,4 +446,21 @@ test('the new branches cross statements too long for a branch to reach over', ()
             assert.equal(result, null, result && `${name}: ${result.wrong}`);
         }
     }
+});
+
+// The interpreter refuses a sum in decimal of a byte that is not two decimal
+// digits, which the language leaves to the 6502 and the emulator is known
+// not to reproduce. Every random program above ran without meeting that
+// refusal; this shows that it is there to be met, and that the same sums are
+// taken where nothing is added in decimal.
+test('the interpreter refuses a sum in decimal that the language does not define', () => {
+    const memory = new Uint8Array(RAM);
+    for (const sum of ['x + 1', '1 + x', 'x - 1', '$99 - x']) {
+        for (const x of ['10', '$a0', '$1f', '255']) {
+            const source = `x = ${x}\ndecimal\n    y = ${sum}\nend\n`;
+            assert.throws(() => reference.run(source, memory), /not two decimal digits/, source);
+            assert.ok(reference.run(source.replace('decimal', 'if x == x'), memory), source);
+        }
+    }
+    assert.equal(reference.run('x = $59\ndecimal\n    y = x + 1\n    z = x & $0f\n    w = z | $a0\nend\n', memory).variables.get('y'), 0x60);
 });
