@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 293
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 295
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -85,7 +85,9 @@ below, each marked as coming from it.
   names for memory locations and rows of bytes, and calls, so that it now
   reaches the whole board; then `for`, `break` and `next`, and conditions
   with `>`, `<=`, `and`, `or` and `else if`; then a `decimal` block, and
-  with it the 1979 clock as an example. Item 13 has what the owner settled,
+  with it the 1979 clock as an example; then `table segments "CIAO"`, a
+  table made from a text in the manual's own alphabet for the displays,
+  and a text that slides across them. Item 13 has what the owner settled,
   what is built and what is next.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
   which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
@@ -108,7 +110,9 @@ below, each marked as coming from it.
 
 In rough priority order. None of it is started, apart from item 3, which is
 done but for the ends listed there. Item 13 is outside the order: it arrived
-on 2026-11-23 and its place is the owner's to give.
+on 2026-11-23 and its place is the owner's to give. Item 14 is a fault of
+the emulator's displays found the same day, and wants mending before the
+sliding text of item 1 is put on the shelf.
 
 1. **Give the machine its software: a shelf of programs and a guide on
    screen.** Agreed with the owner on 2026-11-22 as the next piece of work.
@@ -158,9 +162,28 @@ on 2026-11-23 and its place is the owner's to give.
      which letters seven segments cannot make, translates the two
      instructions by hand, keys everything in and runs it. The manual gives
      codes for A, S, E and L only on that page, and says the way to control
-     single segments is explained in the hardware part of its next chapter;
-     look there before drawing letters of our own. A Z can only be given
-     the segments of a 2, and the guide should say so.
+     single segments is explained in the hardware part of its next chapter.
+     **It is there, and it is a whole alphabet**, found on 2026-11-23:
+     Tabella 18 on PDF page 80, "Esempio di alfabeto per display a sette
+     segmenti e dati relativi per generare quel carattere", beside Fig. 58,
+     which draws which bit is which segment. Read it off the scan and not
+     off the extracted text, which has three of its bytes wrong.
+     - It has the ten digits, the dash, the dark digit `00`, and twenty
+       letters, each printed in the case its shape has:
+       A b C d E F G H I J L n o P q r S t U Y. `compiler/README.md` has
+       them with their bytes, under Words on the displays, and a test holds
+       that list to the page as transcribed.
+     - It has no K, M, V, W, X or Z. So the guide's "which letters seven
+       segments cannot make" has the manual's own answer, and the machine
+       cannot spell AMICO in it. A Z can be given the segments of a 2, but
+       that is a letter of our own, and the guide should say so.
+     - It prints most bytes with bit 7 set, `F7` for A where page 68 has
+       `77`, and says "il bit 7 non viene utilizzato". The monitor's table
+       of hex digits at `$FFEA` has it set on all sixteen, so the two
+       tables agree on those digits but for bit 7 of b and d. That a set
+       bit 7 changes nothing on a board is the manual's word, not tried.
+     - Its G is `BD`, the capital the owner recognised, and its Y is `EE`,
+       the shape the owner remembers standing for a Z (the next program).
    - **Second program: text sliding across the displays**, a reconstruction.
      The owner remembers writing one that slid a name of two words, thirteen
      characters, across the six displays, and is fairly sure that it slid
@@ -169,7 +192,11 @@ on 2026-11-23 and its place is the owner's to give.
      reconstruction. Whatever waits between steps has to keep calling
      `$FF7E`: nothing else keeps the displays alight, and an idle delay loop
      darkens them, on the board as in the emulator. Two things about its
-     letters, from the owner on 2026-11-22. The Z in the name was shown as a
+     letters, from the owner on 2026-11-22. (Amico has a sliding text of
+     its own since 2026-11-23, `compiler/examples/slide.amico`, which is
+     not this reconstruction: it is compiled, not written by hand, and its
+     text is in the manual's alphabet. Writing it showed item 14, which
+     spoils any sliding text on the emulated displays until it is mended.) The Z in the name was shown as a
      y: of that the owner is certain, without remembering why, since the
      segments of a 2 would have served. The rebuilt program should show a Z
      as a y too, as its one quirk, unless the owner says otherwise. And its
@@ -527,8 +554,25 @@ on 2026-11-23 and its place is the owner's to give.
         `const word = table byte = $77, $6d, $79, $38, 0, 0`. **Done.**
       - Words for the displays as a table the compiler works out,
         `const hello = table segments "CIAO"`, with the bytes shown in the
-        listing. It needs an agreed alphabet first; item 1 has what is known
-        of the letters seven segments can and cannot make.
+        listing. **Done**, with `examples/slide.amico`, a text that slides
+        across the six digits, in 87 bytes. The owner left the alphabet to
+        the agent ("I accept your suggestions"), and has not yet seen it
+        settled:
+        - it is the manual's own, Tabella 18 (item 1 has what the table
+          is), and no more. A character that is not in it is refused by
+          name, K, M, V, W, X and Z among them, and a table written out
+          holds any other pattern. The agent did not add shapes the manual
+          lacks, a small c, h or u, an underline, a Z drawn as a 2: they
+          are easy to add if the owner wants them. A new character goes
+          in six places: `ALPHABET` in `compile.js`; the message beside it,
+          which lists the alphabet; the README's list; the test's `printed`
+          in `tests/compiler.test.js`; `SEGMENTS_OF` in the reference
+          interpreter; and the generator's string of characters;
+        - a letter has one shape and may be written in either case;
+        - bit 7 is left clear, though the table prints it set;
+        - `segments` is not a word of the language, so it may be a name;
+        - a text cannot hold a `#`, which begins a comment anywhere on a
+          line, or a double quote. Neither is in the alphabet.
       - A `decimal ... end` block, inside which `+` and `-` count in
         decimal. The compiler clears decimal mode around the key routine,
         where the monitor goes wrong (`docs/monitor-rom-review.md`, bug 2).
@@ -665,8 +709,7 @@ on 2026-11-23 and its place is the owner's to give.
         `0400 =00 60`: the same four bytes straight after a `DEX`, in what
         reads as the middle of a loop. Whether that routine works as printed
         was not tried.
-    - **Open.** The alphabet for `table segments`. The form of the HLT
-      routine. What the image of a long program puts in the IRQ vector
+    - **Open.** The form of the HLT routine. What the image of a long program puts in the IRQ vector
       (item 6). And whether the owner wants the small print of `for`
       otherwise than the agent settled it, above: ends that may be
       variables would be the change most likely to be asked for, and
@@ -676,6 +719,21 @@ on 2026-11-23 and its place is the owner's to give.
       (Tabella 7), the word on the displays, the guide's LED counter, the
       sliding text, the 1979 clock and 21 fiammiferi. Amico is good enough
       when each reads well and comes out close to its hand-written size.
+      All six are written now, as `compiler/examples/`. In bytes, with what
+      a hand wrote where there is something to compare:
+
+      | Program | Amico | By hand |
+      | --- | --- | --- |
+      | `sum` | 11 | 10, the manual's, which has no `CLD` |
+      | `word` | 29 | 6, the manual's loop, and its six bytes keyed into page zero by hand |
+      | `leds` | 53 | 32, the guide's counter, which waits in a delay loop of two registers |
+      | `clock` | 90, and 2 in page zero | 63, and 4 in page zero |
+      | `matches` | 182, and 5 in page zero | 148, with other timing and another opponent |
+      | `slide` | 87, 31 of them its text | none written yet (item 1) |
+
+      They read well. Where there is a like to compare with, they are
+      from a tenth to two thirds longer than the hand's, which is what
+      tighter code is for.
     - **The listing as the manual's Tavola A.** The supplement's page 15 has
       a program written first "nel nostro linguaggio", and Tavola A on page
       16 sets three columns side by side: "linguaggio discorsivo (il nostro,
@@ -701,9 +759,35 @@ on 2026-11-23 and its place is the owner's to give.
       46,067 runs against what the source says it should be. What they
       found were tests that let defects through and sentences that were
       not so, all put right; see below.
-      After it, in no settled order: subroutines, the routine for HLT,
-      words on the displays as a table, shifts, a key read or a table
-      read as an operand, tighter code, and the listing as Tavola A. One
+      Then words on the displays as a table, which the owner chose next
+      on the agent's recommendation. **Done**, and reviewed before its
+      push by Codex and a Claude Opus subagent. All three readers of the
+      scan, the session and the two reviewers each on their own, have the
+      same 32 bytes for Tabella 18. The review found one defect, which
+      both reviewers met: a dotless i and a long s were taken as I and S,
+      because any character was made a capital before it was looked up.
+      It is mended, with two messages that pointed at the wrong thing and
+      the tests that 22 planted defects had passed; the log has each.
+
+      **Next: tighter code.** The owner said so on 2026-11-23, for the
+      session after `table segments`: "implement the table segments and
+      then tighter code". It changes no word of the language. What is
+      known to tighten is in the list above, under the recap, with what
+      must be left alone inside a `decimal` block; the table under How to
+      steer it is what to measure against, and the clock's test will say
+      when the clock wants setting again, since its second is counted in
+      the cycles of a `for`. Run the old compiler beside the new on the
+      examples and on random programs: every program has to compute the
+      same, in fewer bytes or the same, never more. One more place, seen
+      while `table segments` was built: a table byte read by a literal
+      index is loaded without being remembered, so two of the same in a
+      row are loaded twice, where two of the same number are loaded once.
+
+      After that, in no settled order: subroutines, the routine for HLT,
+      shifts, a key read or a table read as an operand, and the listing
+      as Tavola A. A table's length as a constant would spare
+      `slide.amico` its `last`, worked out by hand; it has not been put
+      to the owner. One
       unit to a commit, each with its test, and the finished series to
       reviewers on other models before it is pushed (`AGENTS.md`, A
       Review by Several Agents). The loops and conditions were reviewed so
@@ -814,6 +898,40 @@ on 2026-11-23 and its place is the owner's to give.
       the front end before it is reworked; fix findings 1, 2 and 5, each in
       its own commit with a test; and give finding 3 a note in the README.
       Finding 4 is left as it is.
+
+14. **A digit given a blank goes on showing what it had.** A fault of the
+    emulator's displays, found on 2026-11-23 by the test of Amico's sliding
+    text. Not mended: the owner had asked for that session to keep to the
+    language.
+    - **What happens.** `_updateDisplay()` in `amico2000.js` takes no
+      notice of a blank pattern sent to a digit ("Ignore blank patterns
+      (0x00)"), because the monitor's own routines put the segments out
+      between one digit and the next. So when a program changes a digit
+      from a letter to a space, nothing records it: `display[]` keeps the
+      letter, and `getDisplay()` shows it until
+      `DISPLAY_PERSISTENCE_CYCLES`, a tenth of a second, has gone by since
+      the digit was last lit. A board has no latch and would be dark at
+      the next scan, 4 ms later.
+    - **How it shows.** A text sliding four places a second: in every
+      place that becomes a space the letter before stays for a tenth of a
+      second, beside the same letter in its new place, four tenths of each
+      step. A static word with spaces in it is right, and so is the
+      monitor, which never shows a blank digit. `compiler/examples/
+      slide.amico` shows it on the page; its test in
+      `tests/compiler.test.js` waits 120,000 cycles after each step before
+      it reads the digits, and says why.
+    - **A way to mend it**, not tried. A digit's turn begins when Port B
+      selects it and ends when Port B selects something else. If Port A
+      was never anything but blank through a whole turn, the digit was
+      scanned dark: record a blank for it and the time, as a lit pattern
+      is recorded. The blanking between digits is then no longer a
+      special case, since it lasts only until the pattern is written in
+      the same turn. `tests/display-persistence.test.js` and
+      `tests/display-renderer.test.js` are the checks to keep passing, and
+      the monitor's own blink of 31 ms while a key bounces (`AGENTS.md`,
+      Known Limitations 7) is the thing to look at afterwards.
+    - It changes what a visitor sees, so its commit dates the home page
+      in `sitemap.xml`.
 
 ## Cassette Work (Secondary)
 

@@ -371,8 +371,14 @@ and the manual's o is the round of a 0. A space is a dark digit, and spaces
 count wherever they stand in the text, at its ends too.
 
 The manual prints most of these bytes with bit 7 set as well, `F7` for A, as
-the monitor's own table of digits has them, and says that bit 7 is not used.
-Here it is left clear, as in the manual's first ASEL, `77 6D 79 38`.
+the monitor's own table of the sixteen hex digits has every one of its own,
+and says that bit 7 is not used. Here it is left clear, as in the manual's
+first ASEL, `77 6D 79 38`.
+
+A text is everything between its two double quotes, on the one line, and
+the line ends at the second. It cannot hold a double quote, nor a `#`,
+which begins a comment wherever it stands and so cuts the text short;
+neither is in the alphabet.
 
 For a shape that is not in the alphabet, write the table out, a byte to a
 digit, as `const word = table byte = $77, $6d, $79, $38`. A text holds 256

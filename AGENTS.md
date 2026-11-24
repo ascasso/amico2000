@@ -1258,7 +1258,7 @@ under Node on another computer and produces a listing, a binary or an
 - **Test the tests.** Each construct added on 2026-11-23 had defects
   planted in a scratch copy of the compiler, one at a time, to see the
   tests fail: fifty-one for the loops and the conditions, forty-one for
-  `decimal`. Of the fifty-one, three were not caught at first, and each
+  `decimal`, thirty-nine for `table segments`. Of the fifty-one, three were not caught at first, and each
   showed a test that was missing. Do the same
   for the next construct: a test that passes with its fix taken out is no
   test of it. It is not enough by itself; see A Review by Several Agents
@@ -1461,6 +1461,13 @@ reproduced every finding before passing any on.
   the author nor the brief had thought of as a test: the decimal flag at
   every instruction a program runs, against what the source says it should
   be. A brief that states an invariant in one sentence gets it checked.
+- **A fact taken from a scan is read more than once.** The alphabet of
+  `table segments` is a table on a scanned page of the manual, and the
+  extracted text has three of its bytes wrong. The session read it off the
+  page, and the brief gave each reviewer a picture of the page and asked
+  for a transcription made before looking at the session's. Three
+  readings agreed on all 32 bytes. Ask for that whenever a number comes
+  from the scan.
 - **A generator's own counts are not evidence.** The differential test
   held floors under what the generator said it had made. Opus broke the
   generator six ways, each of which stopped it making something its header

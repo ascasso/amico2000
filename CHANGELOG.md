@@ -14,10 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they came from. The alphabet is the manual's own, Tabella 18 of the
   Sperimentare supplement: the ten digits, twenty letters, the dash and the
   space. It has no K, M, V, W, X or Z, and a text with one of those is
-  refused; a table written out still holds any pattern. A letter has one
-  shape and may be written in either case. The manual prints most of the
+  refused by name, as is every other character; a table written out still
+  holds any pattern. A letter has one shape and may be written in either
+  case. The manual prints most of the
   bytes with bit 7 set, which it says is not used; here it is clear.
-- Amico has a sixth example, `compiler/examples/slide.amico`: a text that
+- Amico has another example, `compiler/examples/slide.amico`: a text that
   slides across the six displays, a digit at a time, four steps a second.
   87 bytes, 31 of them the text.
 - Amico has a `decimal` block. Between `decimal` and its `end`, `+` and `-`
@@ -33,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subtracted in a block has to be two decimal digits itself, so `x + 10` is
   refused there and ten is written `$10`. A block cannot be inside another,
   and `decimal` joins the words that cannot be names.
-- Amico has a fifth example, `compiler/examples/clock.amico`: a clock after
+- Amico has another example, `compiler/examples/clock.amico`: a clock after
   the one in Sperimentare of May 1979, with hours, minutes and seconds on
   the six digits, counted in a `decimal` block. The time to start from is
   keyed into `0000` to `0002`, as the article has it. On the emulated board
