@@ -95,7 +95,7 @@ function parse(source) {
             into.push(loop);
             open.push(loop);
             into = loop.body;
-        } else if ((match = /^if\s+(.+?)\s*(>=|==|!=|<)\s*(\S+)$/.exec(line))) {
+        } else if ((match = /^if\s+(.+?)\s*(>=|<=|==|!=|<|>)\s*(\S+)$/.exec(line))) {
             const test = { kind: 'if', left: match[1], compare: match[2], right: match[3], then: [], otherwise: null };
             into.push(test);
             open.push(test);
@@ -196,8 +196,11 @@ function run(source, memory, maxSteps = 200000) {
     function holds(test) {
         const left = evaluate(test.left);
         const right = valueOf(test.right);
+        // Both sides are bytes, and are compared as unsigned numbers.
         switch (test.compare) {
             case '<': return left < right;
+            case '<=': return left <= right;
+            case '>': return left > right;
             case '>=': return left >= right;
             case '==': return left === right;
             default: return left !== right;

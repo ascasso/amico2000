@@ -37,7 +37,8 @@ const NAMES = ['a', 'b', 'x1', 'left', 'take', 'iffy', 'loops', 'end_x', 'stoppe
     'elsewhere', 'display_x', 'n', 'k_9', 'zz', 'v_a_r', 'tmp', 'q'];
 const FIELDS = ['display.high', 'display.low', 'display.data'];
 const OPERATORS = ['+', '-', '&', '|', '^'];
-const COMPARISONS = ['<', '>=', '==', '!='];
+const COMPARISONS = ['<', '<=', '>', '>=', '==', '!='];
+const KEY_CODES = { 'keypad.ad': 0x10, 'keypad.da': 0x11, 'keypad.inc': 0x12, 'keypad.run': 0x13, 'keypad.reg': 0x14, 'keypad.none': 0x15 };
 const KEY_NAMES = ['keypad.ad', 'keypad.da', 'keypad.inc', 'keypad.run', 'keypad.reg', 'keypad.none'];
 
 // xorshift32: small, and the same on every machine. Seeds are small whole
@@ -288,8 +289,20 @@ function generate(seed, { scans = false, long = false } = {}) {
         assigned.add(into);
     }
 
+    // What a literal or a constant stands for, however it is spelt; null for
+    // anything that is not known until the program runs.
+    function numberOf(text) {
+        const constant = constants.find((known) => known.name === text);
+        if (constant) return constant.value;
+        if (text in KEY_CODES) return KEY_CODES[text];
+        if (/^\$[0-9a-fA-F]+$/.test(text)) return parseInt(text.slice(1), 16);
+        return /^[0-9]+$/.test(text) ? Number(text) : null;
+    }
     // The left of a comparison may be an operation or a table read; the
-    // right is always a single operand, as the language has it.
+    // right is always a single operand, as the language has it. All six
+    // comparisons, against numbers and against names, 0 and 255 among the
+    // numbers. `> 255` and `<= 255` the compiler refuses, as saying nothing,
+    // so against 255 one of the other four is written.
     function condition(assigned) {
         const roll = random.next();
         let left;
@@ -305,7 +318,10 @@ function generate(seed, { scans = false, long = false } = {}) {
         } else {
             left = operand(assigned);
         }
-        return `${left} ${pick(COMPARISONS)} ${operand(assigned)}`;
+        const right = operand(assigned);
+        let compare = pick(COMPARISONS);
+        if (numberOf(right) === 255 && (compare === '>' || compare === '<=')) compare = pick(['<', '>=', '==', '!=']);
+        return chance(0.15) ? `${left}${compare}${right}` : `${left} ${compare} ${right}`;
     }
 
     // `count` statements at one depth. Returns the names assigned on every

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico compares with `>` and `<=` as well as `<`, `>=`, `==` and `!=`. The
+  6502's compare answers those two with two flags, so against a variable
+  they are two branches and two bytes more than the others. Against a
+  literal or a constant they cost nothing more: `x > 5` is compiled as
+  `x >= 6`. `x > 255` and `x <= 255` are refused, the first as never so and
+  the second as always. A comparison with nothing on its left is told so.
 - Amico has two words for the inside of a loop. `break` leaves the `loop` or
   `for` it is in, and the program goes on after that loop's `end`; `next`
   goes round again at once, to the top of a `loop` and to the next value of

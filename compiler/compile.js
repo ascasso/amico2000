@@ -56,6 +56,10 @@ function pieces(text) {
 }
 const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call', 'for', 'break', 'next']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
+// CMP leaves the carry set when A is not below what it was compared with,
+// and Z set when the two are equal. Four of the six comparisons are one
+// flag, and so one branch. `>` and `<=` are two flags.
+const COMPARISONS = ['<', '<=', '>', '>=', '==', '!='];
 const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
 
 function compile(source) {
@@ -354,13 +358,14 @@ function compile(source) {
     // operand, so the left may be anything an expression may and the right is
     // one term.
     function comparison(L, from, to) {
-        const at = L.find([...FALSE_BRANCH.keys()], from, to);
+        const at = L.find(COMPARISONS, from, to);
         const clean = (written) => !/[<>=!]/.test(written);
-        // When the operator is one of the four and only the right side is too
-        // much, say that: naming the operators again sends the reader to look
-        // at the one thing that is right. That holds only if what stands
-        // before the operator is clean: in `if 0 =< 2` the `<` is found, and
-        // it is the operator that is wrong.
+        // When the operator is one of the six and only one side is wrong,
+        // say that: naming the operators again sends the reader to look at
+        // the one thing that is right. That holds only if what stands before
+        // the operator is clean: in `if 0 =< 2` the `<` is found, and it is
+        // the operator that is wrong.
+        if (at === from) fail('A comparison needs a value on its left');
         if (at > from && clean(L.slice(from, at))) {
             if (at + 1 === to) fail('A comparison needs a value on its right');
             // One run of letters, digits, dots and `$` is meant as one value,
@@ -371,7 +376,37 @@ function compile(source) {
                 fail('The right side of a comparison is a single value; write an operation, a read by index or a key read on the left');
             }
         }
-        fail('Expected an unsigned comparison using <, >=, == or !=');
+        fail('Expected an unsigned comparison using <, <=, >, >=, == or !=');
+    }
+    // The code for one comparison: on to the next instruction when it holds,
+    // and away to `otherwise` when it does not.
+    function unless(test, otherwise) {
+        expression(test.left);
+        let [mode, value] = operand(test.right);
+        let op = test.op;
+        // Against a number, `>` and `<=` are `>=` and `<` against the next
+        // number, which is one branch, and what a hand would write. Only 255
+        // has no next number, and there the comparison says nothing: no byte
+        // is greater, and every byte is as small.
+        if ((op === '>' || op === '<=') && mode === 'imm') {
+            if (value === 255) fail(op === '>' ? 'No byte is greater than 255, so this is never so' : 'Every byte is 255 or less, so this is always so');
+            value += 1;
+            op = op === '>' ? '>=' : '<';
+        }
+        emit('CMP', mode, value);
+        if (op === '>') {
+            // Greater is not below and not equal: either flag sends it away.
+            emit('BCC', 'rel', otherwise);
+            emit('BEQ', 'rel', otherwise);
+        } else if (op === '<=') {
+            // Equal holds at once; if not equal, not below is greater.
+            const holds = label();
+            emit('BEQ', 'rel', holds);
+            emit('BCS', 'rel', otherwise);
+            mark(holds);
+        } else {
+            emit(FALSE_BRANCH.get(op), 'rel', otherwise);
+        }
     }
     function statement(text) {
         const L = pieces(text);
@@ -521,10 +556,8 @@ function compile(source) {
             inputReady = false;
         } else if (isIf) {
             const test = comparison(L, 1, L.length);
-            expression(test.left);
-            emit('CMP', ...operand(test.right));
             const otherwise = label();
-            emit(FALSE_BRANCH.get(test.op), 'rel', otherwise);
+            unless(test, otherwise);
             blocks.push({ kind: 'if', entry: new Set(defined), otherwise, end: label(), line });
         } else if (alone('stop')) {
             emit('JMP', 'abs', 0xfe22);

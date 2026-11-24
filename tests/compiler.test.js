@@ -221,7 +221,7 @@ test('a line may end with LF, CR LF or a CR alone, and a comment ends with its l
 test('a refusal names the mistake that was made', () => {
     const table = 'const t = table byte [n in 0..3] = n\n';
     for (const [source, error] of [
-        // The operator is one of the four; it is the right side that is too much.
+        // The operator is one of the six; it is the right side that is too much.
         ['a = 1\nb = 1\nif a == b + 1\nend', /^Error: Line 3: The right side of a comparison is a single value; write an operation, a read by index or a key read on the left/],
         ['if display.low == keypad.read()\nend', /^Error: Line 1: The right side of a comparison/],
         [table + 'if display.low < t[1]\nend', /^Error: Line 2: The right side of a comparison/],
@@ -229,8 +229,8 @@ test('a refusal names the mistake that was made', () => {
         ['if 0 ==', /^Error: Line 1: A comparison needs a value on its right/],
         ['a = 1\nif a <', /^Error: Line 2: A comparison needs/],
         // Here it is the operator, also when a `<` can be found inside it.
-        ['a = 1\nif a <= 2\nend', /^Error: Line 2: Expected an unsigned comparison using <, >=, == or !=/],
-        ['a = 1\nif a > 2\nend', /^Error: Line 2: Expected an unsigned comparison/],
+        ['a = 1\nif a =< 2\nend', /^Error: Line 2: Expected an unsigned comparison using <, <=, >, >=, == or !=/],
+        ['a = 1\nif a <> 2\nend', /^Error: Line 2: Expected an unsigned comparison/],
         ['if 0 =< 1+1', /^Error: Line 1: Expected an unsigned comparison/],
         ['byte = 7', /^Error: Line 1: byte is a word of the language/],
         ['in = keypad.read()', /^Error: Line 1: in is a word of the language/],
@@ -1098,4 +1098,71 @@ test('break leaves the loop it is in, and next goes round it again', () => {
         ['loop\nbreak 2\nend', /^Error: Line 2: Unknown statement: break 2/],
         ['loop\nnext i\nend', /^Error: Line 2: Unknown statement: next i/]
     ]) assert.throws(() => compile(source), error, source);
+});
+
+test('all six comparisons, against a number and against a name, to the edges of a byte', () => {
+    const bytes = (source) => [...compile(source).binary];
+    const edges = [0, 1, 2, 127, 128, 254, 255];
+    const holds = {
+        '<': (a, b) => a < b, '<=': (a, b) => a <= b, '>': (a, b) => a > b,
+        '>=': (a, b) => a >= b, '==': (a, b) => a === b, '!=': (a, b) => a !== b
+    };
+    // One program compares each edge value with one other value and notes
+    // in a row of bytes which arm it took: 1 where the comparison held, 2
+    // where it did not. The other value is a number, a variable in page
+    // zero, or a named location above it, which are three ways to compare.
+    const forms = {
+        number: (b) => ['', String(b)],
+        variable: (b) => [`b = ${b}\n`, 'b'],
+        location: (b) => [`far = ${b}\n`, 'far']
+    };
+    let tried = 0;
+    for (const [compare, truth] of Object.entries(holds)) {
+        for (const [form, written] of Object.entries(forms)) {
+            for (const b of edges) {
+                const [before, right] = written(b);
+                const source = 'const edges = table byte = 0, 1, 2, 127, 128, 254, 255\nbyte took[7] at $80\nbyte far at $0400\n' + before +
+                    `for i in 0..6\n    a = edges[i]\n    if a ${compare} ${right}\n        took[i] = 1\n    else\n        took[i] = 2\n    end\nend`;
+                // Against the number 255 two of them say nothing, and are refused.
+                if (form === 'number' && b === 255 && (compare === '>' || compare === '<=')) {
+                    assert.throws(() => compile(source), compare === '>'
+                        ? /^Error: Line 6: No byte is greater than 255, so this is never so/
+                        : /^Error: Line 6: Every byte is 255 or less, so this is always so/);
+                    continue;
+                }
+                const memory = finished(source);
+                assert.deepEqual([...memory.slice(0x80, 0x87)], edges.map((a) => (truth(a, b) ? 1 : 2)), `a ${compare} ${b}, against a ${form}`);
+                tried++;
+            }
+        }
+    }
+    assert.equal(tried, 6 * 3 * 7 - 2);
+
+    // `>` and `<=` are two flags and two branches, two bytes more than the others.
+    const against = (compare, right) => `x = display.low\ny = display.high\nif x ${compare} ${right}\ndisplay.data = 1\nend`;
+    assert.match(compile(against('>', 'y')).assembly, /CMP var_y .*\n +BCC flow_1 .*\n +BEQ flow_1 /);
+    assert.match(compile(against('<=', 'y')).assembly, /CMP var_y .*\n +BEQ flow_2 .*\n +BCS flow_1 .*\nflow_2:/);
+    assert.equal(bytes(against('>', 'y')).length, bytes(against('>=', 'y')).length + 2);
+    assert.equal(bytes(against('<=', 'y')).length, bytes(against('<', 'y')).length + 2);
+    // Against a number they are the next number's `>=` and `<`, and cost nothing more.
+    assert.deepEqual(bytes(against('>', '5')), bytes(against('>=', '6')));
+    assert.deepEqual(bytes(against('<=', '5')), bytes(against('<', '6')));
+    assert.deepEqual(bytes(against('>', '254')), bytes(against('>=', '255')));
+    assert.deepEqual(bytes(against('<=', '0')), bytes(against('<', '1')));
+    assert.deepEqual(bytes('const five = 5\n' + against('>', 'five')), bytes(against('>=', '6')));
+    assert.deepEqual(bytes(against('<=', 'keypad.none')), bytes(against('<', '22')));
+    // The left side may still be anything an expression may.
+    const m = finished('const t = table byte = 9, 3\ndisplay.high = 0\ndisplay.low = 0\ndisplay.data = 0\nx = 4\nif t[1] <= x\ndisplay.high = 1\nend\nif x + 250 > 253\ndisplay.low = 1\nend\nif t[0] > x\ndisplay.data = 1\nend');
+    assert.deepEqual([m[0xfb], m[0xfa], m[0xf9]], [1, 1, 1]);
+
+    for (const [source, error] of [
+        ['const top = 255\nif display.low > top\nend', /^Error: Line 2: No byte is greater than 255/],
+        ['if display.low <= $ff\nend', /^Error: Line 1: Every byte is 255 or less/],
+        ['if == 1\nend', /^Error: Line 1: A comparison needs a value on its left/],
+        ['if <= display.low\nend', /^Error: Line 1: A comparison needs a value on its left/],
+        ['if display.low >\nend', /^Error: Line 1: A comparison needs a value on its right/]
+    ]) assert.throws(() => compile(source), error, source);
+    for (const wrong of ['=<', '=>', '=', '<>', '>>', '<<', '===', '!==', '!']) {
+        assert.throws(() => compile(`if display.low ${wrong} 2\nend`), /^Error: Line 1: Expected an unsigned comparison using <, <=, >, >=, == or !=/, wrong);
+    }
 });

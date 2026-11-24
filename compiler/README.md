@@ -89,7 +89,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | --- | --- |
 | `left = 21` | Introduce or update a byte. Reading a named variable requires an assignment on every path reaching that read. |
 | `left = left - take` | Compute one binary operation per expression. The operators are `+`, `-`, `&`, `\|`, and `^`. Both operands are literals, constants, variables, display fields or named locations. |
-| `if left >= 10` | Compare bytes using `<`, `>=`, `==`, or `!=`. The left side may be an operation, a read from a table or a row, or a key read; the right side is one value: a literal, a constant, a variable, a display field or a named location. An optional `else` starts the other arm. Close with `end`. |
+| `if left >= 10` | Compare bytes using `<`, `<=`, `>`, `>=`, `==`, or `!=`. The left side may be an operation, a read from a table or a row, or a key read; the right side is one value: a literal, a constant, a variable, a display field or a named location. An optional `else` starts the other arm. Close with `end`. See Conditions. |
 | `loop` | Repeat the enclosed statements until a `break`, or for ever. Close with `end`. Blocks can nest. |
 | `for i in 0..5` | Repeat the enclosed statements once for each value from the first to the last, both included, with the name holding the value. Close with `end`. See Loops. |
 | `break` | Leave the `loop` or `for` the statement is in, and go on after its `end`. See Loops. |
@@ -108,6 +108,18 @@ The compiler warns of a name that is assigned and never read:
 such a name, so the value goes nowhere. The program is compiled all the same,
 and `amicoc` prints the warning on standard error. The usual cause is one name
 spelt two ways.
+
+## Conditions
+
+An `if` compares two bytes as unsigned numbers, with `<`, `<=`, `>`, `>=`,
+`==` or `!=`.
+
+The 6502's compare answers four of the six with one flag, and so with one
+branch. `>` and `<=` take two flags and two branches, two bytes more. Against
+a literal or a constant they cost nothing more: the compiler writes `x > 5`
+as `x >= 6` and `x <= 5` as `x < 6`, as one would by hand. That leaves
+`x > 255` and `x <= 255` with no next number, and they are refused: the first
+is never so, and the second always.
 
 ## Loops
 
