@@ -14,9 +14,16 @@
 // drives the real monitor.
 
 const FIELDS = ['display.high', 'display.low', 'display.data'];
+// The README's names for the codes of the keys that are not hex digits.
+const KEY_NAMES = {
+    'keypad.ad': 0x10, 'keypad.da': 0x11, 'keypad.inc': 0x12,
+    'keypad.run': 0x13, 'keypad.reg': 0x14, 'keypad.none': 0x15
+};
 
-// A byte written in decimal or as $hex, or null if the text is a name.
-function literal(text) {
+// A byte written in decimal or as $hex, or the name of a constant, which
+// stands wherever a literal may. Null if the text is some other name.
+function literal(text, constants) {
+    if (constants.has(text)) return constants.get(text);
     if (/^\$[0-9a-fA-F]+$/.test(text)) return parseInt(text.slice(1), 16);
     if (/^[0-9]+$/.test(text)) return parseInt(text, 10);
     return null;
@@ -24,11 +31,11 @@ function literal(text) {
 
 // The table a declaration describes: one byte for each index from 0 to the
 // last, the formula worked out for that index and kept modulo 256.
-function tableBytes(indexName, last, formula) {
+function tableBytes(indexName, last, formula, constants) {
     const parts = formula.trim().split(/\s*([*+-])\s*/);
-    const term = (text, index) => (text === indexName ? index : literal(text));
+    const term = (text, index) => (text === indexName ? index : literal(text, constants));
     const bytes = [];
-    for (let index = 0; index <= literal(last); index++) {
+    for (let index = 0; index <= literal(last, constants); index++) {
         let value = term(parts[0], index);
         if (parts.length === 3) {
             const other = term(parts[2], index);
@@ -44,6 +51,7 @@ function tableBytes(indexName, last, formula) {
 // the compiler should refuse is another test's business.
 function parse(source) {
     const tables = new Map();
+    const constants = new Map(Object.entries(KEY_NAMES));
     const program = { kind: 'program', body: [] };
     const open = [program];
     let into = program.body;
@@ -53,7 +61,9 @@ function parse(source) {
         if (!line) continue;
         let match;
         if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*table\s+byte\s*\[\s*([a-z][a-z0-9_]*)\s+in\s+0\s*\.\.\s*(\S+?)\s*\]\s*=\s*(.+)$/.exec(line))) {
-            tables.set(match[1], tableBytes(match[2], match[3], match[4]));
+            tables.set(match[1], tableBytes(match[2], match[3], match[4], constants));
+        } else if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*(\S+)$/.exec(line))) {
+            constants.set(match[1], literal(match[2], constants));
         } else if (line === 'loop') {
             const loop = { kind: 'loop', body: [] };
             into.push(loop);
@@ -82,7 +92,7 @@ function parse(source) {
             throw new Error('The reference interpreter does not know this line: ' + line);
         }
     }
-    return { tables, body: program.body };
+    return { tables, constants, body: program.body };
 }
 
 class Stopped extends Error {}
@@ -91,12 +101,12 @@ class Stopped extends Error {}
 // stops. `fields` gives the three display bytes as the program finds them.
 // A program that never stops is cut off at `maxSteps` statements.
 function run(source, fields, maxSteps = 200000) {
-    const { tables, body } = parse(source);
+    const { tables, constants, body } = parse(source);
     const values = new Map(Object.entries(fields));
     let steps = 0;
 
     function valueOf(text) {
-        const number = literal(text);
+        const number = literal(text, constants);
         if (number !== null) return number;
         if (!values.has(text)) throw new Error('Read before any assignment: ' + text);
         return values.get(text);

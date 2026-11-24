@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico has named constants: `const start = 21`. The name stands wherever a
+  literal may, as an operand, on the right of a comparison, as a table's
+  index or last index and in its formula, and costs nothing: it is gone by
+  the time code is made. The keys that are not hex digits have names of the
+  same kind, `keypad.ad`, `keypad.da`, `keypad.inc`, `keypad.run`,
+  `keypad.reg` and `keypad.none`, so that a program no longer compares a
+  key with `$15`. The reference interpreter and the random generator of the
+  differential test learned both from the README. The second of the small
+  fixes agreed for Amico.
 - `amicoc` now warns of a name that is assigned and never read, such as a
   name spelt two ways: `Line 3: lfet is assigned and never read`. The
   compiler keeps no place in memory for such a name, so until now its value

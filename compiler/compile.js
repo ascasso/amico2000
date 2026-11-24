@@ -12,6 +12,10 @@ const NAME = /^[a-z][a-z0-9_]*$/;
 // them round it. The dot is part of the name and takes none.
 const SCAN_CALL = /^display\.scan\s*\(\s*\)$/;
 const KEY_CALL = /^keypad\.(read|press)\s*\(\s*\)$/;
+// What the monitor's key routine at $FF57 gives for the keys that are not
+// hex digits, and for no key at all. A hex key's code is its own digit.
+const KEY_CODES = [['keypad.ad', 0x10], ['keypad.da', 0x11], ['keypad.inc', 0x12],
+    ['keypad.run', 0x13], ['keypad.reg', 0x14], ['keypad.none', 0x15]];
 const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
@@ -19,6 +23,9 @@ const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=',
 function compile(source) {
     const items = [];
     const tables = new Map();
+    // A constant is a name for a byte literal and is gone by the time code is
+    // made: wherever number() takes a literal it takes one of these.
+    const constants = new Map(KEY_CODES);
     const blocks = [];
     let defined = new Set();
     // For the warning at the end: where each name was first assigned, and
@@ -40,6 +47,7 @@ function compile(source) {
     function forget() { inA = null; inputReady = false; }
 
     function number(text) {
+        if (constants.has(text)) return constants.get(text);
         if (!/^(?:[0-9]+|\$[a-fA-F0-9]+)$/.test(text)) return null;
         const value = text.startsWith('$') ? parseInt(text.slice(1), 16) : Number(text);
         if (value > 255) fail('Byte literal out of range: ' + text);
@@ -49,6 +57,7 @@ function compile(source) {
         // Three different mistakes, and the reader can only mend the one named.
         if (RESERVED.has(name)) fail(name + ' is a word of the language and cannot be a name');
         if (tables.has(name)) fail(name + ' is a table, not a variable');
+        if (constants.has(name)) fail(name + ' is a constant, not a variable');
         if (!NAME.test(name)) fail('Invalid byte variable: ' + name);
         return 'var_' + name;
     }
@@ -112,8 +121,20 @@ function compile(source) {
         emit(ARITHMETIC.get(pair[2]), ...operand(pair[3]));
         inA = null;
     }
+    function declareConstant(text) {
+        const match = /^const\s+(\w+)\s*=\s*([\w.$]+)$/.exec(text);
+        if (!match) fail('Expected const name = byte, or const name = table byte [n in 0..last] = formula');
+        const [, name, written] = match;
+        if (constants.has(name)) fail('Constant declared twice: ' + name);
+        variable(name);
+        const value = number(written);
+        if (value === null) fail('A constant is a byte literal or another constant, not ' + written);
+        constants.set(name, value);
+    }
     function declareTable(text) {
-        const match = /^const\s+(\w+)\s*=\s*table\s+byte\s*\[\s*(\w+)\s+in\s+([\w$]+)\s*\.\.\s*([\w$]+)\s*\]\s*=\s*([\w$]+)(?:\s*([*+-])\s*([\w$]+))?$/.exec(text);
+        // A term may have a dot in it: the key names are constants like any
+        // other, and a constant stands wherever a literal may.
+        const match = /^const\s+(\w+)\s*=\s*table\s+byte\s*\[\s*(\w+)\s+in\s+([\w.$]+?)\s*\.\.\s*([\w.$]+)\s*\]\s*=\s*([\w.$]+)(?:\s*([*+-])\s*([\w.$]+))?$/.exec(text);
         if (!match) fail('Expected const name = table byte [n in 0..last] = formula');
         const [, name, index, first, limit, lhs, op, rhs] = match;
         // Zero however it is written: $0 and 00 are the byte the README means.
@@ -185,8 +206,11 @@ function compile(source) {
         }
         if (!reachable) fail('Unreachable statement');
         if (isConst) {
-            if (started) fail('Declare tables before the first statement');
-            declareTable(text);
+            if (started) fail('Declare constants and tables before the first statement');
+            // The word after the `=` says which it is, so that a table
+            // written wrongly is told about tables.
+            if (/^const\s+\w+\s*=\s*table\b/.test(text)) declareTable(text);
+            else declareConstant(text);
             return;
         }
         started = true;

@@ -374,3 +374,49 @@ test('a name that is assigned and never read is warned of, and compiled all the 
         fs.rmSync(dir, { recursive: true });
     }
 });
+
+test('a constant stands wherever a literal may, and the keys that are not digits have names', () => {
+    const same = (named, plain) => assert.deepEqual(compile(named).binary, compile(plain).binary, named);
+    // As an operand, on either side of an operation, and on the right of a comparison.
+    same('const start = 21\nleft = start - 1\nif left < start\ndisplay.data = left\nend',
+        'left = 21 - 1\nif left < 21\ndisplay.data = left\nend');
+    // Given as another constant, in hex or with leading zeros.
+    same('const a = $15\nconst b = a\ndisplay.data = b', 'display.data = 021');
+    // In a table: its last index, a term of its formula, and a literal index, which is folded.
+    const table = 'const t = table byte [n in 0..3] = n * 5\n';
+    same('const last = 3\nconst step = 5\nconst t = table byte [n in 0..last] = n * step\nk = display.low\ndisplay.data = t[k]',
+        table + 'k = display.low\ndisplay.data = t[k]');
+    same('const which = 2\n' + table + 'display.data = t[which]', 'display.data = 10');
+
+    // The six names, by what the monitor's key routine gives.
+    const codes = { 'keypad.ad': 0x10, 'keypad.da': 0x11, 'keypad.inc': 0x12, 'keypad.run': 0x13, 'keypad.reg': 0x14, 'keypad.none': 0x15 };
+    for (const [name, code] of Object.entries(codes)) same('display.data = ' + name, 'display.data = ' + code);
+    const m = bootedMachine();
+    const { origin, binary } = compile('loop\nk = keypad.press()\nif k == keypad.run\ndisplay.data = $aa\nend\nif k == keypad.reg\ndisplay.data = $bb\nend\nend');
+    m.loadProgram(binary, origin);
+    m.cpu.PC = origin;
+    tick(m, 200000);
+    press(m, 'Enter');
+    assert.equal(m.cpu.memory[0xf9], 0xaa);
+    press(m, 'r');
+    assert.equal(m.cpu.memory[0xf9], 0xbb);
+    // And a table's formula takes them, dot and all.
+    same('const t = table byte [n in 0..3] = keypad.none - n\nk = display.low\ndisplay.data = t[k]',
+        'const t = table byte [n in 0..3] = 21 - n\nk = display.low\ndisplay.data = t[k]');
+
+    for (const [source, error] of [
+        ['const a = 1\nconst a = 2\ndisplay.data = a', /^Error: Line 2: Constant declared twice: a/],
+        ['const a = 1\na = 2', /^Error: Line 2: a is a constant, not a variable/],
+        ['keypad.none = 1', /^Error: Line 1: keypad.none is a constant, not a variable/],
+        ['display.data = 1\nconst a = 1', /^Error: Line 2: Declare constants and tables before the first statement/],
+        ['const a = b\ndisplay.data = a', /^Error: Line 1: A constant is a byte literal or another constant, not b/],
+        ['const a = 256\ndisplay.data = a', /^Error: Line 1: Byte literal out of range: 256/],
+        ['const byte = 1\ndisplay.data = 1', /^Error: Line 1: byte is a word of the language/],
+        ['const a = 1 + 2\ndisplay.data = a', /^Error: Line 1: Expected const name = byte, or const name = table/],
+        ['const t = table\ndisplay.data = 1', /^Error: Line 1: Expected const name = table byte/],
+        [table + 'const t = 4\ndisplay.data = 1', /^Error: Line 2: t is a table/],
+        ['const t = 4\n' + table + 'display.data = 1', /^Error: Line 2: t is a constant/]
+    ]) assert.throws(() => compile(source), error);
+    // A constant nobody uses is no fault, and is not a name that was never read.
+    assert.deepEqual(compile('const spare = 9\ndisplay.data = 1').warnings, []);
+});

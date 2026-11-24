@@ -74,6 +74,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `if left >= 10` | Compare bytes using `<`, `>=`, `==`, or `!=`. The left side may be an operation, a table read or a key read; the right side is one literal, variable or display field. An optional `else` starts the other arm. Close with `end`. |
 | `loop` | Repeat the enclosed statements. Close with `end`. Blocks can nest. |
 | `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. |
+| `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |
 | `value = squares[key]` | Read a table entry. A literal index is checked and folded at compile time. A variable index becomes a native indexed load. Guard it with an `if` when its range is uncertain. An out-of-range variable index reads the byte at the resulting address. |
 
@@ -92,7 +93,9 @@ digits once using the PROM. Call it repeatedly to keep a steady display.
 
 `keypad.read()` samples the keypad immediately. It returns 0 through 15 for
 the hex keys, `$10-$14` for AD, DA, increment, RUN and REG, and `$15` for no
-key. A held key can be sampled repeatedly. With several keys held the PROM
+key. Those six have names, which are constants: `keypad.ad`, `keypad.da`,
+`keypad.inc`, `keypad.run`, `keypad.reg` and `keypad.none`. A held key can be
+sampled repeatedly. With several keys held the PROM
 chooses one according to its scan order.
 
 `keypad.press()` waits for three released scans and then three matching

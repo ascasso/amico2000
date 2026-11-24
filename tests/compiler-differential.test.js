@@ -125,7 +125,7 @@ function failure(seed, source, wrong) {
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, tables: 0, elseArms: 0, deep: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, tables: 0, elseArms: 0, deep: 0, constants: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -140,13 +140,15 @@ test('random programs compute on the board what the reference interpreter comput
         if (made.tableReads) seen.tables++;
         if (made.elseArms) seen.elseArms++;
         if (made.depth >= 4) seen.deep++;
+        if (made.constants) seen.constants++;
     }
 
     // A generator can stop making what it was written to make and the test
     // would go on passing. Measured over 20,000 programs, of those that ran 20%
-    // had a long branch, 58% a loop, 56% a table read, 67% an else and 44% ifs
-    // four deep, and 74% of those generated fitted the board. The floors are
-    // about half of each: there to notice a collapse, not a drift.
+    // had a long branch, 58% a loop, 56% a table read, 67% an else, 44% ifs
+    // four deep and 61% a constant or a key's name, and 74% of those generated
+    // fitted the board. The floors are about half of each: there to notice a
+    // collapse, not a drift.
     const share = (count) => count / seen.ran;
     assert.ok(seen.ran / PROGRAMS > 0.37, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
@@ -154,6 +156,7 @@ test('random programs compute on the board what the reference interpreter comput
     assert.ok(share(seen.tables) > 0.28, `a table read in only ${seen.tables} of ${seen.ran}`);
     assert.ok(share(seen.elseArms) > 0.33, `an else in only ${seen.elseArms} of ${seen.ran}`);
     assert.ok(share(seen.deep) > 0.22, `ifs four deep in only ${seen.deep} of ${seen.ran}`);
+    assert.ok(share(seen.constants) > 0.30, `a constant in only ${seen.constants} of ${seen.ran}`);
 });
 
 test('display.scan() among the statements changes nothing a program can see', () => {

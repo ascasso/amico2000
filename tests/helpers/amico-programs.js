@@ -10,9 +10,9 @@
 //
 // What it leans on: nested `if`s with and without `else`, arms long enough to
 // need a long branch, tables read by a literal and by a variable, display
-// fields as operands and as targets, names that begin like words of the
-// language, literals spelt several ways, and operators written with and
-// without spaces.
+// fields as operands and as targets, constants and the key names standing
+// where a literal may, names that begin like words of the language, literals
+// spelt several ways, and operators written with and without spaces.
 //
 // What it does not make, and what covers that instead:
 // - programs the compiler should refuse: tests/compiler-assignment.test.js
@@ -28,6 +28,7 @@ const NAMES = ['a', 'b', 'x1', 'left', 'take', 'iffy', 'loops', 'end_x', 'stoppe
 const FIELDS = ['display.high', 'display.low', 'display.data'];
 const OPERATORS = ['+', '-', '&', '|', '^'];
 const COMPARISONS = ['<', '>=', '==', '!='];
+const KEY_NAMES = ['keypad.ad', 'keypad.da', 'keypad.inc', 'keypad.run', 'keypad.reg', 'keypad.none'];
 
 // xorshift32: small, and the same on every machine. Seeds are small whole
 // numbers, and xorshift's first outputs from a small state are small too, so
@@ -64,7 +65,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0 };
+    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -76,7 +77,33 @@ function generate(seed, { scans = false, long = false } = {}) {
         if (roll < 0.9) return '$' + value.toString(16).toUpperCase().padStart(2, '0');
         return '0' + String(value);
     }
+    // Half the programs declare a constant or three, first of all, as the
+    // language wants. A constant is given a literal or an earlier constant.
+    const constants = [];
+    if (chance(0.5)) {
+        for (const name of ['c_limit', 'c_step', 'c_mask'].slice(0, between(1, 3))) {
+            const earlier = constants.length && chance(0.25) ? pick(constants) : null;
+            // Many are small, so that some can be a table's last index without
+            // making the table, and the program, too long for the board.
+            const value = earlier ? earlier.value
+                : chance(0.3) ? pick([0, 1, 127, 128, 255]) : chance(0.4) ? between(0, 20) : between(0, 255);
+            lines.push(`const ${name} = ${earlier ? earlier.name : spell(value)}`);
+            constants.push({ name, value });
+        }
+    }
+    // A constant whose value is no more than `most`, by name, or null.
+    function constantUpTo(most) {
+        const fitting = constants.filter((constant) => constant.value <= most);
+        if (!fitting.length) return null;
+        made.constants++;
+        return pick(fitting);
+    }
     function literal() {
+        if (constants.length && chance(0.2)) return constantUpTo(255).name;
+        if (chance(0.04)) {
+            made.constants++;
+            return pick(KEY_NAMES);
+        }
         return spell(chance(0.3) ? pick([0, 1, 127, 128, 255, 254]) : between(0, 255));
     }
     function joined(left, operator, right) {
@@ -86,12 +113,14 @@ function generate(seed, { scans = false, long = false } = {}) {
     const tables = [];
     const tableCount = chance(0.8) ? between(1, 3) : 0;
     for (let number = 0; number < tableCount; number++) {
-        const last = chance(0.15) ? between(40, 120) : between(0, 20);
+        // The last index is a number, or a constant small enough to be one.
+        const named = chance(0.3) ? constantUpTo(20) : null;
+        const last = named ? named.value : chance(0.15) ? between(40, 120) : between(0, 20);
         const index = pick(['n', 'i', 'idx']);
-        const term = () => (chance(0.6) ? index : spell(between(0, 255)));
+        const term = () => (chance(0.6) ? index : literal());
         const formula = chance(0.25) ? term() : `${term()} ${pick(['*', '+', '-'])} ${term()}`;
         tables.push({ name: 't' + number, length: last + 1 });
-        lines.push(`const t${number} = table byte [${index} in 0..${spell(last)}] = ${formula}`);
+        lines.push(`const t${number} = table byte [${index} in 0..${named ? named.name : spell(last)}] = ${formula}`);
     }
 
     const variablesIn = (assigned) => [...assigned].filter((name) => !FIELDS.includes(name));

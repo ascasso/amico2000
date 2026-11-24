@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 261
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 262
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -504,7 +504,7 @@ on 2026-11-23 and its place is the owner's to give.
         warned of now). `stop`
         hands the board back showing `0000 00`. HLT overwrites the display
         fields, which the examples use as variables. Key codes are bare
-        numbers.
+        numbers (they have names now).
     - **To be added**, agreed with the owner. The spellings are the agent's
       proposals, and each is settled when it is built:
       - Names for memory, `byte sum at $04`, and for a row of bytes,
@@ -540,8 +540,11 @@ on 2026-11-23 and its place is the owner's to give.
         take one by one. The first four are the small fixes the owner said
         to start with:
         - a warning for a name assigned and never read. **Done**;
-        - named constants (`const start = 21`) and names for the key codes
-          (`key.none`, `key.run`);
+        - named constants (`const start = 21`) and names for the key codes.
+          **Done.** The names are `keypad.none`, `keypad.run` and four
+          more, where the recap had `key.none`: a program's own variable
+          is very often called `key`, as in `squares`, and
+          `if key == key.none` reads badly;
         - `display.hold()`, which scans until RES, so that a program can
           end with its result showing;
         - the README saying what `stop` and HLT do to the displays;
