@@ -995,6 +995,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Amico: a store into a row by a variable index that went past the row's
+  end into the 8255 left the compiler taking Port A to be an input, so the
+  next key read entered the monitor's key routine with Port A an output,
+  which on the board drives the key lines. `byte r[4] at $fcfc`, `i = 7`
+  and `r[i] = $89` writes a mode word to `$FD03`. The README says that an
+  unchecked index reaches whatever byte it addresses and that any store
+  into `$FD00-$FDFF` makes the next key read set Port A again; the compiler
+  kept only the row's length. It now counts the 256 bytes such a store can
+  reach. No example changes by a byte. Found by Codex in its review of pull
+  request 58.
 - Amico's README gave two costs that hold only while a branch is short: a
   `for` as twelve bytes and `>` or `<=` against a name as two bytes more
   than the other comparisons. Over statements too long for a branch to

@@ -879,7 +879,10 @@ test('a store that reaches the 8255 makes the next key read set Port A again', (
         'byte control at $fd03\ndisplay.scan()\ncontrol = $89\ndisplay.data = keypad.read()',
         'byte control at $fdff\ndisplay.scan()\ncontrol = $89\ndisplay.data = keypad.read()',
         'byte io[4] at $fd00\ndisplay.scan()\nio[3] = $89\ndisplay.data = keypad.read()',
-        'byte io[4] at $fd00\ni = 3\ndisplay.scan()\nio[i] = $89\ndisplay.data = keypad.read()'
+        'byte io[4] at $fd00\ni = 3\ndisplay.scan()\nio[i] = $89\ndisplay.data = keypad.read()',
+        // And past a row's end: a variable index is not checked, so $FCFC + 7
+        // is $FD03, though the row's four bytes stop short of the page.
+        'byte r[4] at $fcfc\ni = 7\ndisplay.scan()\nr[i] = $89\ndisplay.data = keypad.read()'
     ]) assert.equal(facingInAtTheKeyRoutine(source), true, source);
     // The emulator reads keys whichever way the port faces, so the value read
     // would not have shown this; the direction does.
@@ -888,8 +891,13 @@ test('a store that reaches the 8255 makes the next key read set Port A again', (
     const modeWords = (source) => compile(source).assembly.split('\n').filter(line => line.includes('LDA #$99')).length;
     assert.equal(modeWords('byte p at $0400\ndisplay.scan()\np = 1\ndisplay.data = keypad.read()'), 0);
     assert.equal(modeWords('byte r[4] at $fcfc\ndisplay.scan()\nr[3] = 1\ndisplay.data = keypad.read()'), 0);
-    // A row that only touches the page by its last byte does reach it by a variable index.
+    // A variable index reaches 256 bytes from the row's first, whatever the
+    // row's length: so from $FC01 up a row reaches the page, and from $FC00
+    // down it does not. A literal index reaches the one byte it names.
     assert.equal(modeWords('byte r[5] at $fcfc\ni = 4\ndisplay.scan()\nr[i] = 1\ndisplay.data = keypad.read()'), 1);
+    assert.equal(modeWords('byte r[4] at $fcfc\ni = 3\ndisplay.scan()\nr[i] = 1\ndisplay.data = keypad.read()'), 1);
+    assert.equal(modeWords('byte r[1] at $fc01\ni = 0\ndisplay.scan()\nr[i] = 1\ndisplay.data = keypad.read()'), 1);
+    assert.equal(modeWords('byte r[1] at $fc00\ni = 0\ndisplay.scan()\nr[i] = 1\ndisplay.data = keypad.read()'), 0);
     assert.equal(modeWords('byte r[5] at $fcfc\ndisplay.scan()\nr[3] = 1\ndisplay.data = keypad.read()'), 0);
     assert.equal(modeWords('byte p at $fe00\ndisplay.scan()\np = 1\ndisplay.data = keypad.read()'), 0);
 });

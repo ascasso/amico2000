@@ -811,8 +811,12 @@ function compile(source) {
                 expression(value.trim());
                 if (at.index !== undefined) emit('LDX', ...operand(at.index));
                 emit('STA', at.mode, at.where);
-                // By a variable index, the store may be to any byte of the row.
-                mayTurnPortA(at.where, at.index === undefined ? 1 : places.get(name).count);
+                // A variable index is not checked against the row's length, so
+                // the store may land on the row's first byte or any of the 255
+                // after it, past the row's end too: from $FC01 up, a row of any
+                // length can reach the 8255. A row in page zero wraps inside
+                // the page and never does.
+                mayTurnPortA(at.where, at.index === undefined ? 1 : 256);
                 return;
             }
             if (places.has(name)) {

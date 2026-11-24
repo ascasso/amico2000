@@ -496,7 +496,10 @@ no assignment before it is read, and is never warned of as unread. Two names
 may be given to one byte, and a row may lie over a named byte or another row.
 A store into a PROM is lost, as on the board. After a store anywhere in
 `$FD00-$FDFF`, where the 8255 answers, the compiler no longer takes Port A to
-be an input, and the next key read sets it so again.
+be an input, and the next key read sets it so again. A store by a variable
+index counts as one that may reach any of the 256 bytes from the row's
+first, since the index is not checked: a row that starts at `$FC01` or above
+costs a mode word before the next key read, however short it is.
 
 ## The ROM and the memory budget
 
