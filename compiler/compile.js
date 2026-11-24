@@ -21,6 +21,10 @@ function compile(source) {
     const tables = new Map();
     const blocks = [];
     let defined = new Set();
+    // For the warning at the end: where each name was first assigned, and
+    // which names any line reads.
+    const assignedAt = new Map();
+    const read = new Set();
     let inA = null;
     let inputReady = false;
     let reachable = true;
@@ -53,6 +57,7 @@ function compile(source) {
         if (value !== null) return ['imm', value];
         if (FIELDS.has(text)) return ['zp', FIELDS.get(text)];
         if (!defined.has(text)) fail('Expected a byte literal or an assigned variable, got ' + text);
+        read.add(text);
         return ['zp', variable(text)];
     }
     function load(text) {
@@ -162,13 +167,13 @@ function compile(source) {
             forget();
             return;
         }
-        // A line that is no statement is that before it is anything else. A
-        // misspelt `end` after `stop` was called unreachable, which it is, and
-        // which is not what is wrong with it.
-        // What the line is goes by its shape alone. An assignment has one `=`
-        // after its name, not the two of a comparison, so `x == 1` is none.
-        // `if` and `const` are whole words with a space after them, so
-        // `if.scan()` is neither.
+        // What a line is goes by its shape alone, and is settled before
+        // anything else is asked of it. An assignment has one `=` after its
+        // name, not the two of a comparison, so `x == 1` is none; `if` and
+        // `const` are whole words with a space after them, so `if.scan()` is
+        // neither. A line that is no statement is told so wherever it stands:
+        // a misspelt `end` after `stop` was once called unreachable, which it
+        // is, and which is not what is wrong with it.
         const assign = /^([\w.]+)\s*=(?!=)\s*(.+)$/.exec(text);
         const isIf = /^if(?:\s|$)/.test(text);
         const isConst = /^const(?:\s|$)/.test(text);
@@ -224,6 +229,7 @@ function compile(source) {
             const address = FIELDS.get(name) ?? variable(name);
             expression(value.trim());
             emit('STA', 'zp', address);
+            if (!FIELDS.has(name) && !assignedAt.has(name)) assignedAt.set(name, line);
             defined.add(name);
             inA = name;
         }
@@ -281,7 +287,14 @@ function compile(source) {
         mark(table.label);
         items.push({ bytes: table.bytes, line: table.line });
     }
-    return assemble(items);
+    const result = assemble(items);
+    // A name that is assigned and that no line reads has no place in memory:
+    // the assembler drops a store that nothing reads. Its value goes nowhere,
+    // and the program is still a program, so this is a warning and not an
+    // error. The usual cause is one name spelt two ways.
+    result.warnings = [...assignedAt].filter(([name]) => !read.has(name))
+        .map(([name, at]) => `Line ${at}: ${name} is assigned and never read`);
+    return result;
 }
 
 module.exports = { compile };

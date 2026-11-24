@@ -19,6 +19,9 @@ if (!['--asm', '--bin', '--tape'].includes(format) || !file || extra.length) {
 } else {
     try {
         const result = compile(fs.readFileSync(file, 'utf8'));
+        // On standard error, so that a warning never lands in a listing, a
+        // binary or a tape that is being redirected to a file.
+        for (const warning of result.warnings) console.error(`${file}: warning: ${warning}`);
         const output = format === '--asm' ? result.assembly : format === '--bin' ? result.binary : tapeImage(result);
         process.stdout.write(output);
     } catch (error) {

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `amicoc` now warns of a name that is assigned and never read, such as a
+  name spelt two ways: `Line 3: lfet is assigned and never read`. The
+  compiler keeps no place in memory for such a name, so until now its value
+  went nowhere without a word. The program is compiled all the same; the
+  warning goes to standard error, and `compile()` returns it in
+  `warnings`. The first of the small fixes agreed for Amico.
 - Added `tests/compiler-assignment.test.js`, which tries two rules of Amico
   on every small program there is: that a name is assigned on every path
   before it is read, and that every statement can be reached. Some 45,000

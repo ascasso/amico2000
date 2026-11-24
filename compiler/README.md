@@ -77,6 +77,12 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |
 | `value = squares[key]` | Read a table entry. A literal index is checked and folded at compile time. A variable index becomes a native indexed load. Guard it with an `if` when its range is uncertain. An out-of-range variable index reads the byte at the resulting address. |
 
+The compiler warns of a name that is assigned and never read:
+`Line 3: lfet is assigned and never read`. It keeps no place in memory for
+such a name, so the value goes nowhere. The program is compiled all the same,
+and `amicoc` prints the warning on standard error. The usual cause is one name
+spelt two ways.
+
 ## Display and keys
 
 `display.high`, `display.low`, and `display.data` are the left, middle, and

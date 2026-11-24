@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 259
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 260
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -500,7 +500,8 @@ on 2026-11-23 and its place is the owner's to give.
         24-hour clock written in it is 140 bytes; the May 1979 article's is
         63, and three in page zero.
       - Quiet surprises. A value assigned to a name nobody reads is dropped
-        without a word, a misspelt name on the left of `=` included. `stop`
+        without a word, a misspelt name on the left of `=` included (it is
+        warned of now). `stop`
         hands the board back showing `0000 00`. HLT overwrites the display
         fields, which the examples use as variables. Key codes are bare
         numbers.
@@ -536,14 +537,20 @@ on 2026-11-23 and its place is the owner's to give.
         recommended against; `until` at the foot of a loop; `break` alone;
         and `loop 60` and `loop while` with `leave` and `again`.
       - From the agent's recap, which the owner liked as a whole and did not
-        take one by one: a warning for a name assigned and never read; named
-        constants (`const start = 21`) and names for the key codes
-        (`key.none`, `key.run`); `display.hold()`, which scans until RES, so
-        that a program can end with its result showing; `and`, `or`,
-        `else if`, `>` and `<=`; shifts, `a << 1` and `a >> 1`; a key read
-        or a table read as an operand (`k = keypad.read() & 15`); and
-        tighter code, `INC` and `DEC` for `x = x + 1` and no `CMP #0` after
-        an operation that set the flags.
+        take one by one. The first four are the small fixes the owner said
+        to start with:
+        - a warning for a name assigned and never read. **Done**;
+        - named constants (`const start = 21`) and names for the key codes
+          (`key.none`, `key.run`);
+        - `display.hold()`, which scans until RES, so that a program can
+          end with its result showing;
+        - the README saying what `stop` and HLT do to the displays;
+        - `and`, `or`, `else if`, `>` and `<=`;
+        - shifts, `a << 1` and `a >> 1`;
+        - a key read or a table read as an operand
+          (`k = keypad.read() & 15`);
+        - tighter code, `INC` and `DEC` for `x = x + 1` and no `CMP #0`
+          after an operation that set the flags.
     - **Stays out**, a list the owner approved:
       - anything wider than a byte, carry, pointers;
       - more than one operation on a line, parentheses, precedence;

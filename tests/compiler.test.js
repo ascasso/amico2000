@@ -340,3 +340,37 @@ test('a number may have leading zeros, and hex digits of either case', () => {
     assert.match(readme, /Leading zeros change nothing, so `021` is 21 and not an octal number/);
     assert.match(readme, /`\$0f`, `\$0F` and `15` are one value/);
 });
+
+test('a name that is assigned and never read is warned of, and compiled all the same', () => {
+    // One name spelt two ways: the subtraction is worked out and goes nowhere.
+    const misspelt = compile('left = 21\nloop\nlfet = left - 1\ndisplay.data = left\ndisplay.scan()\nend');
+    assert.deepEqual(misspelt.warnings, ['Line 3: lfet is assigned and never read']);
+    assert.ok(misspelt.binary.length > 4);
+    assert.doesNotMatch(misspelt.assembly, /lfet/); // It has no place in memory.
+    // The manual's first program, as one would first write it.
+    assert.deepEqual(compile('a = 9\nb = 1\nsum = a + b').warnings, ['Line 3: sum is assigned and never read']);
+    // Once for a name, at the line that first assigns it.
+    assert.deepEqual(compile('a = 1\nb = 2\na = 3\ndisplay.data = b').warnings, ['Line 1: a is assigned and never read']);
+
+    // No warning for a name that is read without ever having a place in memory
+    // (`key` in the squares program stays in A), nor for a display field, which
+    // the board reads.
+    for (const file of [squares, path.join(__dirname, '../compiler/examples/matches.amico')]) {
+        assert.deepEqual(compile(fs.readFileSync(file, 'utf8')).warnings, [], file);
+    }
+    assert.doesNotMatch(compile(fs.readFileSync(squares, 'utf8')).assembly, /^var_key/m);
+    assert.deepEqual(compile('display.data = 1\ndisplay.low = 2').warnings, []);
+
+    // The command line: the warning on standard error, the output untouched, exit 0.
+    const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'amico-'));
+    const file = path.join(dir, 'spelt.amico');
+    fs.writeFileSync(file, 'left = 21\nlfet = left - 1\ndisplay.data = left\n');
+    try {
+        const run = require('node:child_process').spawnSync(process.execPath, [cli, '--bin', file]);
+        assert.equal(run.status, 0);
+        assert.equal(String(run.stderr), file + ': warning: Line 2: lfet is assigned and never read\n');
+        assert.deepEqual(new Uint8Array(run.stdout), compile(fs.readFileSync(file, 'utf8')).binary);
+    } finally {
+        fs.rmSync(dir, { recursive: true });
+    }
+});
