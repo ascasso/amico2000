@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico joins comparisons into one condition: `if take >= 1 and take < 4`,
+  `if key == keypad.run or key == keypad.reg`. With `and` every comparison
+  has to hold and with `or` any one. They are tried in the order written
+  and no further than it takes, so a key read in a later comparison happens
+  only if the earlier ones left the matter open. The two words cannot be
+  mixed in one condition: the language has no brackets and no rule for
+  which would come first. Joined by `and`, a condition is the same bytes as
+  one `if` inside another, which is what a program wrote until now. `and`
+  and `or` join the words that cannot be names.
 - Amico compares with `>` and `<=` as well as `<`, `>=`, `==` and `!=`. The
   6502's compare answers those two with two flags, so against a variable
   they are two branches and two bytes more than the others. Against a

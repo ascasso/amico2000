@@ -252,7 +252,7 @@ test('a refusal names the mistake that was made', () => {
         .split(',').map(word => word.trim().replace(/'/g, ''));
     const readme = fs.readFileSync(path.join(__dirname, '../compiler/README.md'), 'utf8');
     const listed = /cannot be names: ([^.]+)\./.exec(readme.replace(/\n/g, ' '))[1];
-    assert.equal(words.length, 15);
+    assert.equal(words.length, 17);
     for (const word of words) {
         assert.ok(listed.includes('`' + word + '`'), `the README does not list ${word}`);
         assert.throws(() => compile(word + ' = 1'), new RegExp(`^Error: Line 1: ${word} is a word of the language`));
@@ -1165,4 +1165,74 @@ test('all six comparisons, against a number and against a name, to the edges of 
     for (const wrong of ['=<', '=>', '=', '<>', '>>', '<<', '===', '!==', '!']) {
         assert.throws(() => compile(`if display.low ${wrong} 2\nend`), /^Error: Line 1: Expected an unsigned comparison using <, <=, >, >=, == or !=/, wrong);
     }
+});
+
+test('comparisons joined by and or by or, tried in order and no further than it takes', () => {
+    const bytes = (source) => [...compile(source).binary];
+    const fields = (source) => { const memory = finished(source); return [memory[0xfb], memory[0xfa], memory[0xf9]]; };
+    // Three comparisons of three kinds, each so or not so as a bit of the
+    // count says: equal to a number, greater than a name, and not greater
+    // than a name. All eight cases of each joining are run in one program,
+    // which notes in a row of bytes which arm it took.
+    // Each comparison is tried in each place, since the last of a chain
+    // joined by or is compiled as the others are not.
+    const kinds = [['p == 1', (i) => (i & 1) === 1], ['q > zero', (i) => (i & 2) > 0], ['r <= zero', (i) => (i & 4) <= 0]];
+    for (const word of ['and', 'or']) {
+        for (const order of [[0, 1, 2], [2, 1, 0], [1, 2, 0], [0, 1], [1, 0], [2, 0]]) {
+            const tests = order.map((which) => kinds[which]);
+            const source = `byte took[8] at $80\nzero = 0\nfor i in 0..7\n    p = i & 1\n    q = i & 2\n    r = i & 4\n    if ${tests.map(([written]) => written).join(` ${word} `)}\n        took[i] = 1\n    else\n        took[i] = 2\n    end\nend`;
+            const expected = Array.from({ length: 8 }, (_, i) => {
+                const each = tests.map(([, truth]) => truth(i));
+                return (word === 'and' ? each.every(Boolean) : each.some(Boolean)) ? 1 : 2;
+            });
+            assert.deepEqual([...finished(source).slice(0x80, 0x88)], expected, tests.map(([written]) => written).join(` ${word} `));
+        }
+    }
+    // Joined by and, a condition is the same bytes as one if inside another.
+    assert.deepEqual(bytes('x = display.low\nif x >= 1 and x < 4 and x != display.high\ndisplay.data = x\nend'),
+        bytes('x = display.low\nif x >= 1\nif x < 4\nif x != display.high\ndisplay.data = x\nend\nend\nend'));
+    // Joined by or, the first comparison that holds goes straight to the statements.
+    assert.match(compile('x = display.low\ny = display.high\nif x == 1 or y == 2\ndisplay.data = 1\nend').assembly,
+        /CMP #\$01 .*\n +BEQ flow_2 .*\n +LDA var_y .*\n +CMP #\$02 .*\n +BNE flow_1 .*\nflow_2:\n/);
+    // With an else, each arm is taken when it should be.
+    const arms = (low, high) => fields(`display.low = ${low}\ndisplay.high = ${high}\nif display.low == 1 or display.high == 2\ndisplay.data = $aa\nelse\ndisplay.data = $bb\nend`)[2];
+    assert.deepEqual([arms(1, 2), arms(1, 0), arms(0, 2), arms(0, 0)], [0xaa, 0xaa, 0xaa, 0xbb]);
+
+    // No further than it takes: a key wait in a later comparison is not
+    // come to when an earlier one has settled the matter. Were it come to,
+    // these two would wait for a key for ever.
+    assert.equal(fields('display.high = 0\ndisplay.low = 1\ndisplay.data = 0\nif display.low == 1 or keypad.press() == 5\ndisplay.data = 7\nend')[2], 7);
+    assert.equal(fields('display.high = 0\ndisplay.low = 1\ndisplay.data = 0\nif display.low == 2 and keypad.press() == 5\ndisplay.data = 7\nend')[2], 0);
+    // And it is come to when the earlier ones leave the matter open: with no key down the read gives keypad.none.
+    assert.equal(fields('display.high = 0\ndisplay.low = 1\ndisplay.data = 0\nif display.low == 1 and keypad.read() == keypad.none\ndisplay.data = 7\nend')[2], 7);
+    assert.equal(fields('display.high = 0\ndisplay.low = 1\ndisplay.data = 0\nif display.low == 2 or keypad.read() == keypad.none\ndisplay.data = 7\nend')[2], 7);
+
+    // After an or, the statements are reached from each comparison with a
+    // different left side in A, so nothing is taken to be there: here the
+    // first comparison holds, with display.low in A, and the statement
+    // reads display.high.
+    assert.deepEqual(fields('display.low = 0\ndisplay.high = 7\nif display.low == 0 or display.high == 9\ndisplay.data = display.high\nend'), [7, 0, 7]);
+    // Nor is Port A taken to face inwards because a key read in a later
+    // comparison would have turned it: that read may not have been come to.
+    const turned = compile('if display.low == 0 or keypad.read() == 5\nk = keypad.read()\ndisplay.data = k\nend').assembly;
+    assert.equal(turned.split('STA $FD03').length - 1, 2);
+    // After an and it is known: the statements are reached one way only.
+    const straight = compile('if display.low == 0 and keypad.read() == 5\nk = keypad.read()\ndisplay.data = k\nend').assembly;
+    assert.equal(straight.split('STA $FD03').length - 1, 1);
+
+    for (const [source, error] of [
+        ['if display.low == 1 and display.high == 2 or display.data == 3\nend', /^Error: Line 1: A condition is joined by and or by or, not by both: there are no brackets to say which comes first/],
+        ['if display.low == 1 or display.high == 2 and display.data == 3\nend', /^Error: Line 1: A condition is joined by and or by or, not by both/],
+        ['if display.low == 1 and\nend', /^Error: Line 1: and joins two comparisons, and one of them is missing/],
+        ['if or display.low == 1\nend', /^Error: Line 1: or joins two comparisons, and one of them is missing/],
+        ['if display.low == 1 and and display.high == 2\nend', /^Error: Line 1: and joins two comparisons, and one of them is missing/],
+        ['if display.low and display.high\nend', /^Error: Line 1: Expected an unsigned comparison using <, <=, >, >=, == or !=/],
+        ['if display.low == 1 and display.high\nend', /^Error: Line 1: Expected an unsigned comparison/],
+        ['if display.low == 1 and display.high == a + 1\nend', /^Error: Line 1: The right side of a comparison is a single value/],
+        ['if display.low == 1 or y == 2\nend', /^Error: Line 1: Expected a byte literal, a constant or an assigned variable, got y/],
+        // The words join comparisons; the bits of a byte have their own operators.
+        ['x = display.low and 3', /^Error: Line 1: Expected a byte literal, a constant or an assigned variable, got display.low and 3/]
+    ]) assert.throws(() => compile(source), error, source);
+    // A name may have the letters of the two words in it.
+    assert.ok(compile('band = 1\nore = 2\nif band == 1 and ore == 2\ndisplay.data = band\nend'));
 });

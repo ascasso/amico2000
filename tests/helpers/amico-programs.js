@@ -8,8 +8,9 @@
 // `stop` or a `break`. Given the same seed it makes the same program, so a failure can be
 // made again from its seed alone.
 //
-// What it leans on: nested `if`s with and without `else`, arms long enough to
-// need a long branch, `for` loops that count up and down, between numbers and
+// What it leans on: nested `if`s with and without `else`, conditions of two
+// and three comparisons joined by `and` or by `or`, arms long enough to need a
+// long branch, `for` loops that count up and down, between numbers and
 // between constants, to the edges of a byte, one inside another, with their
 // names read inside and afterwards, `break` and `next` in the arms of `if`s
 // inside both kinds of loop, statements after a loop that a `break` leaves,
@@ -76,7 +77,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
+    const made = { longArm: false, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0, places: 0, rowUses: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -303,7 +304,7 @@ function generate(seed, { scans = false, long = false } = {}) {
     // comparisons, against numbers and against names, 0 and 255 among the
     // numbers. `> 255` and `<= 255` the compiler refuses, as saying nothing,
     // so against 255 one of the other four is written.
-    function condition(assigned) {
+    function comparison(assigned) {
         const roll = random.next();
         let left;
         if (roll < 0.15) {
@@ -322,6 +323,13 @@ function generate(seed, { scans = false, long = false } = {}) {
         let compare = pick(COMPARISONS);
         if (numberOf(right) === 255 && (compare === '>' || compare === '<=')) compare = pick(['<', '>=', '==', '!=']);
         return chance(0.15) ? `${left}${compare}${right}` : `${left} ${compare} ${right}`;
+    }
+    // One comparison, or two or three joined by the same word.
+    function condition(assigned) {
+        if (!chance(0.25)) return comparison(assigned);
+        made.joined++;
+        const word = chance(0.5) ? ' and ' : ' or ';
+        return Array.from({ length: chance(0.7) ? 2 : 3 }, () => comparison(assigned)).join(word);
     }
 
     // `count` statements at one depth. Returns the names assigned on every

@@ -77,9 +77,9 @@ commands above and starts with `AD 0200 RUN`.
 
 Write one statement per line. Names start with a lowercase letter and may
 contain lowercase letters, digits and underscores. The words of the language
-cannot be names: `if`, `else`, `end`, `loop`, `for`, `break`, `next`, `stop`,
-`const`, `table`, `byte`, `in`, `display`, `keypad` and `call`. A `#` begins a
-comment.
+cannot be names: `if`, `else`, `end`, `and`, `or`, `loop`, `for`, `break`,
+`next`, `stop`, `const`, `table`, `byte`, `in`, `display`, `keypad` and `call`.
+A `#` begins a comment.
 All values are unsigned bytes. Write decimal literals as `21` or hex as
 `$15`. Leading zeros change nothing, so `021` is 21 and not an octal number,
 and hex digits may be capitals or small letters: `$0f`, `$0F` and `15` are
@@ -89,7 +89,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | --- | --- |
 | `left = 21` | Introduce or update a byte. Reading a named variable requires an assignment on every path reaching that read. |
 | `left = left - take` | Compute one binary operation per expression. The operators are `+`, `-`, `&`, `\|`, and `^`. Both operands are literals, constants, variables, display fields or named locations. |
-| `if left >= 10` | Compare bytes using `<`, `<=`, `>`, `>=`, `==`, or `!=`. The left side may be an operation, a read from a table or a row, or a key read; the right side is one value: a literal, a constant, a variable, a display field or a named location. An optional `else` starts the other arm. Close with `end`. See Conditions. |
+| `if left >= 10` | Compare bytes using `<`, `<=`, `>`, `>=`, `==`, or `!=`. The left side may be an operation, a read from a table or a row, or a key read; the right side is one value: a literal, a constant, a variable, a display field or a named location. Several comparisons may be joined by `and` or by `or`. An optional `else` starts the other arm. Close with `end`. See Conditions. |
 | `loop` | Repeat the enclosed statements until a `break`, or for ever. Close with `end`. Blocks can nest. |
 | `for i in 0..5` | Repeat the enclosed statements once for each value from the first to the last, both included, with the name holding the value. Close with `end`. See Loops. |
 | `break` | Leave the `loop` or `for` the statement is in, and go on after its `end`. See Loops. |
@@ -120,6 +120,26 @@ a literal or a constant they cost nothing more: the compiler writes `x > 5`
 as `x >= 6` and `x <= 5` as `x < 6`, as one would by hand. That leaves
 `x > 255` and `x <= 255` with no next number, and they are refused: the first
 is never so, and the second always.
+
+Several comparisons can be joined into one condition, all by `and` or all by
+`or`:
+
+```
+if take >= 1 and take < 4 and take < left
+if key == keypad.run or key == keypad.reg
+```
+
+With `and` the condition holds if every comparison does, and with `or` if
+any one does. They are tried in the order written, and no further than it
+takes: after one that fails an `and` tries no more, and after one that holds
+neither does an `or`. So a key read in a later comparison happens only if
+the earlier ones have left the matter open.
+
+The two words cannot be mixed in one condition, since the language has no
+brackets and no rule for which would come first: put the second question in
+an `if` of its own. `and` and `or` join comparisons; for the bits of a byte
+the operators are `&` and `|`. A condition joined by `and` compiles to
+exactly what the same comparisons cost as one `if` inside another.
 
 ## Loops
 

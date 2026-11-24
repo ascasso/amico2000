@@ -54,13 +54,14 @@ function pieces(text) {
         calls(name) { return found.length === 3 && this.term(0) === name && this.mark(1) === '(' && this.mark(2) === ')'; }
     };
 }
-const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call', 'for', 'break', 'next']);
+const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call', 'for', 'break', 'next', 'and', 'or']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 // CMP leaves the carry set when A is not below what it was compared with,
 // and Z set when the two are equal. Four of the six comparisons are one
 // flag, and so one branch. `>` and `<=` are two flags.
 const COMPARISONS = ['<', '<=', '>', '>=', '==', '!='];
-const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
+const TRUE_BRANCH = new Map([['<', 'BCC'], ['>=', 'BCS'], ['==', 'BEQ'], ['!=', 'BNE']]);
+const OPPOSITE = new Map([['<', '>='], ['>=', '<'], ['<=', '>'], ['>', '<='], ['==', '!='], ['!=', '==']]);
 
 function compile(source) {
     const items = [];
@@ -378,9 +379,10 @@ function compile(source) {
         }
         fail('Expected an unsigned comparison using <, <=, >, >=, == or !=');
     }
-    // The code for one comparison: on to the next instruction when it holds,
-    // and away to `otherwise` when it does not.
-    function unless(test, otherwise) {
+    // The code for one comparison, with a branch to `target`: taken when the
+    // comparison holds if `when` is true, and when it does not if `when` is
+    // false. The other outcome goes on to the next instruction.
+    function branch(test, target, when) {
         expression(test.left);
         let [mode, value] = operand(test.right);
         let op = test.op;
@@ -394,19 +396,56 @@ function compile(source) {
             op = op === '>' ? '>=' : '<';
         }
         emit('CMP', mode, value);
+        // To branch when a comparison does not hold is to branch when its
+        // opposite does.
+        if (!when) op = OPPOSITE.get(op);
         if (op === '>') {
-            // Greater is not below and not equal: either flag sends it away.
-            emit('BCC', 'rel', otherwise);
-            emit('BEQ', 'rel', otherwise);
+            // Greater is not equal and not below: equal steps over the
+            // branch that not below takes.
+            const no = label();
+            emit('BEQ', 'rel', no);
+            emit('BCS', 'rel', target);
+            mark(no);
         } else if (op === '<=') {
-            // Equal holds at once; if not equal, not below is greater.
-            const holds = label();
-            emit('BEQ', 'rel', holds);
-            emit('BCS', 'rel', otherwise);
-            mark(holds);
+            // Below or equal: either flag takes it.
+            emit('BCC', 'rel', target);
+            emit('BEQ', 'rel', target);
         } else {
-            emit(FALSE_BRANCH.get(op), 'rel', otherwise);
+            emit(TRUE_BRANCH.get(op), 'rel', target);
         }
+    }
+    // A condition is one comparison, or several joined all by `and` or all
+    // by `or`. Its code goes on to the next instruction when the condition
+    // holds and away to `otherwise` when it does not. The comparisons are
+    // tried in the order written and no further than it takes: with `and`
+    // the first that fails settles it, with `or` the first that holds.
+    function condition(L, from, to, otherwise) {
+        const joins = [];
+        for (let i = from; i < to; i++) if (L.term(i) === 'and' || L.term(i) === 'or') joins.push(i);
+        const word = joins.length ? L.term(joins[0]) : null;
+        // Which of the two goes first is a rule of precedence or a pair of
+        // brackets, and the language has neither.
+        if (joins.some((at) => L.term(at) !== word)) {
+            fail('A condition is joined by and or by or, not by both: there are no brackets to say which comes first');
+        }
+        const edges = [from - 1, ...joins, to];
+        const tests = joins.map((_, k) => k).concat(joins.length).map((k) => {
+            if (word && edges[k] + 1 === edges[k + 1]) fail(word + ' joins two comparisons, and one of them is missing');
+            return comparison(L, edges[k] + 1, edges[k + 1]);
+        });
+        if (word !== 'or') {
+            for (const test of tests) branch(test, otherwise, false);
+            return;
+        }
+        // Each comparison but the last goes straight to the statements when
+        // it holds; the last goes away when it does not.
+        const statements = label();
+        tests.forEach((test, k) => (k < tests.length - 1 ? branch(test, statements, true) : branch(test, otherwise, false)));
+        mark(statements);
+        // The statements are reached from every comparison, each with its
+        // own left side in A, and with Port A as far as the key reads that
+        // were got to have set it.
+        forget();
     }
     function statement(text) {
         const L = pieces(text);
@@ -555,9 +594,8 @@ function compile(source) {
             inA = name;
             inputReady = false;
         } else if (isIf) {
-            const test = comparison(L, 1, L.length);
             const otherwise = label();
-            unless(test, otherwise);
+            condition(L, 1, L.length, otherwise);
             blocks.push({ kind: 'if', entry: new Set(defined), otherwise, end: label(), line });
         } else if (alone('stop')) {
             emit('JMP', 'abs', 0xfe22);

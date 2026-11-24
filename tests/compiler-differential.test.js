@@ -126,7 +126,7 @@ function failure(seed, source, wrong) {
 }
 
 test('random programs compute on the board what the reference interpreter computes', () => {
-    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0 };
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, places: 0, rows: 0 };
     for (let seed = 1; seed <= PROGRAMS; seed++) {
         const { source, made } = generate(seed, { long: seed % 3 === 0 });
         const result = compare(source, seed);
@@ -141,6 +141,7 @@ test('random programs compute on the board what the reference interpreter comput
         if (made.fors) seen.fors++;
         if (made.breaks) seen.breaks++;
         if (made.nexts) seen.nexts++;
+        if (made.joined) seen.joined++;
         if (made.tableReads) seen.tables++;
         if (made.elseArms) seen.elseArms++;
         if (made.depth >= 4) seen.deep++;
@@ -151,23 +152,25 @@ test('random programs compute on the board what the reference interpreter comput
     }
 
     // A generator can stop making what it was written to make and the test
-    // would go on passing. Measured over 20,000 programs, 67% of those
+    // would go on passing. Measured over 20,000 programs, 64% of those
     // generated fitted the board, and of those that ran:
-    //   24% had a long branch          64% a constant or a key's name
-    //   65% a loop                     39% a table written out
-    //   53% a for                      50% a named memory location
-    //   50% a break                    40% a byte of a row read or written
-    //   20% a next                     48% blocks four deep
-    //   54% a table read               65% an else
+    //   25% had a long branch          64% a constant or a key's name
+    //   64% a loop                     38% a table written out
+    //   51% a for                      50% a named memory location
+    //   48% a break                    40% a byte of a row read or written
+    //   18% a next                     47% blocks four deep
+    //   54% an and or an or            64% an else
+    //   52% a table read
     // The floors are about half of each: there to notice a collapse, not a
     // drift.
     const share = (count) => count / seen.ran;
-    assert.ok(seen.ran / PROGRAMS > 0.33, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
+    assert.ok(seen.ran / PROGRAMS > 0.32, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
     assert.ok(share(seen.loops) > 0.28, `a loop in only ${seen.loops} of ${seen.ran}`);
-    assert.ok(share(seen.fors) > 0.26, `a for in only ${seen.fors} of ${seen.ran}`);
-    assert.ok(share(seen.breaks) > 0.25, `a break in only ${seen.breaks} of ${seen.ran}`);
-    assert.ok(share(seen.nexts) > 0.10, `a next in only ${seen.nexts} of ${seen.ran}`);
+    assert.ok(share(seen.fors) > 0.25, `a for in only ${seen.fors} of ${seen.ran}`);
+    assert.ok(share(seen.breaks) > 0.24, `a break in only ${seen.breaks} of ${seen.ran}`);
+    assert.ok(share(seen.nexts) > 0.09, `a next in only ${seen.nexts} of ${seen.ran}`);
+    assert.ok(share(seen.joined) > 0.27, `an and or an or in only ${seen.joined} of ${seen.ran}`);
     assert.ok(share(seen.tables) > 0.26, `a table read in only ${seen.tables} of ${seen.ran}`);
     assert.ok(share(seen.elseArms) > 0.33, `an else in only ${seen.elseArms} of ${seen.ran}`);
     assert.ok(share(seen.deep) > 0.21, `blocks four deep in only ${seen.deep} of ${seen.ran}`);

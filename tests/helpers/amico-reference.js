@@ -95,8 +95,14 @@ function parse(source) {
             into.push(loop);
             open.push(loop);
             into = loop.body;
-        } else if ((match = /^if\s+(.+?)\s*(>=|<=|==|!=|<|>)\s*(\S+)$/.exec(line))) {
-            const test = { kind: 'if', left: match[1], compare: match[2], right: match[3], then: [], otherwise: null };
+        } else if ((match = /^if\s+(.+)$/.exec(line))) {
+            // One comparison, or several joined all by `and` or all by `or`.
+            const joined = match[1].split(/\s+(and|or)\s+/);
+            const tests = joined.filter((_, at) => at % 2 === 0).map((written) => {
+                const [, left, compare, right] = /^(.+?)\s*(>=|<=|==|!=|<|>)\s*(\S+)$/.exec(written);
+                return { left, compare, right };
+            });
+            const test = { kind: 'if', tests, join: joined[1] || 'and', then: [], otherwise: null };
             into.push(test);
             open.push(test);
             into = test.then;
@@ -193,7 +199,12 @@ function run(source, memory, maxSteps = 200000) {
         if (address !== null) cells[address] = value;
         else variables.set(name, value);
     }
-    function holds(test) {
+    // With `and` every comparison has to hold, with `or` any one, and they
+    // are tried in the order written and no further than it takes.
+    function holds(condition) {
+        return condition.join === 'or' ? condition.tests.some(compares) : condition.tests.every(compares);
+    }
+    function compares(test) {
         const left = evaluate(test.left);
         const right = valueOf(test.right);
         // Both sides are bytes, and are compared as unsigned numbers.
