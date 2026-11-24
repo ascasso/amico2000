@@ -1,0 +1,7 @@
+# The manual's first program (Sperimentare supplement, Tabella 7): add two bytes.
+# Key the two numbers into 0006 and 0007, RUN at 0200, and read the sum at 0004.
+byte a at $06
+byte b at $07
+byte sum at $04
+
+sum = a + b

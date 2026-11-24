@@ -1,0 +1,39 @@
+# Take 1, 2 or 3 matches. Whoever is left with the last match loses.
+# The three pairs of digits show your move, the board's move, and matches left.
+left = 21
+display.high = 0
+display.low = 0
+display.data = $21
+loop
+    take = keypad.press()
+    # A move is 1, 2 or 3 matches, and leaves at least one on the table.
+    if take >= 1 and take <= 3 and take < left
+        display.high = take
+        left = left - take
+        if left == 1
+            display.high = $5a
+            display.low = $fe
+        else
+            # Open with one match. After that, aim to leave one modulo four.
+            reply = left - 1
+            reply = reply & 3
+            if reply == 0 or display.low == 0
+                reply = 1
+            end
+            display.low = reply
+            left = left - reply
+            if left == 1
+                display.high = $de
+                display.low = $ad
+            end
+        end
+        # Pack the decimal digits for the monitor's hex display.
+        display.data = left
+        if left >= 10
+            display.data = left + 6
+        end
+        if left == 1
+            display.hold()
+        end
+    end
+end

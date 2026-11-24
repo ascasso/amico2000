@@ -8,6 +8,170 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- A test holds `NextSession.md` to 120 lines, to the documents it names,
+  and to an entry in `docs/open-work.md` for each open item it lists. The
+  file had been cut short once before and grew back in three days.
+- Amico makes a table from a text, for the displays:
+  `const hello = table segments "CIAO"` is four bytes, the segments that
+  draw each character on a digit, and the listing shows them under the text
+  they came from. The alphabet is the manual's own, Tabella 18 of the
+  Sperimentare supplement: the ten digits, twenty letters, the dash and the
+  space. It has no K, M, V, W, X or Z, and a text with one of those is
+  refused by name, as is every other character; a table written out still
+  holds any pattern. A letter has one shape and may be written in either
+  case. The manual prints most of the
+  bytes with bit 7 set, which it says is not used; here it is clear.
+- Amico has another example, `compiler/examples/slide.amico`: a text that
+  slides across the six displays, a digit at a time, four steps a second.
+  87 bytes, 31 of them the text.
+- Amico has a `decimal` block. Between `decimal` and its `end`, `+` and `-`
+  count in two decimal digits to a byte, which is how the hex displays show
+  one: `$59 + 1` is `$60`, and a byte wraps at a hundred. It is the 6502's
+  decimal mode, a `SED` and a `CLD`, two bytes, and the sums between are the
+  instructions they are anywhere. The monitor's key routine adds, and in
+  decimal mode gives F and no key the same code, so for `keypad.read()` and
+  `keypad.press()` inside a block the compiler leaves decimal mode and comes
+  back to it; it does the same for a `call`. The routines that show the
+  displays do no sums and are called as they are. A `break` or a `next` that
+  leaves a block clears decimal mode on its way. A number added or
+  subtracted in a block has to be two decimal digits itself, so `x + 10` is
+  refused there and ten is written `$10`. A block cannot be inside another,
+  and `decimal` joins the words that cannot be names.
+- Amico has another example, `compiler/examples/clock.amico`: a clock after
+  the one in Sperimentare of May 1979, with hours, minutes and seconds on
+  the six digits, counted in a `decimal` block. The time to start from is
+  keyed into `0000` to `0002`, as the article has it. On the emulated board
+  one of its seconds is 1,000,002 cycles, and a line of the program is there
+  to set it by on a board whose crystal is less exact. It is 90 bytes and
+  two in page zero; the article's is 63 and four, and the same clock
+  written in Amico before it had `for` and `decimal` came to 140.
+- Amico has `else if`: an `if` can go on to try other conditions before its
+  `else` or its `end`, and one `end` closes the whole chain. The conditions
+  are tried in order and the statements under the first that holds are run.
+  It is the same bytes as an `if` inside the `else` of another, which is
+  what a program wrote until now, with one more `end` and one more margin
+  for every condition.
+- Amico joins comparisons into one condition: `if take >= 1 and take < 4`,
+  `if key == keypad.run or key == keypad.reg`. With `and` every comparison
+  has to hold and with `or` any one. They are tried in the order written
+  and no further than it takes, so a key read in a later comparison happens
+  only if the earlier ones left the matter open. The two words cannot be
+  mixed in one condition: the language has no brackets and no rule for
+  which would come first. Joined by `and`, a condition is the same bytes as
+  one `if` inside another, which is what a program wrote until now. `and`
+  and `or` join the words that cannot be names.
+- Amico compares with `>` and `<=` as well as `<`, `>=`, `==` and `!=`. The
+  6502's compare answers those two with two flags, so against a variable
+  they are two branches, and two bytes more than the others where the
+  statements under them are short enough for a branch to cross. Against a
+  literal or a constant they cost nothing more: `x > 5` is compiled as
+  `x >= 6`. `x > 255` and `x <= 255` are refused, the first as never so and
+  the second as always. A comparison with nothing on its left is told so.
+- Amico has two words for the inside of a loop. `break` leaves the `loop` or
+  `for` it is in, and the program goes on after that loop's `end`; `next`
+  goes round again at once, to the top of a `loop` and to the next value of
+  a `for`. Until now nothing left a `loop` but `stop`, which ends the
+  program, so no statement could follow one. What follows a loop is reached
+  through its `break`s, and a name may be read there if every way out had
+  assigned it. A `for` left by `break` leaves its name at the value it had,
+  which says how far it got. Each is one jump, three bytes. `break` and
+  `next` join the words that cannot be names.
+- Amico has a loop that counts: `for i in 0..5`, closed with `end`. Its
+  statements run once for each value from the first to the last, both
+  included, and the name holds the value. The two ends are literals or
+  constants, so the count is known when the program is compiled; when the
+  first is the greater it counts down, as `for i in 5..0` does. Inside its
+  loop the name is read and cannot be assigned, and afterwards it is one step
+  past the last value. The manual's word is now copied to the displays in
+  three lines where it took seven. A `for` costs twelve bytes besides its
+  statements, and fifteen when they are too long for a branch to reach back
+  over. `for` joins the words that cannot be names.
+- Amico names the six digits as raw segments, `display.segment[0]` to
+  `display.segment[5]`, and the monitor's routine that shows them,
+  `display.show()`, beside the three hex bytes and `display.scan()` it
+  already had. Three examples use what the language can now reach:
+  `sum.amico`, the manual's first program, which compiles to a `CLD` and the
+  manual's ten bytes, the `CLC` moved after the load; `word.amico`, the
+  manual's word ASEL on
+  the displays; and `leds.amico`, which counts in binary on the LEDs D4-D7.
+- Amico can name a row of bytes: `byte segment[6] at $8f`, and then
+  `segment[i]` to read or to assign to. A literal index is checked and is
+  a plain address; a variable index goes through X. With a table written
+  out and a call, the manual's word ASEL is copied to the displays a byte
+  at a time in twelve lines. A row has 1 to 256 bytes anywhere outside
+  `$20-$7F`.
+- Amico can call a routine by its address: `call $ff7e`. With a name for a
+  memory location, that reaches the monitor's routine for showing six raw
+  patterns, which is how a program puts letters on the displays: the
+  manual's word ASEL is six names, six assignments and a call in a loop.
+  When a call comes back the compiler takes nothing to be known, not the
+  accumulator and not Port A's direction. `call` joins the words that
+  cannot be names. The third of the three additions that open the whole
+  board to Amico.
+- Amico can name a memory location: `byte sum at $04`. Reading the name
+  reads that byte and assigning to it writes it, each time, so a name can
+  stand for a byte keyed in before RUN, a result to look at afterwards, or
+  a port. The manual's first program, the sum of two bytes, is now four
+  lines and compiles to a `CLD` and the manual's own ten bytes, with the
+  `CLC` after the load where the manual has it before;
+  the LEDs D4-D7 are lit by naming three of the 8255's registers. Until now
+  the language reached the hex digits and the keypad and nothing else. The
+  second of the three additions that open the whole board to it.
+- Amico's tables can be written out: `const word = table byte = $77, $6d,
+  $79, $38, 0, 0`. Until now a table came only from a formula over its
+  index, which makes squares and cannot make the segment patterns of a
+  word. Each byte is a literal or a constant, up to 256 of them, and the
+  table is read as any other. The first of the three additions that let
+  the language reach the whole board.
+- Amico has `display.hold()`, which scans the six digits until RES. A
+  program that ended with `stop`, or ran off its end, handed the board to
+  the monitor, which shows `0000` and the byte there, so a result put on
+  the displays was gone as soon as it was reached. `display.hold()` is
+  `loop`, `display.scan()`, `end` in one word and the same six bytes; the
+  matchstick example ends with it now, byte for byte as before. The README
+  says what `stop` does to the displays. The third of the small fixes
+  agreed for Amico.
+- Amico has named constants: `const start = 21`. The name stands wherever a
+  literal may, as an operand, on the right of a comparison, as a table's
+  index or last index and in its formula, and costs nothing: it is gone by
+  the time code is made. The keys that are not hex digits have names of the
+  same kind, `keypad.ad`, `keypad.da`, `keypad.inc`, `keypad.run`,
+  `keypad.reg` and `keypad.none`, so that a program no longer compares a
+  key with `$15`. The reference interpreter and the random generator of the
+  differential test learned both from the README. The second of the small
+  fixes agreed for Amico.
+- `amicoc` now warns of a name that is assigned and never read, such as a
+  name spelt two ways: `Line 3: lfet is assigned and never read`. The
+  compiler keeps no place in memory for such a name, so until now its value
+  went nowhere without a word. The program is compiled all the same; the
+  warning goes to standard error, and `compile()` returns it in
+  `warnings`. The first of the small fixes agreed for Amico.
+- Added `tests/compiler-assignment.test.js`, which tries two rules of Amico
+  on every small program there is: that a name is assigned on every path
+  before it is read, and that every statement can be reached. Some 45,000
+  nestings of `if`, `else`, `loop` and `stop` are given to the compiler and
+  to an oracle that decides the same questions on a control-flow graph;
+  the two have to accept the same programs and refuse the rest at the same
+  line. It covers what the random programs cannot, since those are all
+  valid. `AMICO_STATEMENTS=7` goes deeper. It too comes from the check of
+  the compiler.
+- Added `tests/compiler-differential.test.js`, which holds the Amico compiler
+  to an interpreter written from the README alone. A thousand random
+  programs are compiled, run on the emulated board with registers and
+  flags randomised, and compared with it: the display bytes, every
+  variable, and that nothing else in RAM was written. Six programs written
+  by hand cover the top of a loop, which the random ones cannot. It is the
+  net under the compiler's front end before that is reworked;
+  `AMICO_PROGRAMS=30000` runs more. It comes from the check of the compiler
+  (`NextSession.md`, item 13), where it was one reviewer's harness.
+- Added a playable `21 fiammiferi` compiler example. Its 186-byte program
+  accepts moves at the keypad and shows both players' moves and the number
+  of matches left on the six digits.
+- Added `amicoc`, a byte-oriented cross-compiler for the 1 KB AMICO.
+  It produces annotated assembly, raw NMOS 6502 code and loadable cassette
+  images. Its 40-byte square-table example runs through the original monitor.
+  Generated programs clear inherited decimal mode and can wait for a debounced
+  keypress while refreshing the six displays.
 - Added a picture of the board to the top of the README, at the owner's
   request: `docs/images/amico2000-board.png`, a screenshot of the emulator's
   own drawing with the monitor running and `0000 00` on the displays. It
@@ -358,6 +522,135 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `NextSession.md` is short again: 89 lines where it had 1,000. It says what
+  to work on next, what is waiting for the owner, and what else is open, a
+  line or two to an item. Nothing was thrown away that is not in the
+  changelog, the logs or `AGENTS.md` already. What the owner decided about
+  Amico, the small print still to be looked at and what is not built are in
+  `docs/amico-design.md`; the plan for the shelf of programs is in
+  `docs/program-shelf.md`; the detail of every other open item is in
+  `docs/open-work.md`, under the number it had. How to check the page in a
+  browser moved to `AGENTS.md`, which also says now where each kind of
+  thing goes, so that the file stays short.
+- `AGENTS.md` records what the review of Amico's loops and conditions
+  showed about testing tests: the author's 51 planted defects were all
+  caught, and 20 of a reviewer's 51 others were not, most of them of a
+  kind the author had not thought to plant. It asks that the reviewer of
+  tests plant its own, and that a new kind of statement add its lines to
+  the test of lines that are nearly statements. `NextSession.md` notes
+  that the series was reviewed and what was found.
+- Sharpened the tests of Amico's loops and conditions, after two reviewers
+  of the unpushed series planted defects that no test noticed. Which way
+  Port A is taken to face where an `else` or an `else if` begins is now
+  checked on the board, at the entry of the monitor's key routine. Every
+  question the compiler asks of a line's shape has a line that only it
+  refuses, fifty of them: `x = a + b + 4` was one question away from
+  compiling as `x = a + b`. That a name needs every way out of a loop is
+  tested with the ways in both orders. The branches the new words make are
+  run across statements too long for a branch to reach over.
+- `NextSession.md` and `AGENTS.md` say what Amico now has. Item 13 marks
+  `for`, `break`, `next` and the richer conditions done, records how the
+  small print of `for` was settled, which the owner has not yet seen, lists
+  three places where the code could be tighter, and names decimal mode as
+  the next step. `AGENTS.md` says that the compiler reads a line as pieces
+  and is to go on doing so, what the oracle now covers, and that each new
+  construct has defects planted against its tests.
+- Two of Amico's examples are written with its new words. The matchstick
+  game accepts a move with one condition, `if take >= 1 and take <= 3 and
+  take < left`, where it had three `if`s one inside another, and its two
+  reasons to reply with one match are joined by `or`: 182 bytes, from 186.
+  The LED counter is three `for` loops, one that counts on the LEDs and two
+  that wait, where it kept three counts by hand: 53 bytes, from 64, and
+  still half a second to a step. The README's copy of the manual's word to
+  the displays is a `for` of three lines.
+- Amico's compiler reads a line as pieces, where it had one regular
+  expression for each kind of statement: terms, which are numbers and names,
+  marks, which are operators, brackets and commas, and anything else a
+  character at a time. A statement is then known by its pieces. Nothing a
+  program compiles to has changed: the old compiler and the new were run
+  side by side on 20,000 valid programs and 600,000 edited ones, and every
+  source both accept gives the same bytes, the same listing and the same
+  warnings. A malformed line may be refused in other words than before, and
+  `byte row[6]at $8f`, with no space after the bracket, is now taken, as
+  `x[0]=5` always was. It is the groundwork for conditions joined by `and`
+  and `or`, which one regular expression could not have read.
+- Corrected statements that the day's work on Amico had left untrue. The
+  sum was said to compile to "the manual's ten bytes with a `CLD` in
+  front"; they are the manual's ten, with the `CLC` after the load where
+  the manual has it before. `NextSession.md` still said that nothing of
+  the agreed design was built and that the compiler had not changed since
+  Codex wrote it. `AGENTS.md`, A Review by Several Agents, gains what the
+  third round of reviews showed: tell a reviewer what new code is meant to
+  do.
+- Sharpened the tests of what Amico can now reach, after a review of them
+  showed five breaks they let through. That nothing is taken as known
+  after `call` or `display.show()` was tested only at the start of a
+  program, where nothing is known anyway; it is now tested after a scan,
+  for Port A's direction and for the accumulator. The edges of where a
+  name may be are tested byte by byte: `$1F` and `$80`, a row ending at
+  `$FFFF` and one that would pass it. And the reference interpreter and
+  the random generator have `display.segment` and `display.show()`, which
+  the rule in `AGENTS.md` asks of every new construct.
+- Corrected two statements that a review of the documents found. The log
+  said a thousand random programs had passed a compiler with a planted
+  defect; that is true of the mended generator, and the old one had caught
+  it three times. `AGENTS.md` said generated code always leaves through
+  `$FE22`, which a program ending in `display.hold()` does not, and its
+  account of the oracle test did not mention `display.hold()`.
+- `compiler/README.md` now warns that HLT gives the three display fields to
+  the monitor: it writes the halted address into `display.high` and
+  `display.low` and the byte there into `display.data`, and RUN does not
+  put back what the program had in them. A program that keeps its state
+  in a display field loses it at a halt or under single step; the advice
+  is to keep it in a variable. A test pins the behaviour. The last of the
+  four small fixes agreed for Amico.
+- Mended the random program generator behind
+  `tests/compiler-differential.test.js`. Its seeds are small numbers, and
+  the first choice it made from one came out the same way for nearly every
+  seed, so that nearly every program had tables, by accident. The seed is
+  now spread before use, tables are in four programs of five by choice, and
+  the test's floors are measured again. Four programs written by hand now
+  hold what the accumulator contains after the left side of a comparison,
+  which the random programs caught only now and then.
+- Recorded the owner's choice of words for leaving a loop in Amico, in
+  `NextSession.md`, item 13: `for i in 0..5`, `break` and `next`, with
+  `loop ... end` staying the endless loop. Nothing is built yet.
+- `compiler/README.md` now says how a number may be spelt: leading zeros
+  change nothing, so `021` is 21 and not octal, and hex digits may be of
+  either case. The compiler already read them so, and so did the reference
+  interpreter the tests hold it to, but the README, which that interpreter
+  is meant to be written from, said nothing, so the two could have been
+  wrong together. A test holds the spellings and the sentence.
+- Raised the floors in `tests/compiler-differential.test.js` to what its
+  comment says they are, about half of what the generator makes; the one
+  for table reads was under a third. Corrected the header of
+  `tests/compiler-assignment.test.js`, which gave its deeper run as 4.1
+  million programs when it is 5.6 million. Both were found by a review of
+  the tests. `AGENTS.md`, A Review by Several Agents, now says how the
+  fixes themselves were reviewed and what that was good for.
+- Corrected `compiler/README.md` where the check of the compiler found it
+  wrong or silent. "The square table occupies 40 bytes" was the size of
+  the whole program, 16 bytes of it the table. `squares` runs for ever, and
+  nothing said to press RES before keying the LOAD for the next program:
+  until then the keys go to `squares`. And after HLT, the RUN that resumes
+  a program is returned by `keypad.press()` as key `$13`; the README now
+  warns of it, and a test holds the README to the behaviour.
+- Recorded what a check of the compiler found, in `NextSession.md`, item 13:
+  no ordinary program compiles to wrong code, and a short list of faults at
+  the edges, each reproduced. The owner had it run by five reviewers on
+  five models, four Claude subagents and one Codex instance. `AGENTS.md`
+  has a new section, A Review by Several Agents, on how that was done,
+  what made it work and how to run the next one, which the owner asked
+  for. Nothing in the compiler changed.
+- Named the compiler's language Amico, the owner's decision, and said in both
+  READMEs that it is new: written for this project in 2026, not ASEL's
+  software and never part of the machine. They called it "the AMICO's
+  byte-oriented language", which read as something that came with the board.
+  `NextSession.md`, item 13, now records the design the owner settled the
+  same day: what the language is to gain, what stays out of it, how programs
+  longer than 508 bytes will use the second kilobyte, and what is still open.
+  `AGENTS.md` has a section on the compiler, which it did not mention. The
+  compiler itself is unchanged.
 - Tablets held upright now get the handheld layout that phones have: the
   displays, LEDs, switch and keys in one column, with a picture of the board
   beneath. The owner found the board as drawn too small on an iPad Pro 11"
@@ -702,6 +995,116 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Amico: a store into a row by a variable index that went past the row's
+  end into the 8255 left the compiler taking Port A to be an input, so the
+  next key read entered the monitor's key routine with Port A an output,
+  which on the board drives the key lines. `byte r[4] at $fcfc`, `i = 7`
+  and `r[i] = $89` writes a mode word to `$FD03`. The README says that an
+  unchecked index reaches whatever byte it addresses and that any store
+  into `$FD00-$FDFF` makes the next key read set Port A again; the compiler
+  kept only the row's length. It now counts the 256 bytes such a store can
+  reach. No example changes by a byte. Found by Codex in its review of pull
+  request 58.
+- Amico's README gave two costs that hold only while a branch is short: a
+  `for` as twelve bytes and `>` or `<=` against a name as two bytes more
+  than the other comparisons. Over statements too long for a branch to
+  cross, the branch takes five bytes for two, so a long `for` adds fifteen
+  and a `>` five more. A program of 496 bytes in a `for` was refused as 511
+  where the README promised 508. The README now says what a branch reaches
+  and what the long form costs, and tests hold it to the numbers. Found by
+  Codex in the review of the series.
+- Amico: a line of source ends at either of Unicode's two separators,
+  U+2028 and U+2029, as it does at LF, CR LF and CR. They are spaces to the
+  compiler's reading of a line as pieces, so `display.data = 1+`, a
+  separator and `2`, which an editor shows as two lines, was compiled as one
+  sum. Before the series it was refused, for another reason. Found by Codex
+  in the review of the series.
+- Amico: a line such as `byte()` or `if()`, a word of the language with a
+  bracket hard against it, is an unknown statement again. Since the compiler
+  began reading a line as pieces, earlier in the same unpushed series, such
+  a line after the first statement was told to move above it, and after a
+  `stop` that it could not be reached; neither would have mended it. Found
+  by Codex in the review of the series.
+- Fixed the README and two of `amicoc`'s messages listing what may stand as
+  an operand, or on the right of a comparison, as "literals, variables or
+  display fields". A constant and a named location may too, and the
+  README's own sum uses one. The messages now say "a value".
+- Fixed `r [0]`, with a space before the index, being taken as a row's
+  byte on the left of `=` and refused on the right of one, and refused for
+  a table. It is taken in both places now.
+- Fixed a key read made with Port A an output. After `display.scan()` the
+  compiler knows Port A is an input and does not set it again before a key
+  read; a program that then wrote a mode word to the 8255 through a named
+  location or a row turned the port round without the compiler noticing.
+  A store anywhere in `$FD00-$FDFF` now makes the next key read set the
+  direction again. The emulator reads keys either way, so only the
+  direction showed it. Found by a review of the new code before it was
+  pushed.
+- Fixed sums going decimal after `call`. A routine that sets decimal mode
+  and returns leaves it set, and the program's `CLD` is only at its start:
+  after such a call `9 + 1` was `$10`, and the key routine gave F and no
+  key the same code. A `CLD` now follows every `call`. Found by a review of
+  the new code before it was pushed.
+- Fixed four of `amicoc`'s messages about tables and constants, found by a
+  review of the constants. A third dot in a table's range, `0... 3`, was
+  "A table's index starts at 0, not at 0.": a term of the declaration could
+  end in a dot, and now a dot needs something on both sides. A constant
+  and a table of one name said the name was "not a variable"; they say
+  which of the two already has it. A table's last index that is neither a
+  number nor a constant is shown, and the message, like the one for an
+  operand, now allows for constants.
+- Fixed a named constant costing two bytes more than the number it stands
+  for. The compiler skips a load when the accumulator already holds the
+  value, and knew what it held by how the value had been written, so
+  `keypad.none` followed by `21`, or `$15` followed by `21`, was loaded
+  twice. A literal is now known by its value. Two bytes had decided
+  whether a full program fitted: one that compiled at 507 bytes with `21`
+  was refused at 509 with `keypad.none`. Found by a review of the
+  constants, the day they were written.
+- Fixed three of `amicoc`'s messages that a review of the fixes above found
+  still pointing the wrong way. `if 0 ==`, with nothing on the right, was
+  told which operators exist; `if 0 =< 1+1` was told its right side was
+  too much, when its operator is wrong. `x == 1` and `if.scan()` after a
+  `stop` were unreachable statements, and are no statements at all. And
+  `if = 1` and `const = 1` were read as a comparison and a declaration
+  gone wrong, where `byte = 1` was already told that `byte` is a word of
+  the language.
+- Fixed `amicoc` reporting a file with no statement in it at a line past
+  the file's end: a one-line file holding only a comment was wrong at
+  "Line 2". It is now refused as a whole, "The program has no statement
+  to run", as a program that is too long is. Found by the check of the
+  compiler.
+- Fixed two things `amicoc` refused that it should take. `keypad.read ()`
+  and `display.scan ()`, with a space before the brackets or inside them,
+  were refused, where spaces are free round an operator. And a table's
+  first index had to be the character `0`: `$0` and `00`, which are the
+  same byte, were refused with the general message for a table. A table
+  that starts anywhere else is now told "A table's index starts at 0".
+  Found by the check of the compiler.
+- Fixed `amicoc` calling a misspelt line unreachable when it followed a
+  `stop` or a loop: `ennd` after `stop` was "Unreachable statement". A line
+  that is no statement is now "Unknown statement" wherever it stands.
+  Found by the check of the compiler.
+- Fixed three of `amicoc`'s messages that named the wrong mistake. A
+  comparison with an operation on its right, `if a == b + 1`, was told
+  which operators exist; it is now told that the right side is a single
+  value and the operation goes on the left. A word of the language used as
+  a name, such as `byte` or `in`, and a table declared twice were both
+  "Invalid byte variable"; each now says what it is. The README gives the
+  rule for a comparison's two sides and lists the eleven words. Found by
+  the check of the compiler.
+- Fixed `amicoc` reading a source file with CR-only line endings, as old
+  Macs wrote them, as a single line. With a `#` comment in it, every
+  statement after the comment was dropped and the compile succeeded;
+  without one the error quoted the whole file. A line now ends at LF, at
+  CR LF or at a CR alone. Found by the check of the compiler.
+- Fixed a compiled program of exactly 257 bytes that the board's own LOAD
+  routine could not load. The cassette PROM loses the last byte of a block
+  one byte longer than a whole number of pages, so the program's closing
+  `JMP $FE22` arrived as `JMP $0022`; the cassette's Instant setting hid
+  it. `amicoc` now ends such an image with one byte of filler, and says so
+  in the listing. Found by the check of the compiler (`NextSession.md`,
+  item 13).
 - The site no longer publishes the repository's documents as web pages. A
   check of the live site for search engines found that GitHub Pages was
   running Jekyll over the repository and serving every Markdown document as

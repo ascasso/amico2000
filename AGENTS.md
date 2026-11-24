@@ -19,6 +19,23 @@ This file provides repository guidance for agents working in this repository.
   stay in English, and so does the browser console.
 - Fully document every change, including its purpose, scope, and verification;
   commit the complete change and push it before handoff.
+- Keep `NextSession.md` short. It says what to work on next and lists what
+  else is open, a line or two to an item, and the owner reads it at the
+  start of a session. It was cut to 102 lines on 2026-11-21 at the owner's
+  request and was 1,000 three days later, so on 2026-11-24 the owner asked
+  again. Everything else has a place of its own:
+  - what was done, found or reviewed: `CHANGELOG.md` and the log;
+  - a decision about Amico, and what is still to be built in it:
+    `docs/amico-design.md`;
+  - the plan for the shelf of programs: `docs/program-shelf.md`;
+  - the detail of any other open item: `docs/open-work.md`, under the
+    item's number;
+  - how something works or is checked: this file.
+
+  When a piece of work ends, its item leaves `NextSession.md` or shrinks
+  to what is still open, and Next is set to what the owner said comes next.
+  `tests/next-session.test.js` fails if the file passes 120 lines, names a
+  document that is not there, or lists an item whose detail is nowhere.
 - Keep the home page's `build-date` stamp in sync with the committer's calendar
   date of the commit being created: `YYYYMMDD` text and `YYYY-MM-DD` in its
   `datetime` attribute. `git show -s --format=%cs HEAD` shows the existing
@@ -49,6 +66,16 @@ This file provides repository guidance for agents working in this repository.
   sitemap. The site's `robots.txt` is not read by crawlers, because the
   site is not at the root of its host; the sitemap reaches Google through
   Search Console.
+  - The build stamp alone is not a change to the page. It advances with
+    every commit made on a new day, one that changes only documents too, so
+    a `lastmod` that followed it would be the date of the latest commit, not
+    of the page. Google's own example of a change that is not significant
+    for `lastmod` is the same kind of thing, a copyright date ("Build and
+    submit a sitemap",
+    `https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap`,
+    read on 2026-11-24). A review that asks for the home page's `lastmod` to
+    match the stamp, when nothing else on the page changed, has nothing to
+    report; the review of pull request 58 did.
 - Commit in small units. One commit is one unit of work — a single fix, a
   single new test file, a single documented decision, one vendored fixture.
   Prefer several small commits over one large one, and never batch unrelated
@@ -130,13 +157,27 @@ python3 -m http.server 8000
 - Use `debug.mem(0x0000, 16)` to dump memory
 - Use `debug.state()` to show CPU state
 - Access emulator internals directly: `amico.cpu.PC`, `amico.cpu.A`, etc.
+- To check the page as served, run `python3 -m http.server 8000` and drive
+  headless Chrome over the DevTools protocol in real time: scripts
+  evaluated through the protocol are not subject to the page's CSP, and
+  `requestAnimationFrame` runs at 60 Hz. Avoid `--virtual-time-budget`,
+  which stops `requestAnimationFrame` and so the emulator. The page also
+  runs from `file://`. The cassette in real time has to be watched in real
+  time: a SAVE and a LOAD are over twenty seconds between them
+- A pull request gets an automated review when it is opened. Its findings
+  are worth reading and are not always right: of the two on pull request
+  47, one was a real bug and one misread a commit's date
+- If behavior and documents disagree, trust the ROM, the manual and
+  verified behavior, and fix the documents
 
 ## Code Architecture
 
 The project consists of six modular JavaScript files, and `index.html`, which
 besides loading them draws the board; see Board Artwork under Important
 Implementation Notes. The guide is two more pages with no script,
-`guide.html` in English and `guida.html` in Italian.
+`guide.html` in English and `guida.html` in Italian. `compiler/` is a tool
+beside the page and no part of it; see Amico under Important Implementation
+Notes.
 
 ### 1. cpu6502.js (~1100 lines)
 Complete 6502 CPU interpreter implementing:
@@ -896,7 +937,7 @@ stopped itself on an opcode it does not implement.
 **Checking a change.** Nothing automated looks at the drawing. It was checked
 by serving the page, screenshotting it in headless Chrome and putting the
 same window of the photograph beside it at the same scale, driving Chrome
-over the DevTools protocol in real time (How to Verify in `NextSession.md`):
+over the DevTools protocol in real time (Testing the Emulator, above):
 scripts evaluated through the protocol are not subject to the page's CSP, and
 `requestAnimationFrame` fires normally, so the page is checked as served. `tests/display-renderer.test.js` covers the display's
 geometry and nothing else on the board.
@@ -1204,7 +1245,97 @@ GitHub Pages publishes `master` as it is. Checked on the live site on
   sitemap's addresses against the pages' canonical ones, and the guides'
   `hreflang` pairs.
 
-What it lacks is under item 12 of Outstanding in `NextSession.md`.
+What it lacks is under item 12 of `docs/open-work.md`.
+
+### Amico
+
+`compiler/` holds Amico, a small compiled language for the board, and
+`amicoc`, its compiler. It was added on 2026-11-23. It began as the owner's
+thought experiment, whether such a language was feasible, and Codex built it
+in one prompt. The owner named it and settled its design the same day.
+`docs/amico-design.md` has all of that: what the owner decided, what stays
+out, the small print the owner has not yet seen, and what is not built.
+Read it before changing the language, and `NextSession.md` for which step
+is next.
+
+**It is no part of the page.** Nothing in `index.html` loads it. It runs
+under Node on another computer and produces a listing, a binary or an
+`.amtape` image for the board:
+
+- `compile.js` reads a program a line at a time, each line as the pieces
+  it is made of (`pieces()`: terms, marks and anything else), checks it and
+  makes 6502 instructions as records. Keep it reading a line that way: a
+  statement is known by its pieces, not by a regular expression for the
+  whole line, which is what it had until conditions joined by `and` and
+  `or` could not be read so.
+- `emit.js` drops a store that nothing reads, gives the variables their
+  places in page zero from `$20`, lays the code out from `$0200`, turns a
+  branch that cannot reach into the inverse branch around a `JMP`, and
+  writes the listing and the binary from the same records.
+- `amicoc.js` is the command line. Its tape is made by the machine layer's
+  own `addTapeRecord()` and `exportTape()`.
+- `compiler/README.md` is the language's reference. `tests/compiler.test.js`
+  runs compiled programs on the real monitor, through
+  `tests/helpers/machine.js`.
+- `tests/compiler-differential.test.js` is the net under the front end. It
+  compiles random programs, runs them on the emulated board and compares
+  them with `tests/helpers/amico-reference.js`, an interpreter written from
+  the README alone, which must go on sharing no code with `compiler/`. Run
+  it with `AMICO_PROGRAMS=30000` before and after changing how the compiler
+  reads a line or what it takes the accumulator to hold. When the language
+  gains a construct, the interpreter and the generator beside it gain it
+  too, or the construct goes untested.
+- `tests/compiler-assignment.test.js` tries every small nesting of `if`,
+  `else`, `else if`, `loop`, `for`, `decimal`, `break`, `next` and `stop`,
+  and again with `display.hold()` for `stop`, against an oracle for the two
+  flow rules: a name assigned on every path before it is read, and no
+  statement out of reach. It expects the compiler's messages for those two,
+  "Unreachable statement" and "assigned variable", and for three mistakes of
+  placing, "there is none round it", "already counting" and "in decimal
+  already"; reword them there too. A new way for control to move needs its
+  edges in that oracle: subroutines and the routine for HLT, when they are
+  built.
+- **Test the tests.** Each construct added on 2026-11-23 had defects
+  planted in a scratch copy of the compiler, one at a time, to see the
+  tests fail: fifty-one for the loops and the conditions, forty-one for
+  `decimal`, thirty-nine for `table segments`. Of the fifty-one, three were not caught at first, and each
+  showed a test that was missing. Do the same
+  for the next construct: a test that passes with its fix taken out is no
+  test of it. It is not enough by itself; see A Review by Several Agents
+  for what a second planter then found.
+- **A line's shape.** `tests/compiler.test.js` has a test of lines that
+  are nearly statements, one for each question the compiler asks of a
+  line's pieces. A new kind of statement adds its questions there, each
+  with a line that only it refuses: without them `x = a + b + 4` is one
+  dropped check away from compiling as `x = a + b`, and nothing says so.
+
+What an agent has to know before touching it:
+
+- **The name is Amico.** Source files end in `.amico`, all lowercase, and
+  the compiler is `amicoc`. Write the language Amico and the machine
+  AMICO 2000. The owner chose the name on 2026-11-23 after others were
+  offered; it is settled, and no other is to be proposed.
+- **It is new, and has to say so.** It was written in 2026 and is not ASEL's
+  software. Wherever it is described, a reader must not be able to take it
+  for something that came with the machine. Both READMEs say it.
+- **It stays off the page.** The rule that help must not make the machine
+  easier than it was (North Star, `NextSession.md`) is about the emulator,
+  and the owner counts it kept. Amico is a tool beside the board. Do not
+  load the compiler into the page, or offer it there, unless the owner asks.
+- **The owner's direction:** "the language should be fairly simple and be
+  optimized for this board, not a generic portable language." It knows this
+  board's memory map, its monitor and its keys, and no other machine.
+- **No Italian words in the language.** The owner refused them on
+  2026-11-23: "Italians prefer English for programming". `compiler/README.md`
+  is a document and stays in English, like the others.
+- **What it has to keep.** A line of source is a handful of instructions
+  that someone could key in, and everything a program runs shows in its
+  listing. Generated code starts with `CLD`, sets Port A to input before the
+  key routine, calls that routine and any routine named by its address with
+  decimal mode clear, from inside a `decimal` block too, and leaves through
+  `$FE22` unless it ends in `display.hold()`, which never leaves: the
+  monitor's faults (`docs/monitor-rom-review.md`) allowed for, each held by
+  `tests/compiler.test.js`.
 
 ## Development Guidelines
 
@@ -1245,6 +1376,160 @@ When implementing changes based on a GitHub issue:
 - Reference the issue number in the CHANGELOG.md entry (e.g., "Fixed display flickering (#42)")
 - Include the issue reference in relevant code comments (e.g., `// Fix for #42: Handle edge case when...`)
 - This maintains traceability between issues, code changes, and release notes
+
+### A Review by Several Agents
+
+On 2026-11-23 the owner had the compiler checked "with subagents with
+different models" and one Codex instance, and afterwards asked that what
+worked be written here for the sessions to come. What that check found is in
+`docs/amico-design.md`, under History. This is how it was run, and how to run the next.
+
+**What was done.** One session ran the review and took none of the angles
+itself. It wrote a brief, one plain file that every reviewer read first, and
+started five reviewers at once, in the background, each with one angle and
+each on a different model:
+
+| Reviewer | Angle | Came back with | Took |
+| --- | --- | --- | --- |
+| Claude Opus | Differential testing: an interpreter written from the README alone, a random generator of valid programs, each run on the emulated board | No finding, and the tester | 5 min |
+| Claude Fable | The front end read line by line, every suspicion tried on the board, and oracles that try every small program | The two findings that took knowledge of the machine | 33 min |
+| Claude Sonnet | The back end and the command line: opcodes, the edges of a branch, the limits, listing against binary | Two small points | 5 min |
+| Claude Haiku | The README sentence by sentence: true, false, or could not check | One loosely worded sentence | 7 min |
+| Codex on Astra | The whole compiler, as a generalist | Six findings, the most of any | 9 min |
+
+While they ran, the session did what none of them could: it followed the
+README on the page as served, in headless Chrome. When they came back it
+reproduced every finding before passing any on.
+
+**What made it work.**
+
+- **One angle to a reviewer, a different model for each.** They found
+  different things. Where two met the same fault, the second had gone
+  further: Sonnet and Codex both tried a file with CR-only line endings, and
+  Codex found that it can lose statements without a word.
+- **The model fitted to the job.** The strongest reasoner had the open
+  reading, a middle one the bounded checks, the cheapest the audit of
+  claims, and another maker's model was the generalist, since it does not
+  share the others' habits.
+- **The brief carried everything.** A subagent starts with nothing: not the
+  conversation, not the session's memory. The brief said what the code is;
+  the rules; what is deliberate and so not a finding; what was already
+  known; how to run things, as snippets that work when pasted; and the form
+  of the report.
+- **For new code, the brief says what the code is meant to do.** A reviewer
+  can find where code falls short of an intention only if it has been told
+  the intention. The brief for the constructs that reach memory said, of a
+  call, that "when it returns nothing is taken to be known". Codex then
+  found two things still taken as known, the decimal flag and, after a
+  store to the 8255, Port A's direction; and Opus found that the tests of
+  that sentence were run where it could not fail.
+- **Read-only was enforced, not only asked.** Each reviewer had a scratch
+  directory of its own outside the repository. Codex ran with its sandbox
+  open for writing in that directory alone, so it could not have changed
+  the repository.
+- **Reports were made to be reproduced.** For each finding: its kind, the
+  smallest source that shows it, what happens and what should, the script
+  that shows it, the lines responsible. Then what was found sound and what
+  was not covered. The brief said that no finding is better than a doubtful
+  one.
+- **Nothing was passed on unreproduced.** Reproducing also settled the one
+  disagreement. One reviewer found the key helper to do what the README
+  says and another found a case where it does not; both were right, about
+  different cases, and only running them showed it. Reproduce; do not count
+  votes.
+- **The tester was tested.** Five defects were planted in scratch copies of
+  the compiler. The random tester caught three. Of the two it missed, one
+  cannot show in a test of valid programs, and is what the oracle is for;
+  the other needed loops of a shape its generator does not make, and six
+  programs written by hand then covered it. A tester that reports nothing
+  has proved only what it was able to see.
+- **The harnesses were kept.** A scratch directory does not outlive its
+  session. The two best harnesses went into `tests/`.
+
+**What went wrong.**
+
+- The brief called any exception that is not a "Line N:" error a crash, so
+  the compiler's two deliberate messages about size came back as crashes.
+  Name what is deliberate.
+- 64tass was not installed, and three reviewers each spent time finding
+  that out. Say in the brief which tools there are.
+- A reviewer's headline is not always the number that matters. One
+  reported 38,000 programs; 26,000 of them had fitted in memory and run.
+  Read a count before repeating it, and say what it counts.
+
+**For the next one.**
+
+- **When.** To check a body of code or a document before building on it or
+  releasing it. It costs several times what one session costs, so it is for
+  the owner to ask for, or to be offered.
+- **For building, one author.** Several agents writing the same files have
+  nothing to keep them apart. Let one session write, in small commits, and
+  give the finished series to reviewers on other models before it is
+  pushed, with the same kind of brief and the same form of report. The
+  fixes for that check were made so, the same day: nine commits by one
+  session, then Codex on the code and Claude Opus on the tests and the
+  documents. Two things earned their keep. Codex ran the old compiler
+  beside the new on thousands of generated lines and listed every input
+  whose outcome had changed, which showed that nothing unintended had, and
+  found three messages still pointing wrong. Opus undid each fix in a
+  scratch copy and ran its test, to see the test fail; all did, and it
+  found two numbers in a comment and the log that were not true. Ask a
+  reviewer of tests for exactly that: a test that passes with its fix
+  taken out is no test of it. The four small features that came next
+  went the same way, this time before their push. Codex's comparison of
+  old and new showed that no program the old compiler took had changed by
+  a byte, and its hunt found that a named constant could cost two bytes
+  more than its number; Opus planted twenty-one breaks and every one was
+  caught. The loops and conditions went the same way, and showed what the
+  author's own planting is worth. The session had planted 51 defects and
+  its tests caught all of them. Opus planted 51 others and 20 passed
+  unnoticed: seventeen were checks of a line's shape, a kind the author
+  had not thought to break at all. Whoever wrote the code plants the
+  mistakes it can imagine making. Have the reviewer of tests plant its
+  own, give it the author's list so that it plants different ones, and
+  afterwards run its list again to see the new tests catch them.
+  `decimal` showed the same thing from another side. The author planted
+  41 defects in the new block and all were caught; Opus planted 52 others
+  and 18 passed, and Codex, asked for the code, planted five of its own
+  accord, four of them among those 18. Nearly all were one kind: something
+  the compiler already did everywhere, made not to happen inside the new
+  block, such as forgetting the accumulator after a `call`. The tests had
+  tried the new word and not the old words inside it. A construct that
+  holds statements needs a test of each kind of statement inside it, and a
+  planter should break `if (!inside) ...` at every place the compiler
+  keeps or forgets what it knows. Codex also built a checker that neither
+  the author nor the brief had thought of as a test: the decimal flag at
+  every instruction a program runs, against what the source says it should
+  be. A brief that states an invariant in one sentence gets it checked.
+- **A fact taken from a scan is read more than once.** The alphabet of
+  `table segments` is a table on a scanned page of the manual, and the
+  extracted text has three of its bytes wrong. The session read it off the
+  page, and the brief gave each reviewer a picture of the page and asked
+  for a transcription made before looking at the session's. Three
+  readings agreed on all 32 bytes. Ask for that whenever a number comes
+  from the scan.
+- **A generator's own counts are not evidence.** The differential test
+  held floors under what the generator said it had made. Opus broke the
+  generator six ways, each of which stopped it making something its header
+  promises, and no floor moved. The test now counts what a program has
+  from its source (`decimalFacts()`), and holds the generator's count to
+  that.
+- **The owner's Codex.** One instance at a time. Its prompt is plain ASCII,
+  the owner's rule for anything handed to another tool, kept in a file and
+  given on standard input. The run of 2026-11-23, with the model the
+  owner's Codex was set to that day:
+
+  ```sh
+  codex exec -m gpt-6.2-astra -s workspace-write --skip-git-repo-check \
+      -C "$SCRATCH" -o "$SCRATCH/REPORT.md" - < "$SCRATCH/PROMPT.txt"
+  ```
+
+- **Afterwards.** Findings go where the next session will look: what is
+  open in a line of `NextSession.md`, with its detail in the document that
+  line names, and how it was found in the log. A harness worth
+  having goes into `tests/`. No link to any agent's session is published,
+  as everywhere (Agent Operating Contract); saying which agents did the
+  work is fine.
 
 ## Known Limitations
 

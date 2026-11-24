@@ -1,0 +1,502 @@
+'use strict';
+
+// The compiler against an interpreter that was written without looking at it.
+//
+// Each program is compiled and run on the emulated board, and separately run
+// by the reference interpreter in tests/helpers/amico-reference.js, which
+// knows the language only from compiler/README.md. When the program stops,
+// the display bytes and every variable have to be what the interpreter says,
+// and nothing else in RAM may have changed.
+//
+// This is the net under the front end. A change to how the compiler reads a
+// line, or to what it takes the accumulator to hold, shows up here as a
+// program that computes something else. Run more programs than the default
+// before and after such a change:
+//
+//     AMICO_PROGRAMS=30000 node --test tests/compiler-differential.test.js
+//
+// It began as one reviewer's harness in the check of 2026-11-23 (AGENTS.md,
+// A Review by Several Agents). Planted defects showed what it can and cannot
+// see; tests/helpers/amico-programs.js lists both.
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { compile } = require('../compiler/compile');
+const { bootedMachine } = require('./helpers/machine');
+const reference = require('./helpers/amico-reference');
+const { generate } = require('./helpers/amico-programs');
+
+const PROGRAMS = Number(process.env.AMICO_PROGRAMS) || 1000;
+// Where a program goes when it stops or runs off its end: the monitor's
+// reset entry. The board is read at that moment, before the monitor runs on
+// and puts its own address on the displays.
+const MONITOR_ENTRY = 0xfe22;
+// The RAM of the 2 KB board: everything a program could change.
+const RAM = 0x0800;
+
+// The same junk for the same seed, so a failure can be made again.
+function junk(seed) {
+    let state = (seed * 2654435761) >>> 0 || 7;
+    return () => {
+        state ^= state << 13; state >>>= 0;
+        state ^= state >>> 17;
+        state ^= state << 5; state >>>= 0;
+        return state & 255;
+    };
+}
+
+const hex = (value, width = 2) => '$' + value.toString(16).toUpperCase().padStart(width, '0');
+
+/**
+ * Runs one program both ways. Returns null when the board agrees with the
+ * interpreter, `{ tooLong }` when the program does not fit the board, and
+ * otherwise `{ wrong }`, a sentence saying what differs.
+ */
+function compare(source, seed) {
+    let compiled;
+    try {
+        compiled = compile(source);
+    } catch (error) {
+        // The generator does not count bytes, so some programs are too long
+        // for 508. Any other refusal is of a program that is valid.
+        if (/^Program needs \d+ bytes/.test(error.message)) return { tooLong: true };
+        return { wrong: 'the compiler refused it: ' + error.message };
+    }
+
+    const machine = bootedMachine();
+    const memory = machine.cpu.memory;
+    // A program must not count on what RAM or the registers held: its
+    // variables start as junk, and so do A, X, Y and the flags. Decimal mode
+    // is set on every other run, because RUN hands a program the status of
+    // the last one halted (docs/monitor-rom-review.md, bug 1). The rest of
+    // RAM is junk as well, the display fields among it, so that a byte the
+    // program reads by address without having written it is something.
+    const byte = junk(seed);
+    for (let address = 0; address < RAM; address++) memory[address] = byte();
+    machine.loadProgram(compiled.binary, compiled.origin);
+    const before = memory.slice(0, RAM);
+    machine.cpu.A = byte();
+    machine.cpu.X = byte();
+    machine.cpu.Y = byte();
+    machine.cpu.setP(byte() | (seed & 1 ? 0x08 : 0));
+    machine.cpu.PC = compiled.origin;
+
+    const started = machine.cpu.cycles;
+    while (machine.cpu.PC !== MONITOR_ENTRY) {
+        if (machine.cpu.halted || machine.cpu.cycles - started > 20e6) {
+            return { wrong: 'on the board it never came back to the monitor' };
+        }
+        machine.cpu.step();
+    }
+
+    // The interpreter starts from the same memory and says what every byte of
+    // it should be afterwards: the display fields and the locations the
+    // program named as it left them, and all the rest untouched.
+    const expected = reference.run(source, before);
+    const differences = [];
+    // The listing's first lines say where each of the program's own
+    // variables lives. One that is never read from memory has no place and
+    // cannot be compared; one that was assigned only on a path not taken has
+    // no value to compare with.
+    const own = new Set();
+    for (const [, name, written] of compiled.assembly.matchAll(/^var_([a-z0-9_]+) = \$([0-9A-F]{2})$/gm)) {
+        const address = parseInt(written, 16);
+        own.add(address);
+        if (expected.variables.has(name) && memory[address] !== expected.variables.get(name)) {
+            differences.push(`${name} is ${memory[address]} on the board and ${expected.variables.get(name)} by the interpreter`);
+        }
+    }
+    // display.scan() and display.show() are the monitor's routines: they
+    // keep a byte at $FC and use the stack. Nothing else may be written by
+    // anything.
+    const scans = /display\.(scan|show)\(\)/.test(source);
+    for (let address = 0; address < RAM; address++) {
+        if (own.has(address)) continue;
+        if (scans && (address === 0xfc || (address >= 0x0100 && address < 0x0200))) continue;
+        if (memory[address] !== expected.memory[address]) {
+            differences.push(`${hex(address, 4)} is ${hex(memory[address])} on the board and ${hex(expected.memory[address])} by the interpreter`);
+            if (differences.length > 6) break;
+        }
+    }
+    return differences.length ? { wrong: differences.join('; ') } : null;
+}
+
+// What a program has of `decimal` blocks, read off its source and not taken
+// from the generator's own word, so that a generator that stopped making one
+// of these, or miscounted it, is noticed: blocks, sums in a block, those with
+// `-`, those on the left of a comparison, loops inside a block, a `break` and
+// a `next` that leave a block for a loop outside it, one that stays inside,
+// and a `+` or a `-` after a block has ended, which has to be binary again.
+function decimalFacts(source) {
+    const facts = { blocks: 0, sums: 0, minus: 0, inConditions: 0, loopsInside: 0, breaksOut: 0, nextsOut: 0, jumpsInside: 0, binaryAfter: 0 };
+    const open = [];
+    for (const raw of source.split('\n')) {
+        const line = raw.trim();
+        if (!line || /^(const|byte) /.test(line)) continue;
+        const inside = open.includes('decimal');
+        if (line === 'end') open.pop();
+        else if (line === 'decimal') { open.push('decimal'); facts.blocks++; }
+        else if (line === 'loop' || /^for /.test(line)) { open.push('loop'); if (inside) facts.loopsInside++; }
+        else if (line === 'break' || line === 'next') {
+            const out = open.lastIndexOf('loop') < open.indexOf('decimal');
+            if (out) facts[line === 'break' ? 'breaksOut' : 'nextsOut']++;
+            else if (inside) facts.jumpsInside++;
+        }
+        const asks = /^(else )?if /.test(line);
+        if (/^if /.test(line)) open.push('if');
+        // An operator stands between two operands: after a letter, a digit or
+        // a bracket, and never first in what is assigned or compared.
+        const sum = /[\w\])]\s*([+-])\s*[\w$]/.exec(asks ? line : line.slice(line.indexOf('=') + 1));
+        if (sum && inside) {
+            facts.sums++;
+            if (sum[1] === '-') facts.minus++;
+            if (asks) facts.inConditions++;
+        } else if (sum && facts.blocks) facts.binaryAfter++;
+    }
+    return facts;
+}
+
+function failure(seed, source, wrong) {
+    return `seed ${seed}: ${wrong}\n${source}`;
+}
+
+test('random programs compute on the board what the reference interpreter computes', () => {
+    const seen = { ran: 0, tooLong: 0, longBranch: 0, loops: 0, fors: 0, breaks: 0, nexts: 0, joined: 0, chains: 0, tables: 0, elseArms: 0, deep: 0, constants: 0, written: 0, texts: 0, spaced: 0, dashed: 0, bothCases: 0, textsReadOn: 0, places: 0, rows: 0, decimals: 0, twoBlocks: 0, sums: 0, minus: 0, inConditions: 0, loopsInside: 0, breaksOut: 0, nextsOut: 0, jumpsInside: 0, binaryAfter: 0 };
+    for (let seed = 1; seed <= PROGRAMS; seed++) {
+        const { source, made } = generate(seed, { long: seed % 3 === 0 });
+        const result = compare(source, seed);
+        if (result && result.tooLong) {
+            seen.tooLong++;
+            continue;
+        }
+        assert.equal(result, null, result && failure(seed, source, result.wrong));
+        seen.ran++;
+        if (/\*\+5/.test(compile(source).assembly)) seen.longBranch++;
+        if (made.loops) seen.loops++;
+        if (made.fors) seen.fors++;
+        if (made.breaks) seen.breaks++;
+        if (made.nexts) seen.nexts++;
+        if (made.joined) seen.joined++;
+        if (made.chains) seen.chains++;
+        if (made.tableReads) seen.tables++;
+        if (made.elseArms) seen.elseArms++;
+        if (made.depth >= 4) seen.deep++;
+        if (made.constants) seen.constants++;
+        if (made.writtenTables) seen.written++;
+        // Counted from the source, not from the generator's word.
+        const texts = [...source.matchAll(/^const (\w+) = table segments ?"([^"]*)"/gm)].map(([, name, text]) => ({ name, text }));
+        assert.equal(made.textTables, texts.length, failure(seed, source, 'the generator miscounts its texts'));
+        if (texts.length) seen.texts++;
+        if (texts.some(({ text }) => text.includes(' '))) seen.spaced++;
+        if (texts.some(({ text }) => text.includes('-'))) seen.dashed++;
+        if (texts.some(({ text }) => /[a-z]/.test(text)) && texts.some(({ text }) => /[A-Z]/.test(text))) seen.bothCases++;
+        // A text read past its first character, by a number that is not
+        // zero: a name would not show it, since a name may hold zero.
+        if (texts.some(({ name }) => new RegExp('\\b' + name + '\\[\\s*(?:\\$0*[1-9a-fA-F][0-9a-fA-F]*|0*[1-9][0-9]*)\\s*\\]').test(source))) seen.textsReadOn++;
+        if (made.places) seen.places++;
+        if (made.rowUses) seen.rows++;
+        const facts = decimalFacts(source);
+        // The generator's own counts are held to the source's.
+        assert.deepEqual([made.decimals, made.leftDecimal], [facts.blocks, facts.breaksOut + facts.nextsOut], failure(seed, source, 'the generator miscounts its blocks'));
+        if (facts.blocks) seen.decimals++;
+        if (facts.blocks > 1) seen.twoBlocks++;
+        for (const what of ['sums', 'minus', 'inConditions', 'loopsInside', 'breaksOut', 'nextsOut', 'jumpsInside', 'binaryAfter']) if (facts[what]) seen[what]++;
+    }
+    // To measure the shares again after a change to the generator.
+    if (process.env.AMICO_SHARES) {
+        console.log(Object.entries(seen).map(([what, count]) =>
+            `${what} ${(100 * count / (what === 'ran' || what === 'tooLong' ? PROGRAMS : seen.ran)).toFixed(1)}%`).join('  '));
+    }
+
+    // A generator can stop making what it was written to make and the test
+    // would go on passing. Measured over 20,000 programs, 57% of those
+    // generated fitted the board, and of those that ran:
+    //   27% had a long branch          61% a constant or a key's name
+    //   62% a loop                     33% a table written out
+    //                                  27% a table from a text
+    //   17% a text with a space in it, 12% one with a dash, 18% texts in
+    //       capitals and in small letters, 6% a text read by a number
+    //       that is not zero
+    //   51% a for                      50% a named memory location
+    //   50% a break                    38% a byte of a row read or written
+    //   20% a next                     50% blocks four deep
+    //   54% an and or an or            63% an else
+    //   36% an else if                 50% a table read
+    //   54% a decimal block            47% a sum in decimal
+    //   25% two blocks or more         38% a - in decimal
+    //   23% a loop inside a block      10% a sum in decimal in a condition
+    //   15% a break that leaves a block, 6% a next that does, 12% a break or
+    //       a next that stays inside one
+    //   40% a + or a - after a block has ended, which has to be binary
+    // The floors are about half of each, and a quarter of the rarest, which
+    // a few hundred programs have only a handful of: there to notice a
+    // collapse, not a drift. AMICO_SHARES=1 prints the shares.
+    const share = (count) => count / seen.ran;
+    assert.ok(seen.ran / PROGRAMS > 0.30, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
+    // A share of a few dozen programs says little: asked for fewer than 300,
+    // of which some 170 run, the test compares them and counts nothing.
+    if (PROGRAMS < 300) return;
+    assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
+    assert.ok(share(seen.loops) > 0.28, `a loop in only ${seen.loops} of ${seen.ran}`);
+    assert.ok(share(seen.fors) > 0.24, `a for in only ${seen.fors} of ${seen.ran}`);
+    assert.ok(share(seen.breaks) > 0.23, `a break in only ${seen.breaks} of ${seen.ran}`);
+    assert.ok(share(seen.nexts) > 0.09, `a next in only ${seen.nexts} of ${seen.ran}`);
+    assert.ok(share(seen.joined) > 0.27, `an and or an or in only ${seen.joined} of ${seen.ran}`);
+    assert.ok(share(seen.chains) > 0.18, `an else if in only ${seen.chains} of ${seen.ran}`);
+    assert.ok(share(seen.tables) > 0.25, `a table read in only ${seen.tables} of ${seen.ran}`);
+    assert.ok(share(seen.elseArms) > 0.31, `an else in only ${seen.elseArms} of ${seen.ran}`);
+    assert.ok(share(seen.deep) > 0.21, `blocks four deep in only ${seen.deep} of ${seen.ran}`);
+    assert.ok(share(seen.constants) > 0.32, `a constant in only ${seen.constants} of ${seen.ran}`);
+    assert.ok(share(seen.written) > 0.19, `a table written out in only ${seen.written} of ${seen.ran}`);
+    assert.ok(share(seen.texts) > 0.13, `a table from a text in only ${seen.texts} of ${seen.ran}`);
+    assert.ok(share(seen.spaced) > 0.07, `a space in a text in only ${seen.spaced} of ${seen.ran}`);
+    assert.ok(share(seen.dashed) > 0.05, `a dash in a text in only ${seen.dashed} of ${seen.ran}`);
+    assert.ok(share(seen.bothCases) > 0.08, `capitals and small letters in texts in only ${seen.bothCases} of ${seen.ran}`);
+    assert.ok(share(seen.textsReadOn) > 0.02, `a text read past its first character in only ${seen.textsReadOn} of ${seen.ran}`);
+    assert.ok(share(seen.places) > 0.25, `a named memory location in only ${seen.places} of ${seen.ran}`);
+    assert.ok(share(seen.rows) > 0.19, `a row of bytes in only ${seen.rows} of ${seen.ran}`);
+    assert.ok(share(seen.decimals) > 0.27, `a decimal block in only ${seen.decimals} of ${seen.ran}`);
+    assert.ok(share(seen.sums) > 0.23, `a sum in decimal in only ${seen.sums} of ${seen.ran}`);
+    // What a block has in it, each counted from the source by decimalFacts().
+    for (const [what, floor, name] of [['twoBlocks', 0.12, 'a second decimal block'], ['minus', 0.18, 'a - in decimal'],
+        ['inConditions', 0.05, 'a sum in decimal on the left of a comparison'], ['loopsInside', 0.11, 'a loop inside a decimal block'],
+        ['breaksOut', 0.07, 'a break that leaves a decimal block'], ['nextsOut', 0.015, 'a next that leaves a decimal block'],
+        ['jumpsInside', 0.06, 'a break or a next that stays inside a decimal block'], ['binaryAfter', 0.20, 'a + or a - after a decimal block']]) {
+        assert.ok(share(seen[what]) > floor, `${name} in only ${seen[what]} of ${seen.ran}`);
+    }
+});
+
+test('display.scan() and display.show() among the statements change nothing a program can see', () => {
+    const programs = Math.max(150, Math.round(PROGRAMS / 10));
+    let scans = 0;
+    for (let seed = 100001; seed < 100001 + programs; seed++) {
+        const { source, made } = generate(seed, { scans: true, long: seed % 3 === 0 });
+        const result = compare(source, seed);
+        if (result && result.tooLong) continue;
+        assert.equal(result, null, result && failure(seed, source, result.wrong));
+        scans += made.scans;
+    }
+    assert.ok(scans > programs / 2, `only ${scans} scans in ${programs} programs`);
+});
+
+// The generator's loops cannot show a value wrongly kept in the accumulator
+// across the top of a loop: they count in a variable that is in A on the way
+// in and on the way back alike. In each of these the last thing assigned
+// before the loop is the first thing read inside it, and the way back leaves
+// something else in A. A compiler that did not forget A at a loop head fails
+// five of the six that have a `loop`; that was tried on a copy with the
+// forgetting taken out.
+const LOOP_HEADS = {
+    'a variable in A on the way in': `
+n = 0
+x = 5
+loop
+    y = x
+    n = n + 1
+    if n == 3
+        display.data = y
+        display.low = n
+        stop
+    end
+    x = x + 7
+    z = 9
+    display.high = z
+end`,
+    'a variable holding a literal': `
+n = 0
+display.high = 4
+t = 4
+loop
+    u = t
+    n = n + u
+    if n >= 20
+        display.data = n
+        stop
+    end
+    w = 200
+end`,
+    'a display field in A on the way in': `
+n = 0
+display.low = 3
+loop
+    k = display.low
+    n = n + k
+    if n >= 30
+        display.data = n
+        stop
+    end
+    w = 77
+    display.high = w
+end`,
+    'a comparison first in the loop': `
+n = 0
+c = 4
+loop
+    if c == 0
+        display.data = n
+        stop
+    end
+    n = n + 5
+    c = c - 1
+    q = 99
+    display.high = q
+end`,
+    'a loop inside a loop': `
+total = 0
+i = 0
+loop
+    i = i + 1
+    j = i
+    loop
+        total = total + j
+        if total >= 100
+            display.data = total
+            display.low = i
+            stop
+        end
+        s = 250
+        display.high = s
+    end
+end`,
+    // A `for` has its count in A at the top, by either way in, and not the
+    // number the count started from.
+    'the first value of a for in A on the way in': `
+total = 0
+for i in 3..6
+    x = 3
+    total = total + x
+end
+display.data = total
+display.low = i`,
+    'a table index in A on the way in': `
+const t = table byte [n in 0..15] = n * 3
+sum = 0
+i = 2
+loop
+    v = t[i]
+    sum = sum + v
+    if sum >= 40
+        display.data = sum
+        stop
+    end
+    e = 5
+    display.high = e
+end`
+};
+
+test('nothing is taken to be in the accumulator across the top of a loop', () => {
+    for (const [name, source] of Object.entries(LOOP_HEADS)) {
+        for (const seed of [1, 2, 3, 4]) {
+            const result = compare(source.trim() + '\n', seed);
+            assert.equal(result, null, result && `${name}: ${result.wrong}`);
+        }
+    }
+});
+
+// The same care for the left side of a comparison, which may be an operation
+// or a table read: it leaves its own value in A, and the name that was there
+// before is there no longer. In each of these the arm's first line reads the
+// name A held before the `if`. The random programs meet this seldom, a table
+// read on the left least of all, so a compiler that kept the old name was
+// caught by them only now and then; these catch it every time. Tried on
+// copies with the forgetting taken out after an operation and after a table
+// read.
+const AFTER_A_LEFT_SIDE = {
+    'an operation on the left': `
+y = 7
+x = 3
+if x + 250 >= 9
+    display.data = x
+    display.low = y
+else
+    display.data = y
+end`,
+    'a table read by a literal on the left': `
+const t = table byte [n in 0..7] = n * 3
+y = 7
+if t[2] == 6
+    display.data = y
+else
+    display.low = y
+end`,
+    'a table read by a variable on the left': `
+const t = table byte [n in 0..7] = n * 3
+k = 2
+if t[k] == 6
+    display.data = k
+else
+    display.low = k
+end`,
+    'a table read by a display field on the left': `
+const t = table byte [n in 0..7] = n * 3
+display.low = 5
+if t[display.low] >= 15
+    display.data = display.low
+else
+    display.high = display.low
+end`
+};
+
+test('the left side of a comparison leaves its own value in the accumulator', () => {
+    for (const [name, source] of Object.entries(AFTER_A_LEFT_SIDE)) {
+        for (const seed of [1, 2, 3, 4]) {
+            const result = compare(source.trim() + '\n', seed);
+            assert.equal(result, null, result && `${name}: ${result.wrong}`);
+        }
+    }
+});
+
+// A branch reaches 127 bytes forward and 128 back, and over more the back end
+// writes the opposite branch round a JMP. The random programs give an `if` a
+// long arm now and then; these put thirty statements where each new kind of
+// branch has to cross them: the branch back at the foot of a `for`, the
+// branch over a `next` whose rest of the loop is long, and the branches of a
+// condition joined by `or` and of an `else if` that compares with `<=`. A
+// `break` and a `next` are themselves a JMP, which reaches anywhere.
+const LONG = Array.from({ length: 30 }, (_, k) => `    sum = sum + ${k % 7 + 1}`).join('\n');
+const ACROSS_A_LONG_WAY = {
+    'the branch back of a for': `sum = 0\nfor i in 0..3\n${LONG}\n    sum = sum + i\nend\ndisplay.data = sum\ndisplay.low = i`,
+    'a next over the rest of a for': `sum = 0\nfor i in 5..0\n    if i == 2\n        next\n    end\n${LONG}\nend\ndisplay.data = sum\ndisplay.low = i`,
+    'an or and an else if before long arms': `sum = 0\nx = 3\ny = 9\nif x == 4 or y > x\n${LONG}\nelse if x <= y\n${LONG}\nelse\n    sum = 1\nend\ndisplay.data = sum`,
+    'the same, the other way': `sum = 0\nx = 9\ny = 3\nif x == 4 or y > x\n${LONG}\nelse if x <= y\n${LONG}\nelse\n    sum = 1\nend\ndisplay.data = sum`
+};
+
+test('the new branches cross statements too long for a branch to reach over', () => {
+    for (const [name, source] of Object.entries(ACROSS_A_LONG_WAY)) {
+        assert.match(compile(source).assembly, /\*\+5/, name + ' has no long branch in it');
+        for (const seed of [1, 2]) {
+            const result = compare(source + '\n', seed);
+            assert.equal(result, null, result && `${name}: ${result.wrong}`);
+        }
+    }
+});
+
+// The interpreter refuses a sum in decimal of a byte that is not two decimal
+// digits, which the language leaves to the 6502 and the emulator is known
+// not to reproduce. Every random program above ran without meeting that
+// refusal; this shows that it is there to be met, and that the same sums are
+// taken where nothing is added in decimal.
+test('the interpreter refuses a sum in decimal that the language does not define', () => {
+    const memory = new Uint8Array(RAM);
+    for (const sum of ['x + 1', '1 + x', 'x - 1', '$99 - x']) {
+        for (const x of ['10', '$a0', '$1f', '255']) {
+            const source = `x = ${x}\ndecimal\n    y = ${sum}\nend\n`;
+            assert.throws(() => reference.run(source, memory), /not two decimal digits/, source);
+            assert.ok(reference.run(source.replace('decimal', 'if x == x'), memory), source);
+        }
+    }
+    assert.equal(reference.run('x = $59\ndecimal\n    y = x + 1\n    z = x & $0f\n    w = z | $a0\nend\n', memory).variables.get('y'), 0x60);
+});
+
+// The interpreter has the alphabet for the displays a second time, typed from
+// the README. The random programs meet each character only now and then, so
+// a wrong byte there could pass a thousand of them; this reads every
+// character once, in both cases, into memory.
+test('the interpreter draws every character of the alphabet as the compiler does', () => {
+    const alphabet = '0123456789AbCdEFGHIJLnoPqrStUY- ';
+    for (const text of [alphabet, alphabet.toUpperCase(), alphabet.toLowerCase()]) {
+        const source = `const t = table segments "${text}"\nbyte out[32] at $0400\nfor i in 0..31\n    out[i] = t[i]\nend\n`;
+        const result = compare(source, 5);
+        assert.equal(result, null, result && result.wrong);
+    }
+});

@@ -1,512 +1,89 @@
 # AMICO 2000 Next Session
 
+What to work on next, and what else is open, a line or two to an item.
+Nothing more belongs here; `AGENTS.md`, Agent Operating Contract, says
+where the rest goes.
+
+## Next
+
+**Tighter code for Amico.** The owner's word on 2026-11-23: "implement the
+table segments and then tighter code". It changes no word of the language.
+`docs/amico-design.md`, under Tighter code, has what is known to tighten,
+what must be left alone inside a `decimal` block, and how to show that no
+program got longer or computes otherwise. The steps after it are asked for
+one at a time.
+
+## Waiting for the Owner
+
+- **Amico's small print**, settled by the agent and not yet seen by the
+  owner: the ends of a `for` are constants only; inside `decimal`, ten is
+  written `$10`; `table segments` has the manual's alphabet and no more, so
+  no K, M, V, W, X or Z (`docs/amico-design.md`, Built).
+- **The Italian** has been read through by no person. The labels are the
+  words most worth a look (item 3).
+- **The IRQ vector's value at power-on**, `$FE30` as now or `$FE00`
+  (item 6).
+- **Smaller calls:** how visitors could write back (item 4); a picture for
+  link previews and the repository's About box on GitHub (item 12); where
+  the catalog's button goes (item 1).
+- **A pull request to `master`.** The live site is `master`. On `develop`
+  and not live: Amico, the sitemap's dates, and `.nojekyll`, which takes
+  the repository's documents off the site as pages.
+
 ## North Star
 
-Make the emulator behave as closely as practical to the original AMICO 2000.
-Prefer evidence from the monitor ROM, the Sperimentare manual and observed
-hardware over convenience abstractions. Priority order:
+Make the emulator behave as closely as practical to the original
+AMICO 2000. Prefer evidence from the monitor ROM, the Sperimentare manual
+and observed hardware over convenience. In order: the board's behaviour;
+the NMOS 6502's; small targeted checks of both; the cassette; large
+conformance projects last.
 
-1. Original AMICO 2000 behavior: monitor workflow, keyboard, display, memory
-   map, PIA behavior.
-2. Original NMOS 6502 behavior: flags, stack frames, interrupts, decimal mode,
-   branch/page timing.
-3. Small targeted verification that protects the above.
-4. Cassette support, useful but secondary.
-5. Large conformance or test-framework projects, only after core behavior is
-   trustworthy.
+It is for two kinds of visitor: people who had one forty and more years
+ago, Italian and often without English, and people who program today and
+have never worked a processor by hand. The test for anything meant to help
+either: it may make the machine easier to approach, and must not make the
+machine easier than it was. Putting a program's bytes in memory for a
+visitor passes. A button that runs the program does not, and neither would
+an assembler. The test is about the emulator, the page a visitor works at;
+Amico is a tool beside the board and is not judged by it.
 
-That list is about the board. On 2026-11-22, with every part of the board
-working as the documents describe it, the owner chose what comes next: the
-machine's software. See item 1 under Outstanding.
+## Open Work
 
-**Who it is for**, named on 2026-11-22. Two kinds of visitor, and one machine
-for both:
+In rough priority order, after what is under Next. The detail of each is in
+`docs/open-work.md` under the same number, unless another document is
+named. No issue is open on GitHub.
 
-- **People who had one**, or a 6502 trainer like it, forty and more years
-  ago. They know the board on sight and have forgotten the key sequences.
-  They read *Sperimentare*, so they are Italian, and many of them do not read
-  English.
-- **People who program today** and have never worked a processor by hand.
-  They do not know what a monitor is, or that a program was once written on
-  paper and translated into bytes from a table.
-
-The test for anything meant to help either of them: it may make the machine
-easier to approach, and must not make the machine easier than it was. Putting
-a program's bytes in memory for a visitor passes that test. A button that
-runs the program does not, and neither would an assembler.
-
-The audiences and the test come from a product brief the owner brought on
-2026-11-22 and had reviewed against this file. The brief is not in the
-repository: most of it restated item 1, and a second statement of direction
-would compete with this one. What the review added is written into the items
-below, each marked as coming from it.
-
-## Where Things Stand (2026-11-23)
-
-- **Publishing:** agents push `develop` when their commits are done
-  (`AGENTS.md`). GitHub Pages builds from `master`; work on `develop` reaches
-  the live site only through a merged pull request, which is still opened and
-  merged on request. Live as of 2026-11-23, by pull requests 55 and 56:
-  everything up to the tablet layout and Google's verification file, the
-  Italian's review and its "noi" included. On `develop` and not yet live:
-  the sitemap's dates, the rule for them, and `.nojekyll`, which takes the
-  repository's documents off the site as pages (item 12).
-- **Attribution:** no link to an agent's session in a commit message, a pull
-  request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
-  The `Co-Authored-By:` and "Generated with" lines stay.
-- **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 237
-  checks offline with no dependencies.
-- **Board:** the home page draws the board from two private photographs of
-  real boards. Read Board Artwork in `AGENTS.md` before touching it, including
-  the rule that the photographs and their owners stay out of the repository.
-  The displays have a Readable look (the default) and an Authentic one, and
-  go dark when nothing is scanning them, as on the board.
-- **PROMs:** both are fitted at startup, the monitor (IC9) and the cassette
-  PROM (IC10).
-- **Phones and tablets:** held upright, the page uses a handheld layout; see item 2.
-- **Languages:** English and Italian. A browser set to Italian opens the home
-  page in Italian, a link in its top corner changes language without a
-  reload, and the guide is two pages, `guide.html` and `guida.html`. Read Two
-  Languages in `AGENTS.md` before adding any text: every sentence the public
-  reads goes in twice. See item 3 for what is left.
-- **Programs:** the site offers none to load. The guide prints a few short
-  ones to key in. See item 1.
-- **Keys:** all 23 work. HLT is the NMI line and halts a running program,
-  which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
-  executes one instruction.
-- **Cassette:** LOAD and SAVE work on the emulator's own tape records, which
-  come and go as `.amtape` files or as `.wav` sound files. By default they
-  are trapped at `$FC54` and `$FBBC` and instant. With **Cassette: Real
-  time** the PROM's own routines run against an emulated recorder, with the
-  phase LEDs lit (`#20`, closed).
-- **LEDs:** D4-D7 are not the cassette's alone. A program can light them at
-  either Cassette setting, and the guide has two that do (`AGENTS.md`, The
-  LEDs D4-D7 Under a Program). Read from the schematic, not tried on a real
-  board.
-- **Search engines:** the site is verified in Google Search Console and has
-  a sitemap. See item 12.
-- **Open issues:** none.
-- **History:** `CHANGELOG.md` and `docs/logs/`. The latest log is 2026-11-23.
-
-## Outstanding
-
-In rough priority order. None of it is started, apart from item 3, which is
-done but for the ends listed there.
-
-1. **Give the machine its software: a shelf of programs and a guide on
-   screen.** Agreed with the owner on 2026-11-22 as the next piece of work.
-   The site offers no programs: a visitor meets a board showing `0000 00` and
-   has to key in hex, and on a phone, where there is no console, nothing runs
-   any other way.
-   - **What the owner asked for**, as a suggestion and not a specification:
-     buttons or menus that are easy to follow, leading to a catalog of
-     programs to pick from and load into memory, and a wizard on the screen
-     that guides the user.
-   - **Load it for them, but leave the keys to them.** Picking a program puts
-     its bytes in memory. The guide then has the visitor start it on the
-     keypad, AD, the address, RUN, with the next key lit on the board. A
-     button that runs the program would skip the part that is this machine.
-   - **The guide is a strip beside the keys, not a pop-up**, which would
-     cover the keys it is talking about. On a phone the first screen is full,
-     with 2 px to spare on the smallest, so the strip takes the title's place
-     while a program is active, and the catalog is a sheet over the whole
-     screen, opened from one button. On a desktop, a button under Bench
-     controls and a card under the board. The board drawing is not touched,
-     and the desktop page stays as it is apart from those additions: the
-     owner's condition for the phone layout applies here too.
-   - **A program is data.** Its name, one line on what it does, where it is
-     from (document and page), its bytes and load address, where to start it,
-     and its steps, each a sentence and the keys to press. A step is done
-     when its keys have been pressed. Then a test can press the guide's own
-     keys on the real monitor and check that the program runs, which is the
-     standard `tests/user-leds.test.js` holds the guide's listings to. Keep
-     the catalog in a script with the bytes in it, as the ROMs are: the page
-     has to run from `file://` and under its CSP, so nothing is fetched.
-   - **Say what each program is:** an original listing, with its page; a
-     reconstruction; or written for this site.
-   - **Show a listing as it was on paper:** address, byte and mnemonic side
-     by side, the way the manual prints them. The owner programmed the
-     original as a schoolboy, writing assembly on paper and translating it by
-     hand from the table of opcodes.
-   - **First program: a word on the displays**, the owner's choice. The
-     supplement has it as an exercise on PDF page 68: `20 7E FF 4C 00 03` at
-     `$0300`, which calls the monitor's display routine at `$FF7E` for ever.
-     That routine shows the six bytes at `$008F-$0094`, one for each digit
-     from the left, bit 0 for segment a up to bit 6 for g. The manual's word
-     is ASEL, `77 6D 79 38 00 00`, and it invites the reader to go further
-     ("se siete bravi"). Run as printed on 2026-11-22, in Node and on the
-     page, the displays read ASEL. It is twelve bytes, short enough for the
-     visitor to key in, so here the guide can teach the whole of it: the
-     visitor picks a word of up to six letters, sees each letter's code and
-     which letters seven segments cannot make, translates the two
-     instructions by hand, keys everything in and runs it. The manual gives
-     codes for A, S, E and L only on that page, and says the way to control
-     single segments is explained in the hardware part of its next chapter;
-     look there before drawing letters of our own. A Z can only be given
-     the segments of a 2, and the guide should say so.
-   - **Second program: text sliding across the displays**, a reconstruction.
-     The owner remembers writing one that slid a name of two words, thirteen
-     characters, across the six displays, and is fairly sure that it slid
-     and did not show one word after the other. No listing survives, so it
-     is to be written again as a real program for the board and labelled a
-     reconstruction. Whatever waits between steps has to keep calling
-     `$FF7E`: nothing else keeps the displays alight, and an idle delay loop
-     darkens them, on the board as in the emulator. Two things about its
-     letters, from the owner on 2026-11-22. The Z in the name was shown as a
-     y: of that the owner is certain, without remembering why, since the
-     segments of a 2 would have served. The rebuilt program should show a Z
-     as a y too, as its one quirk, unless the owner says otherwise. And its
-     G was a capital, `3D`, not a small g drawn like a 9: the owner was not
-     sure until shown both on the emulated displays, and then recognised the
-     capital at once. The name in it was a private person's. It stays out of the
-     repository and off the site; the catalog's version slides the visitor's
-     own text, or something neutral such as AMICO 2000.
-   - **Then, one at a time:** the LED counter from the guide, written for
-     this site; the manual's HLT example, which `tests/hlt-nmi.test.js`
-     already runs as printed; the 1979 clock, whose transcription is
-     verified, with the values it takes at `$0000-$0002` and the calibration
-     address the article appears to misprint; and the listings in
-     `docs/manual-extraction/listings/` still marked `candidate`, among them
-     Master Mind and the matchstick game 21 fiammiferi. A candidate has to be
-     checked byte by byte against the rendered page before it goes on the
-     shelf (the README there has the statuses), and every program needs its
-     test.
-   - **Left for later:** the same programs on the emulated cassette, for
-     anyone who wants to LOAD them as in 1980, and a link that opens the
-     page with a chosen program.
-   - **To settle while building:** what picking a program does to a machine
-     that is running something (RES and then the bytes, leaving the rest of
-     RAM alone, is the gentle choice), and where the one button goes on a
-     phone's first screen without costing a key row.
-   - **From the review of 2026-11-22**, six additions to the above. None is
-     decided beyond what it says.
-     - **Two depths of guide.** A step is a sentence and the keys to press.
-       Give each step an optional second text, the why: what the bytes are,
-       what the instruction does, what the monitor is doing. Someone who had
-       the board never opens it; someone new can. And the guide can be put
-       away altogether. The field costs nothing if a step has it from the
-       first program on, and a rewrite of every entry if it is added later.
-     - **Every sentence in two languages.** See item 3. A catalog entry's
-       name, its line of description and its steps are public text, so each
-       is written in English and in Italian from the start.
-     - **The first screen.** A visitor meets `0000 00` and no invitation. The
-       plan above puts the catalog's button under Bench controls, below the
-       board, which is a quiet place for the only thing that tells a newcomer
-       what to do. Nearer the board it would be found, and it would be the
-       first thing on the desktop page that is not the board or the bench.
-       The owner's call.
-     - **A reminder with no program chosen.** Someone who comes back to key
-       in a program of their own needs the sequences, not the shelf: AD and
-       four digits, DA and two, the increment key, RUN. The home page has the
-       table of computer keys and nothing on the sequences; they are in the
-       guide, on another page.
-     - **The course is already written.** Teaching a newcomer what a
-       processor, a register and an address are has no natural end, and the
-       project is a memorial before it is a school. The machine was sold
-       with its own course: the supplement's chapters I to IX run from
-       "Cosa è un microelaboratore" to the last addressing modes, with an
-       exercise at each step, and three of the early ones are already
-       transcribed (`somma-000a`, `somma-carry-0201`,
-       `clear-page-zero-range-0200` in `docs/manual-extraction/listings/`).
-       So the newcomer's path can be the 1980 course in its own order, each
-       program teaching what its chapter taught and no more. The instruments
-       for looking inside are the board's: the NOR/SS switch, REG and HLT.
-       The table for translating by hand is the manual's Appendix 1,
-       "Sommario istruzioni 6502", printed page 95.
-     - **What an old hand would recognise.** Appendix 2 has thirteen programs
-       a reader of the supplement may have keyed in, among them Asteroidi,
-       Atterraggio lunare, Labirinto and Slot machine
-       (`docs/manual-extraction/catalog.md`). Only 21 fiammiferi is
-       transcribed, as a candidate, and the order above reaches them last.
-       One of them early may matter more to that visitor than a program
-       written for this site. The cost is the checking: those listings are
-       the worst of the scan, and each byte has to be read off the page.
-2. **The phone layout on real phones.** The handheld layout was built on
-   2026-11-22 (`AGENTS.md`, Handheld Layout): on an upright touch screen the
-   displays, LEDs, switch and keys move into one column above a picture of
-   the board. The owner tried it the same day in Safari on an iPhone 17 Pro
-   held upright, and on 2026-11-23 in Chrome on a OnePlus 7T: on both it
-   looked right and everything worked. On an iPad Pro 11" held upright the
-   board as drawn had keys and displays too small, and in landscape it was
-   fine, so tablets held upright now get the handheld layout too, up to
-   1100 px. The owner then tried it on the iPad Pro 11" held upright: it
-   looked as intended, a full pass. Whatever item 1 and item 3 add has to fit the same first
-   screen. Known rough edges, none of them blocking:
-   - On the smallest common screen, an iPhone SE with Safari's toolbars, the
-     last key row ends 2 px from the bottom and the maker's mark is below it.
-   - Turned to landscape, a phone gets the board as drawn, and the title
-     pushes the bottom rows of keys below the fold. The owner keeps rotation
-     locked, so this was left; a compact title for short landscape screens
-     would be the fix.
-   - The pictures left in the board drawing are static: they do not light up
-     with the real displays and LEDs.
-   - On a tablet the handheld layout is the phone's, larger: the title stays
-     in its compact phone size, the language link in its two letters, and
-     the keys fill a column about half the screen's width. It fits the first
-     screen, and the owner found it right on the iPad Pro 11".
-   - An iPad with a trackpad or mouse attached was not tried. If it reports
-     a fine pointer it gets the board as drawn.
-3. **The site in Italian: done, with these ends loose.** The owner asked for
-   it on 2026-11-22 and it was built that day: the home page, the guide, and
-   what the page says while it is used, down to the reasons the machine
-   gives for a refusal (`AGENTS.md`, Two Languages). The changelog, the logs
-   and the other documents stay in English, as the owner said. What is left:
-   - **No person is known to have read the Italian through.** The sessions
-     that wrote it have, and on 2026-11-22 a second agent, Codex, reviewed
-     it at the owner's request. Its findings were checked one by one and all
-     held: an alert that sent a program to the wrong address, in English as
-     much as in Italian, three passages that said something else than the
-     English, and three that were English word for word. Reading the rest
-     again against the manual found four sentences more and two words that
-     are not the manual's: the NOR/SS switch is "interruttore" there and was
-     "commutatore" here, and a loop is a "loop", not a "ciclo". All of it is
-     put right (the log of that day). The owner asked then that the Italian
-     keep the manual's style and tone, not only its words; how is under Two
-     Languages in `AGENTS.md`.
-   - **The Italian now says "noi", as the manual does.** Asked whether it
-     should, the owner answered the same day: "I like the 'noi' of the
-     original guide. I want that here too." The whole of `guida.html`, the
-     notes under the board, the LEDs' tooltips and the how-to line of the
-     alert after a recording were rewritten in it: "premiamo", "non ci resta
-     altro che", "il nostro programma". "Voi" was kept on purpose in two
-     kinds of place, a prompt on the tape's status line ("Premete RES.") and
-     the advice in an error about a file of the reader's own, because the
-     manual keeps it there too. If the owner wants those in "noi" as well,
-     they are five strings in `lang.js`. A check fails if a "voi" comes back
-     into the guide or onto the home page.
-   - **What the owner's own reading is still needed for.** The Italian
-     follows the manual's vocabulary and voice; whether it sounds right to
-     someone who read *Sperimentare* is for the owner to say. The words most
-     worth a look are the labels:
-     "Comandi dell'emulatore" for Bench controls, "Reset a freddo", "Passo",
-     "Display: Leggibili / Autentici", "Cassetta: Immediata / Tempo reale",
-     and "in esecuzione", "fermo", "bloccato" beside the run lamp. Changing
-     a label means changing it in `index.html` and where `guida.html` quotes
-     it; `tests/languages.test.js` names the ones it holds together.
-   - **Live.** Pull request 53 put the Italian on the site, and pull request
-     55, on 2026-11-23, the review's fixes and the "noi".
-   - **The home page has no Italian address.** One address serves both
-     languages, so Google and a link pasted into a forum or a chat show the
-     English title and description, whatever the reader's language. The
-     Italian guide has its own address and Italian head, and links to the
-     emulator with `?lang=it`. A home page at an address of its own would
-     need the board drawing twice, kept in step by hand. A small page that
-     only carries an Italian title and description and passes the visitor on
-     to `index.html?lang=it` would give a link to share, but how each search
-     engine and preview treats such a page was not looked into.
-   - **Only Chrome has shown it.** The language link was tried in headless
-     Chrome, on the desktop and in the handheld layout by emulation. Safari,
-     Firefox and a real phone have not, and neither has a screen reader.
-   - **The guide is out of date in two places, in both languages:** it tells
-     a reader on a narrow screen to scroll the board sideways, which is no
-     longer true of a phone held upright; and it sends someone who wants to
-     keep a tape to the console (item 5).
-   - **The README is in English.** It is a document, and the owner's rule
-     leaves documents in English, but it is also what a visitor to the
-     repository reads first. It now says the site has an Italian version.
-4. **Ask the people who had one.** From the review of 2026-11-22. The first
-   audience is also where the missing evidence is. Nothing here has been
-   compared with a real board or a real tape: no recording has been through
-   the decoder, the look of an LED during LOAD is a guess, D7 lit at idle on
-   unit A is unexplained, and no program a user wrote survives. The page
-   links to GitHub and to ComputerHistory.it and never asks the visitor
-   anything. A few lines under About this board, in both languages, could:
-   did you have one, do you still have a tape, a listing, a photograph, a
-   memory of how it behaved. How they would write back is the owner's call,
-   since an address on the page is public. A tape or a photograph that
-   arrives belongs to its sender and goes into the repository only with
-   leave, as the two board photographs did not.
-5. **Keep an afternoon's work.** From the review of 2026-11-22. Someone who
-   keys in a program of their own loses it when the page is reloaded: RAM and
-   the cassette's records last for the page session, and getting a tape out
-   is `debug.saveTape()` in the browser console, which a phone does not have.
-   On the board the cassette was where work was kept, and it is the faithful
-   answer here too, not a snapshot of RAM: the cassette's records kept in
-   `localStorage`, so that the tape is still in the recorder at the next
-   visit, and buttons on the page for taking a tape out as a file and
-   putting one in. Cassette Work, below, already lists the missing button.
-6. **Two interrupt decisions are the owner's to confirm.** HLT and the
-   NOR/SS single-step switch both work now (`AGENTS.md`, HLT and the NMI
-   Line). Both go through the NMI vector at `$03FC/$03FD`, which the board
-   leaves to the user and the emulator has to start with something in. It
-   starts with `$FE00`, the monitor's own routine and the value the manual
-   has the user key in; it was `$FE30`. The IRQ vector, where a `BRK` goes,
-   was left at `$FE30`. Making it `$FE00` too would turn a `BRK` into a
-   breakpoint that shows where it was, and would change what programs that
-   end in `BRK` do today.
-7. **Machine-layer checks** for display multiplexing, pattern by pattern (how
-   Port A and Port B writes become the six-pattern buffer; when digits go
-   dark is covered), and the `$FD00-$FDFF` partial decoding.
-   `tests/keyboard-matrix.test.js` shows the pattern: run the real monitor in
-   Node and assert on RAM or PIA state.
-8. **One phase LED is unexplained.** D4-D7 are modelled as the schematic
-   wires them and light when the real cassette routines run or a program
-   drives them. By that wiring
-   all four are dark while the monitor idles, yet unit A's photograph shows
-   D7 lit at idle. Nothing accounts for it.
-9. **Board drawing, unverified ends.**
-   - Only Chrome has been used. Safari, Firefox, touch and screen readers
-     have not been tried, nor the key legends on systems without the macOS
-     DIN faces.
-   - The measurement table and the browser-check scripts live with the
-     private photographs, outside the repository. Whether they belong in it
-     is the owner's call. The three checks of the cassette written on
-     2026-11-21 are there too, as `cassette-files.mjs`, `cassette-realtime.mjs`
-     and `cassette-instant.mjs`; they hold nothing private.
-10. **Speed multiplier, requested by the owner, not started.** Three settings:
-    **1x**, the default, which is today's behaviour and stays as close to the
-    real board as the emulator can manage; **10x**; and **Max**, as fast as
-    the browser can run it.
-    - The speed is set in one place: `_runFrame()` in `amico2000.js` hands the
-      CPU `cyclesPerFrame` (16667) cycles for each 16.667 ms of real time, and
-      caps the catch-up at two frames' worth. 10x multiplies both. Max needs a
-      time budget in place of a cycle budget: run the CPU in chunks until most
-      of the frame is spent, then yield so the page can draw and take input.
-    - It is an emulator control, not part of the board, so it belongs under
-      Bench controls beside **Displays**, remembered in `localStorage` the way
-      the display look is.
-    - Check first how the monitor treats a held key. `pressKey()` releases an
-      on-screen key after 100 ms of real time, which at 10x is a full second
-      to the monitor, and longer at Max. That is harmless if the monitor waits
-      for release and wrong if it repeats; the ROM was not read to find out.
-    - Not measured: how fast Max is. The monitor never sleeps, it idles in its
-      scan loop, so Max keeps a processor core busy while the page is open.
-    - Unaffected: the trapped cassette LOAD and SAVE, which are instant at any
-      speed. The real-time cassette keeps time by CPU cycles, so it would run
-      faster with the processor, which is probably what a user wants from it.
-    - The display is still drawn once per frame, so a program that animates
-      the digits shows only some of its steps.
-11. **Ideas, not started:** a pass on wear and physical irregularity, sound,
-    and a desk scene around the board. And one the owner raised on
-    2026-11-23 as a nice to have, not for now:
-    - **The cassette through the sound card.** With **Cassette: Real time**,
-      SAVE would play out of the speaker or line out, for a real deck to
-      record, and LOAD would listen to the microphone or line in while a
-      deck plays a tape, as on the board. Feasible, with no change to the
-      board side: a live recorder fits the interface `connectRecorder()`
-      already has, and `renderPulses()` already makes the sound. The work:
-      - **Timing.** `_runFrame()` runs the CPU in bursts and drops cycles
-        when a frame is late, which a real tape cannot survive. During a
-        live LOAD or SAVE the CPU would follow the audio clock, some
-        50-100 ms behind it, with pulses queued. The tab has to stay in
-        front.
-      - **Input.** The browser's echo cancellation, noise suppression and
-        gain control must be off, and `detectPulses()` needs a streaming
-        form. A cable from the deck is safe; a microphone in the room may
-        not be, because an echo arriving 0.78-2.4 ms after a pulse reads as
-        a 1 bit.
-      - **Testing.** Headless Chrome can take a WAV file as its microphone
-        (`--use-fake-device-for-media-stream` with
-        `--use-file-for-fake-audio-capture`), so `encodeWav()` output can go
-        through the whole live path.
-
-      Two smaller steps need none of the timing work and could come first: a
-      button that plays a program from the cassette as sound, and one that
-      records from the microphone until the tape stops and then decodes it.
-
-12. **Being found.** The owner asked on 2026-11-23 for the site to be
-    checked for search engines (`AGENTS.md`, What the Site Serves and What a
-    Search Engine Reads; the log of that day). What was wrong is fixed: the
-    repository's documents were being published as 22 web pages, which
-    `.nojekyll` stops once it reaches `master`. The pages' own tags, their
-    speed and their phone layout were in order. What is left, none of it
-    started, and the first three matter most:
-    - **Links to the site.** None is known. A new site that nothing links to
-      is found late and ranked low whatever its tags say. A link from
-      ComputerHistory.it's page on the machine, or from a forum where the
-      people of item 4 are, would do more than everything else here. The
-      repository's own About box on GitHub has no website address and no
-      topics; filling it in is a change to GitHub, so it waits for the
-      owner's word.
-    - **Search Console.** Submit `sitemap.xml` there, since `robots.txt`
-      cannot announce it, and ask for the three addresses to be indexed with
-      URL Inspection. Whether Google has indexed anything was not looked at
-      from here: Search Console is where that is shown.
-    - **No picture for a link preview.** The pages have no `og:image`, so a
-      link pasted into WhatsApp, Facebook or a forum shows text only, and
-      that is how the people of item 4 would pass it on. The head says there
-      is no picture because the photographs are private. A screenshot of the
-      page's own drawing, displays lit, 1200 x 630, is not a photograph and
-      is already public as the page. The owner's call.
-    - **No Italian address for the home page** (item 3). An Italian
-      searching in Italian gets the English title and description. The
-      Italian text of the page is in the HTML Google reads, hidden by the
-      style rule, so the page can still match Italian words.
-    - **The guides' titles are short.** "How to use the AMICO 2000" and
-      "Come si usa l'AMICO 2000" say neither emulator nor guide. A longer
-      `<title>`, the heading left as it is, would say what the page is in a
-      result: the wording is the owner's, in both languages.
-    - **No favicon.** The tab and a bookmark show a blank, and every visit
-      asks for `/favicon.ico` and gets a 404. An SVG file would pass the
-      CSP. Google's results show one icon for a whole host, so a site under
-      `ascasso.github.io/amico2000/` cannot set its own there.
-    - **Not run:** Lighthouse, which needs a download the session was not
-      allowed. Load times were measured by hand instead, in headless Chrome
-      throttled to a slow phone.
-
-## Cassette Work (Secondary)
-
-- `#19`, document the `.amtape` format, is closed: `docs/amtape-format.md`.
-  Writing it down showed two things the parser lets through, which the
-  reference states and nothing has changed: an end address that disagrees
-  with the start and the length, and a length of zero. Tightening either
-  would refuse files the present reader accepts, so it is a decision, not a
-  tidy-up.
-- `#20`, analog fidelity, is closed. `AGENTS.md` has it under Cassette Sound
-  Format. What it did not settle:
-  - **No real recording has been through the decoder.** The owner is asking
-    owners of the machine for one. When one arrives, try it first; if it does
-    not read, `detectPulses()` in `tape-audio.js` is where to look, and the
-    recording's own pulse shape should replace the guesses in the test's
-    simulated faults. A recording must not be committed without its owner's
-    leave.
-  - Nor has a real board been played a WAV file written here.
-  - The emulated recorder plays the emulator's list of programs, laid out as
-    SAVE would have written them. It cannot play a recording as it was made:
-    a `.wav` is decoded to programs on import and what does not decode is
-    lost. Keeping an imported recording's own pulse times as the tape, so
-    that the real LOAD routine is the one to read it, would be the faithful
-    way, and the pieces are there: `detectPulses()` gives the times and
-    `createRecorder()` plays times.
-  - The recorder has no keys, no rewind and no sound. The board starts and
-    stops it, and every LOAD begins at the start of the tape.
-  - The look of an LED during LOAD, `.led.on.dim`, is a guess.
-  - A mode word does not clear the 8255's output latches, which the data
-    sheet says it does. Nothing in the ROMs depends on it. A user program
-    that set its ports before its mode word would behave differently here.
-    `docs/8255-data-sheet.md` has the sheet's words, the link to Intel's own
-    copy, and two smaller differences: the control register reads back, and
-    reading Port A ignores its direction.
-  - There is no button for saving a tape, as sound or as `.amtape`; both are
-    console commands.
-- `#41`, the traps against the real routines, is closed. The traps now leave
-  in `$0000-$0004` what the routines leave, and SAVE has no status byte.
-  Four differences were kept on purpose and are listed in `AGENTS.md` under
-  Cassette Interface Reference, each pinned by
-  `tests/cassette-trap-parity.test.js`. The one a later session might
-  revisit is the last byte of a block one byte longer than whole pages,
-  which the PROM loses and an instant SAVE keeps: making Instant lose it too
-  would be truer to the board and would lose a user's byte by default. It
-  needs `blockOffsets()`, which lives in `tape-audio.js`, on the machine's
-  side of the line.
-
-## How to Verify
-
-- `node --check` on changed scripts, `node --test tests/`, `git diff --check`.
-  No build system and no test framework (`AGENTS.md`).
-- Browser: `python3 -m http.server 8000`. Headless Chrome driven over the
-  DevTools protocol in real time checks the page as served: scripts evaluated
-  through the protocol are not subject to the page's CSP, and
-  `requestAnimationFrame` runs at 60 Hz. Avoid `--virtual-time-budget`, which
-  stops `requestAnimationFrame` and so the emulator. To see the page as an
-  Italian browser does, give `Emulation.setUserAgentOverride` an
-  `acceptLanguage` of `it-IT` before loading it; `?lang=it` forces it. The page also runs from
-  `file://`. The cassette in real time has to be watched in real time: a
-  SAVE and a LOAD are over twenty seconds between them.
-- A pull request gets an automated review when it is opened. Its findings
-  are worth reading and are not always right: of the two on pull request 47,
-  one was a real bug and one misread a commit's date. `AGENTS.md` now has a
-  test for the date.
-- If behavior and documents disagree, trust the ROM, the manual and verified
-  behavior, and fix the documents.
+- **14. A blanked digit keeps its letter.** The emulator's displays take no
+  notice of a blank sent to a digit, so a sliding text leaves ghosts. A
+  mend is proposed and not tried. It comes before the sliding text of
+  item 1.
+- **1. A shelf of programs and a guide on screen**
+  (`docs/program-shelf.md`). Agreed with the owner on 2026-11-22 as the
+  site's next piece of work. Not started. First a word on the displays,
+  then a text that slides.
+- **2. The phone layout:** built and tried on three devices. Small rough
+  edges, none blocking.
+- **3. The site in Italian:** built and live. Loose ends, the first of them
+  that no person has read it through.
+- **4. Ask the people who had one** for a tape, a listing, a photograph, a
+  memory: a few lines under About this board.
+- **5. Keep a visitor's work** between visits: the cassette in
+  `localStorage`, and buttons for taking a tape out and putting one in.
+- **6. Two interrupt decisions** for the owner to confirm: the NMI vector's
+  value at power-on, now `$FE00`, and the IRQ vector's.
+- **7. Machine-layer tests:** display multiplexing pattern by pattern, and
+  the 8255's partial decoding at `$FD00-$FDFF`.
+- **8. D7 lit at idle** in unit A's photograph. Nothing accounts for it.
+- **9. The board drawing** has been seen in Chrome only, and its table of
+  measurements and check scripts live outside the repository.
+- **10. A speed multiplier,** 1x, 10x and Max. The owner asked for it. Not
+  started.
+- **11. Ideas, not started:** wear, sound, a desk scene, the cassette
+  through the sound card.
+- **12. Being found:** links to the site, Search Console, a picture for
+  link previews, a favicon.
+- **13. Amico after tighter code** (`docs/amico-design.md`): subroutines, a
+  routine for HLT, shifts, a key read or a table read as an operand, the
+  listing as the manual's Tavola A.
+- **Cassette, secondary:** no real recording has been through the decoder,
+  and there is no button for saving a tape.
