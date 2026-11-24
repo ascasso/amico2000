@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 291
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 293
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -84,8 +84,9 @@ below, each marked as coming from it.
   mended, and given its first additions: constants, tables written out,
   names for memory locations and rows of bytes, and calls, so that it now
   reaches the whole board; then `for`, `break` and `next`, and conditions
-  with `>`, `<=`, `and`, `or` and `else if`. Item 13 has what the owner
-  settled, what is built and what is next.
+  with `>`, `<=`, `and`, `or` and `else if`; then a `decimal` block, and
+  with it the 1979 clock as an example. Item 13 has what the owner settled,
+  what is built and what is next.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
   which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
   executes one instruction.
@@ -505,7 +506,7 @@ on 2026-11-23 and its place is the owner's to give.
         all of them now, and the game one condition).
       - It hides what the 6502 is good at: decimal mode, indexing, carry. A
         24-hour clock written in it is 140 bytes; the May 1979 article's is
-        63, and three in page zero.
+        63, and four in page zero: its three limits and a count.
       - Quiet surprises. A value assigned to a name nobody reads is dropped
         without a word, a misspelt name on the left of `=` included (it is
         warned of now). `stop`
@@ -531,6 +532,35 @@ on 2026-11-23 and its place is the owner's to give.
       - A `decimal ... end` block, inside which `+` and `-` count in
         decimal. The compiler clears decimal mode around the key routine,
         where the monitor goes wrong (`docs/monitor-rom-review.md`, bug 2).
+        **Done**, with `examples/clock.amico`, the clock of May 1979, in 90
+        bytes where the first look's was 140 and the article's is 63. The
+        small print was the agent's to settle, and the owner has not yet
+        seen it settled:
+        - the monitor's two routines that show the displays do no sums,
+          which was found by running them and by following every path of
+          them, so `display.scan()`, `display.show()` and `display.hold()`
+          are called with decimal mode set, as the article's clock calls
+          the scan. The key routine, and any routine reached by `call`, is
+          called between a `CLD` and a `SED`: two bytes more for a key
+          read inside a block, and one more for a `call`, which has a `CLD`
+          after it anywhere;
+        - a `break` or a `next` that leaves a block, for a loop the block
+          is inside, clears decimal mode on its way; `stop` leaves that to
+          the monitor;
+        - a `for` counts in binary inside a block, as outside;
+        - a literal or a constant added or subtracted in a block has to be
+          two decimal digits, so `x + 10` is refused and ten is written
+          `$10`. Only a sum is checked: `if seconds == 60` compiles and is
+          never so, which the README warns of. A number keeps its meaning inside a block: the agent
+          considered reading `10` as ten there and did not, because the
+          same line would then mean two things by where it stands. What a
+          variable holds is not checked;
+        - a block cannot be inside another;
+        - with a byte that is not two decimal digits a sum is whatever the
+          6502 makes of it, and that is where the emulator's CPU is known
+          not to match the chip (`docs/6502-conformance.md`). Nothing in
+          the tests depends on it. A program in Amico can now reach it as
+          easily as one keyed by hand always could.
       - A routine for the HLT key. The owner said in. The agent had voted to
         leave it for now, as the hardest thing on the list: registers to
         save, and the monitor's routines shared with the program it
@@ -582,7 +612,11 @@ on 2026-11-23 and its place is the owner's to give.
         - a key read or a table read as an operand
           (`k = keypad.read() & 15`);
         - tighter code, `INC` and `DEC` for `x = x + 1` and no `CMP #0`
-          after an operation that set the flags. Three more places were
+          after an operation that set the flags. Neither inside a
+          `decimal` block: `INC` and `DEC` count in binary there, and on
+          this 6502 the flags after a sum in decimal are not those of its
+          result. Nor is a `SED` straight followed by a `CLD` taken out,
+          as a block that ends with a key read has it. Three more places were
           seen while the loops were built, none of them done: an `if`
           with only a `break`, a `next` or a `stop` in it is a branch over
           a jump, five bytes where a hand writes a branch of two; after
@@ -659,23 +693,14 @@ on 2026-11-23 and its place is the owner's to give.
       memory names, calls and written-out tables. **Done**, with the rows
       of bytes. Then `for`, `break` and `next`, and the richer conditions.
       **Done**, after the compiler was first made to read a line as
-      pieces, which changed no program's bytes. Then decimal: **built on
-      2026-11-23 and pushed unreviewed**, because the session ran out of
-      usage. `decimal ... end` and the example `clock.amico` (90 bytes, a
-      second of 1,000,002 cycles) are in, with their tests, 41 planted
-      defects all caught, and the day's log. Still owed, first thing:
-      the review by Codex and a Claude subagent on another model
-      (`AGENTS.md`, A Review by Several Agents), with the planted list
-      handed over; `AMICO_PROGRAMS=30000` and `AMICO_STATEMENTS=6`; a
-      changelog and log entry for the clock; and the owner's view of the
-      small print the agent settled: the display routines are called in
-      decimal as they are, the key routine and every `call` in binary; a
-      `break` or `next` leaving a block clears decimal mode; a `for`
-      counts in binary in a block; a number added or subtracted in a
-      block must be two decimal digits (`x + 10` refused); no block
-      inside a block. For tighter code later: `INC` and `DEC` must not
-      stand for `+ 1` and `- 1` in a block, and the flags after a
-      decimal sum are not its result's, so the `CMP #0` stays there.
+      pieces, which changed no program's bytes. Then decimal. **Done**,
+      with the 1979 clock as its example. It was pushed before its review,
+      when a session ran out of its allowance, and reviewed the same
+      evening by Codex and a Claude Opus subagent. Neither found wrong
+      code: Codex checked the decimal flag at 2.27 million instructions of
+      46,067 runs against what the source says it should be. What they
+      found were tests that let defects through and sentences that were
+      not so, all put right; see below.
       After it, in no settled order: subroutines, the routine for HLT,
       words on the displays as a table, shifts, a key read or a table
       read as an operand, tighter code, and the listing as Tavola A. One
@@ -686,7 +711,20 @@ on 2026-11-23 and its place is the owner's to give.
       wrong code. Their findings, all fixed before the push, were tests
       that let defects through, two byte counts in the README that
       assumed a short branch, and two small matters in how a line is
-      read; the log of that day has each.
+      read; the log of that day has each. `decimal` was reviewed the same
+      way, after its push. The author had planted 41 defects and seen all
+      caught. Opus planted 52 others and 18 passed unnoticed, and Codex
+      found five, four of them the same. Nearly all were of one kind:
+      something the compiler does everywhere, made not to happen inside a
+      block. A key read called in decimal when it stands in a condition,
+      the accumulator not forgotten after a `call` in a block, Port A's
+      direction lost at a block's `end`. The tests had tried the new
+      block and not the old words inside it. A test of exactly that was
+      added, the random programs' shares are now counted from their
+      source, each with a floor, and both lists were run again and are
+      caught. Six sentences were wrong, among them the cost of a `call`
+      in a block, one byte and not two, and the article's clock, which
+      uses four bytes of page zero and not three.
     - **A check of the compiler as it stands**, read only, which the owner
       asked for on 2026-11-23 before anything was built on it. Five
       reviewers, each with its own angle and its own model: four Claude

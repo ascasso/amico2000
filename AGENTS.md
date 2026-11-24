@@ -1448,6 +1448,25 @@ reproduced every finding before passing any on.
   mistakes it can imagine making. Have the reviewer of tests plant its
   own, give it the author's list so that it plants different ones, and
   afterwards run its list again to see the new tests catch them.
+  `decimal` showed the same thing from another side. The author planted
+  41 defects in the new block and all were caught; Opus planted 52 others
+  and 18 passed, and Codex, asked for the code, planted five of its own
+  accord, four of them among those 18. Nearly all were one kind: something
+  the compiler already did everywhere, made not to happen inside the new
+  block, such as forgetting the accumulator after a `call`. The tests had
+  tried the new word and not the old words inside it. A construct that
+  holds statements needs a test of each kind of statement inside it, and a
+  planter should break `if (!inside) ...` at every place the compiler
+  keeps or forgets what it knows. Codex also built a checker that neither
+  the author nor the brief had thought of as a test: the decimal flag at
+  every instruction a program runs, against what the source says it should
+  be. A brief that states an invariant in one sentence gets it checked.
+- **A generator's own counts are not evidence.** The differential test
+  held floors under what the generator said it had made. Opus broke the
+  generator six ways, each of which stopped it making something its header
+  promises, and no floor moved. The test now counts what a program has
+  from its source (`decimalFacts()`), and holds the generator's count to
+  that.
 - **The owner's Codex.** One instance at a time. Its prompt is plain ASCII,
   the owner's rule for anything handed to another tool, kept in a file and
   given on standard input. The run of 2026-11-23, with the model the
