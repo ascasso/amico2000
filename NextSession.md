@@ -61,7 +61,7 @@ below, each marked as coming from it.
   request or anywhere else published (`AGENTS.md`, Agent Operating Contract).
   The `Co-Authored-By:` and "Generated with" lines stay.
 - **CPU:** the core passes the Klaus Dormann functional suite (`#18`) and has a
-  regression check for each earlier fix (`#17`). `node --test tests/` runs 266
+  regression check for each earlier fix (`#17`). `node --test tests/` runs 267
   checks offline with no dependencies.
 - **Board:** the home page draws the board from two private photographs of
   real boards. Read Board Artwork in `AGENTS.md` before touching it, including
@@ -513,7 +513,7 @@ on 2026-11-23 and its place is the owner's to give.
         Whether a program should show addresses the owner left to the agent,
         which chose both.
       - A table written out, beside the formula:
-        `const word = table byte = $77, $6d, $79, $38, 0, 0`.
+        `const word = table byte = $77, $6d, $79, $38, 0, 0`. **Done.**
       - Words for the displays as a table the compiler works out,
         `const hello = table segments "CIAO"`, with the bytes shown in the
         listing. It needs an agreed alphabet first; item 1 has what is known

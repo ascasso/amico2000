@@ -76,6 +76,7 @@ one value. A literal above 255 is refused. Arithmetic wraps modulo 256.
 | `stop` | Jump to the monitor's reset entry. Reaching the end of a program does the same. The monitor then puts its own address and data on the displays, `0000` and the byte there, so whatever the program was showing is gone. To end with a result showing, end with `display.hold()`. |
 | `const start = 21` | Name a byte. The name may then stand wherever a literal may: as an operand, on the right of a comparison, as a table's index or last index, and in a table's formula. Another constant may be given in place of the literal. Declare it before executable statements. A constant cannot be assigned to. |
 | `const squares = table byte [n in 0..15] = n * n` | Build an inclusive, zero-based table at compile time. Declare it before executable statements. Its formula is a single term or two terms joined by `+`, `-`, or `*`. |
+| `const word = table byte = $77, $6d, $79, $38` | Build a table from its bytes, written out with commas between them. Each is a literal or a constant; there may be 256 of them. Declare it before executable statements. |
 | `value = squares[key]` | Read a table entry. A literal index is checked and folded at compile time. A variable index becomes a native indexed load. Guard it with an `if` when its range is uncertain. An out-of-range variable index reads the byte at the resulting address. |
 
 The compiler warns of a name that is assigned and never read:

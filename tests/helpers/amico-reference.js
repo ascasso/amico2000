@@ -60,7 +60,10 @@ function parse(source) {
         const line = raw.replace(/#.*$/, '').trim();
         if (!line) continue;
         let match;
-        if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*table\s+byte\s*\[\s*([a-z][a-z0-9_]*)\s+in\s+0\s*\.\.\s*(\S+?)\s*\]\s*=\s*(.+)$/.exec(line))) {
+        if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*table\s+byte\s*=\s*(.+)$/.exec(line))) {
+            // A table written out: its bytes, with commas between them.
+            tables.set(match[1], match[2].split(',').map((piece) => literal(piece.trim(), constants)));
+        } else if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*table\s+byte\s*\[\s*([a-z][a-z0-9_]*)\s+in\s+0\s*\.\.\s*(\S+?)\s*\]\s*=\s*(.+)$/.exec(line))) {
             tables.set(match[1], tableBytes(match[2], match[3], match[4], constants));
         } else if ((match = /^const\s+([a-z][a-z0-9_]*)\s*=\s*(\S+)$/.exec(line))) {
             constants.set(match[1], literal(match[2], constants));

@@ -9,7 +9,8 @@
 // made again from its seed alone.
 //
 // What it leans on: nested `if`s with and without `else`, arms long enough to
-// need a long branch, tables read by a literal and by a variable, display
+// need a long branch, tables by a formula and written out, read by a literal
+// and by a variable, display
 // fields as operands and as targets, constants and the key names standing
 // where a literal may, names that begin like words of the language, literals
 // spelt several ways, and operators written with and without spaces.
@@ -68,7 +69,7 @@ function randomSource(seed) {
 function generate(seed, { scans = false, long = false } = {}) {
     const random = randomSource(seed);
     const { between, pick, chance } = random;
-    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0 };
+    const made = { longArm: false, loops: 0, tableReads: 0, elseArms: 0, depth: 0, scans: 0, constants: 0, writtenTables: 0 };
     const lines = [];
     const counters = new Set();
     let counterNumber = 0;
@@ -116,6 +117,15 @@ function generate(seed, { scans = false, long = false } = {}) {
     const tables = [];
     const tableCount = chance(0.8) ? between(1, 3) : 0;
     for (let number = 0; number < tableCount; number++) {
+        // Three tables in ten are written out, a byte at a time.
+        if (chance(0.3)) {
+            const length = between(1, 12);
+            const bytes = Array.from({ length }, () => literal());
+            tables.push({ name: 't' + number, length });
+            lines.push(`const t${number} = table byte = ${bytes.join(chance(0.5) ? ', ' : ',')}`);
+            made.writtenTables++;
+            continue;
+        }
         // The last index is a number, or a constant small enough to be one.
         const named = chance(0.3) ? constantUpTo(20) : null;
         const last = named ? named.value : chance(0.15) ? between(40, 120) : between(0, 20);

@@ -421,7 +421,7 @@ test('a constant stands wherever a literal may, and the keys that are not digits
         ['const t = table byte [n in 0..keypad.non] = n\nstop', /^Error: Line 1: Expected a byte literal or a constant for the last table index, got keypad.non$/],
         ['x = y', /^Error: Line 1: Expected a byte literal, a constant or an assigned variable, got y$/],
         // The dots of the range are the range's: a third one is not part of a term.
-        ['const t = table byte [n in 0... 3] = n\nstop', /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula$/],
+        ['const t = table byte [n in 0... 3] = n\nstop', /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula/],
         ['const t = table byte [n in 0..3.] = n\nstop', /^Error: Line 1: Expected const name = table byte/],
         ['const t = table byte [n in 0..3] = n.\nstop', /^Error: Line 1: Expected const name = table byte/]
     ]) assert.throws(() => compile(source), error);
@@ -518,4 +518,41 @@ test('a constant costs what the number it stands for costs', () => {
     // happens to hold the value that is in A.
     assert.equal(compile('if 21 == display.low\ndisplay.data = 22\nend').binary.length, 14);
     assert.match(compile('y = 21\nif 21 == display.low\ndisplay.data = y\nend').assembly, /CMP \$FA .*\n.*\n +LDA var_y/);
+});
+
+test('a table may be written out, byte by byte', () => {
+    // The same bytes by a formula and written out are the same program.
+    const reading = '\nk = display.low\ndisplay.data = t[k]';
+    const written = compile('const t = table byte = 0, 3, 6, 9' + reading);
+    assert.deepEqual(written.binary, compile('const t = table byte [n in 0..3] = n * 3' + reading).binary);
+    assert.deepEqual([...written.binary.slice(-4)], [0, 3, 6, 9]);
+    // Each byte is a literal, however spelt, or a constant; spaces are free.
+    assert.deepEqual([...compile('const a = 5\nconst t = table byte=a ,keypad.none, 021,$f' + reading).binary.slice(-4)], [5, 0x15, 21, 15]);
+    // A literal index is checked against the bytes there are, and folded.
+    assert.deepEqual([...compile('const t = table byte = $77, $6d, $79, $38\ndisplay.data = t[2]').binary], [0xd8, 0xa9, 0x79, 0x85, 0xf9, 0x4c, 0x22, 0xfe]);
+    assert.throws(() => compile('const t = table byte = 1, 2\ndisplay.data = t[2]'), /^Error: Line 2: Table index out of range/);
+    // The six patterns of the manual's own word, read on the board.
+    const m = bootedMachine();
+    const word = compile('const word = table byte = $77, $6d, $79, $38, 0, 0\nk = display.low\ndisplay.data = word[k]');
+    m.loadProgram(word.binary, word.origin);
+    for (const [index, pattern] of [[0, 0x77], [3, 0x38], [5, 0]]) {
+        m.cpu.memory[0xfa] = index;
+        m.cpu.PC = word.origin;
+        while (m.cpu.PC !== 0xfe22) m.cpu.step();
+        assert.equal(m.cpu.memory[0xf9], pattern);
+    }
+    // 256 bytes are the most a byte can index.
+    const many = (count) => 'const t = table byte = ' + Array.from({ length: count }, (_, i) => i & 255).join(', ') + reading;
+    assert.equal(compile(many(256)).binary.length, 12 + 256);
+    for (const [source, error] of [
+        [many(257), /^Error: Line 1: A table holds 256 bytes at most, and this one has 257/],
+        ['const t = table byte =' + reading, /^Error: Line 1: A table that is written out needs at least one byte/],
+        ['const t = table byte = 1,, 2' + reading, /^Error: Line 1: A comma in a table needs a byte on both its sides/],
+        ['const t = table byte = 1, 2,' + reading, /^Error: Line 1: A comma in a table needs a byte on both its sides/],
+        ['const t = table byte = 1, x' + reading, /^Error: Line 1: A table is written as bytes with commas between them, and this is not a byte: x/],
+        ['const t = table byte = 1 2' + reading, /^Error: Line 1: .*this is not a byte: 1 2/],
+        ['const t = table byte = 1, 256' + reading, /^Error: Line 1: Byte literal out of range: 256/],
+        ['const t = table byte = 1\nconst t = table byte = 2' + reading, /^Error: Line 2: Table declared twice: t/],
+        ['const t = table byte' + reading, /^Error: Line 1: Expected const name = table byte \[n in 0\.\.last\] = formula, or const name = table byte = byte, byte/]
+    ]) assert.throws(() => compile(source), error);
 });

@@ -136,7 +136,7 @@ function compile(source) {
     }
     function declareConstant(text) {
         const match = /^const\s+(\w+)\s*=\s*([\w.$]+)$/.exec(text);
-        if (!match) fail('Expected const name = byte, or const name = table byte [n in 0..last] = formula');
+        if (!match) fail('Expected const name = byte, or const name = table byte with a formula or with its bytes');
         const [, name, written] = match;
         if (constants.has(name)) fail('Constant declared twice: ' + name);
         if (tables.has(name)) fail(name + ' is already a table');
@@ -145,15 +145,41 @@ function compile(source) {
         if (value === null) fail('A constant is a byte literal or another constant, not ' + written);
         constants.set(name, value);
     }
-    function declareTable(text) {
-        const match = TABLE.exec(text);
-        if (!match) fail('Expected const name = table byte [n in 0..last] = formula');
-        const [, name, index, first, limit, lhs, op, rhs] = match;
-        // Zero however it is written: $0 and 00 are the byte the README means.
-        if (number(first) !== 0) fail("A table's index starts at 0, not at " + first);
+    // The name of a new table: not one that a table or a constant has, and
+    // otherwise by the rules for any name.
+    function tableName(name) {
         if (tables.has(name)) fail('Table declared twice: ' + name);
         if (constants.has(name)) fail(name + ' is already a constant');
         variable(name);
+    }
+    // A table written out: its bytes, with commas between them. Each is a
+    // literal or a constant, as anywhere a byte is written.
+    function declareWrittenTable(name, written) {
+        tableName(name);
+        if (!written.trim()) fail('A table that is written out needs at least one byte');
+        const bytes = written.split(',').map((piece) => {
+            const text = piece.trim();
+            if (!text) fail('A comma in a table needs a byte on both its sides');
+            const value = number(text);
+            if (value === null) fail('A table is written as bytes with commas between them, and this is not a byte: ' + text);
+            return value;
+        });
+        // X reaches no further, and neither does a byte used as an index.
+        if (bytes.length > 256) fail('A table holds 256 bytes at most, and this one has ' + bytes.length);
+        tables.set(name, { label: 'data_' + name, bytes, line, used: false });
+    }
+    function declareTable(text) {
+        const list = /^const\s+(\w+)\s*=\s*table\s+byte\s*=\s*(.*)$/.exec(text);
+        if (list) {
+            declareWrittenTable(list[1], list[2]);
+            return;
+        }
+        const match = TABLE.exec(text);
+        if (!match) fail('Expected const name = table byte [n in 0..last] = formula, or const name = table byte = byte, byte, ...');
+        const [, name, index, first, limit, lhs, op, rhs] = match;
+        // Zero however it is written: $0 and 00 are the byte the README means.
+        if (number(first) !== 0) fail("A table's index starts at 0, not at " + first);
+        tableName(name);
         if (!NAME.test(index) || RESERVED.has(index)) fail('Invalid table index name: ' + index);
         const last = number(limit);
         if (last === null) fail('Expected a byte literal or a constant for the last table index, got ' + limit);

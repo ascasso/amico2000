@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Amico's tables can be written out: `const word = table byte = $77, $6d,
+  $79, $38, 0, 0`. Until now a table came only from a formula over its
+  index, which makes squares and cannot make the segment patterns of a
+  word. Each byte is a literal or a constant, up to 256 of them, and the
+  table is read as any other. The first of the three additions that let
+  the language reach the whole board.
 - Amico has `display.hold()`, which scans the six digits until RES. A
   program that ended with `stop`, or ran off its end, handed the board to
   the monitor, which shows `0000` and the byte there, so a result put on
