@@ -980,6 +980,14 @@ test('for counts through a range, up or down, and leaves its name one step past 
     assert.deepEqual(bytes('for i in 0..5\ndisplay.data = i\nend'),
         [0xd8, 0xa9, 0x00, 0x85, 0x20, 0x85, 0xf9, 0xe6, 0x20, 0xa5, 0x20, 0xc9, 0x06, 0xd0, 0xf6, 0x4c, 0x22, 0xfe]);
     assert.equal(bytes('for i in 0..5\ndisplay.data = 1\nend').length, bytes('display.data = 1').length + 12);
+    // Fifteen when the branch back has further to go than a branch reaches.
+    // With these the README's two numbers are held: 496 bytes of statements
+    // in a for are 511, three too many for the board.
+    const many = (count) => 'display.data = display.data + 1\n'.repeat(count);
+    assert.equal(bytes('for i in 0..1\n' + many(10) + 'end').length, bytes(many(10)).length + 12);
+    assert.equal(bytes('for i in 0..1\n' + many(40) + 'end').length, bytes(many(40)).length + 15);
+    assert.equal(bytes(many(98)).length, 496);
+    assert.throws(() => compile('for i in 0..1\n' + many(98) + 'end'), /^Error: Program needs 511 bytes/);
     // Downwards it is a DEC, and the compare is with one below the last value.
     assert.deepEqual(bytes('for i in 5..1\ndisplay.data = i\nend').slice(7, 13), [0xc6, 0x20, 0xa5, 0x20, 0xc9, 0x00]);
     // A first value that A is known to hold already is not loaded again.
@@ -1172,6 +1180,13 @@ test('all six comparisons, against a number and against a name, to the edges of 
     assert.match(compile(against('<=', 'y')).assembly, /CMP var_y .*\n +BEQ flow_2 .*\n +BCS flow_1 .*\nflow_2:/);
     assert.equal(bytes(against('>', 'y')).length, bytes(against('>=', 'y')).length + 2);
     assert.equal(bytes(against('<=', 'y')).length, bytes(against('<', 'y')).length + 2);
+    // That is while the statements under the if are short. Over more than
+    // a branch reaches, each branch that crosses them takes five bytes for
+    // two: `>` has two such, and `<=` one, like the other four.
+    const long = (compare) => bytes(`if display.low ${compare} display.high\n` + 'display.data = display.data + 1\n'.repeat(26) + 'end').length;
+    assert.equal(long('>'), long('>=') + 5);
+    assert.equal(long('<='), long('<') + 2);
+    assert.match(compile('if display.low >= display.high\n' + 'display.data = display.data + 1\n'.repeat(26) + 'end').assembly, /BCS \*\+5/);
     // Against a number they are the next number's `>=` and `<`, and cost nothing more.
     assert.deepEqual(bytes(against('>', '5')), bytes(against('>=', '6')));
     assert.deepEqual(bytes(against('<=', '5')), bytes(against('<', '6')));

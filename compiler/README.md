@@ -115,8 +115,10 @@ An `if` compares two bytes as unsigned numbers, with `<`, `<=`, `>`, `>=`,
 `==` or `!=`.
 
 The 6502's compare answers four of the six with one flag, and so with one
-branch. `>` and `<=` take two flags and two branches, two bytes more. Against
-a literal or a constant they cost nothing more: the compiler writes `x > 5`
+branch. `>` and `<=` take two flags and two branches, two bytes more when the
+statements under the `if` are short enough for a branch to cross; The ROM
+and the memory budget has what a branch costs when they are not. Against a
+literal or a constant they cost nothing more: the compiler writes `x > 5`
 as `x >= 6` and `x <= 5` as `x < 6`, as one would by hand. That leaves
 `x > 255` and `x <= 255` with no next number, and they are refused: the first
 is never so, and the second always.
@@ -184,7 +186,9 @@ after `0..5`. A byte wraps, so after `0..255` it is 0 and after `5..0` it is
 255.
 
 A `for` adds twelve bytes to its statements: four to start the count, and at
-the foot an increment or a decrement, a load, a compare and a branch.
+the foot an increment or a decrement, a load, a compare and a branch. When
+the statements are too long for that branch to reach back over them it takes
+its long form, and the `for` adds fifteen.
 
 `break` leaves the loop it is in, a `loop` or a `for`, and the program goes
 on with what follows that loop's `end`. `next` goes round again at once: to
@@ -365,6 +369,13 @@ so addition and subtraction are binary and F (`$0F`) and no key (`$15`)
 remain distinguishable in TASTO. A keypad read sets the 8255 to input mode
 when needed. A preceding display scan has already done that work. Normal exit
 goes through `$FE22`, which initializes the monitor before it scans again.
+
+A 6502 branch reaches 127 bytes forward and 128 back. Where one has further
+to go, the compiler writes the opposite branch round a `JMP`, five bytes
+where a branch is two, and the listing shows it as `*+5`. So an `if`, an
+`else if` or a `for` whose statements come to more than that costs three
+bytes more for each branch that has to cross them: one for most conditions,
+and two for a `>` against anything but a literal or a constant.
 
 The compiler resolves branch addresses itself. Using the monitor's branch
 calculator manually while a program is halted can still overwrite saved A,

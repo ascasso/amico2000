@@ -16,9 +16,9 @@
 //
 // "Every small program" means every nesting of `if`, `else`, `loop`, `for`,
 // `break`, `next` and `stop` with assignments and reads, up to a number of
-// statements. The
-// compiler has to accept exactly the programs the oracle accepts, and refuse
-// the others at the same line and for the same reason. To go deeper:
+// statements. The compiler has to accept exactly the programs the oracle
+// accepts, and refuse the others at the same line and for the same reason.
+// To go deeper:
 //
 //     AMICO_STATEMENTS=6 node --test tests/compiler-assignment.test.js
 //

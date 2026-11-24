@@ -25,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `or` join the words that cannot be names.
 - Amico compares with `>` and `<=` as well as `<`, `>=`, `==` and `!=`. The
   6502's compare answers those two with two flags, so against a variable
-  they are two branches and two bytes more than the others. Against a
+  they are two branches, and two bytes more than the others where the
+  statements under them are short enough for a branch to cross. Against a
   literal or a constant they cost nothing more: `x > 5` is compiled as
   `x >= 6`. `x > 255` and `x <= 255` are refused, the first as never so and
   the second as always. A comparison with nothing on its left is told so.
@@ -46,7 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loop the name is read and cannot be assigned, and afterwards it is one step
   past the last value. The manual's word is now copied to the displays in
   three lines where it took seven. A `for` costs twelve bytes besides its
-  statements. `for` joins the words that cannot be names.
+  statements, and fifteen when they are too long for a branch to reach back
+  over. `for` joins the words that cannot be names.
 - Amico names the six digits as raw segments, `display.segment[0]` to
   `display.segment[5]`, and the monitor's routine that shows them,
   `display.show()`, beside the three hex bytes and `display.scan()` it
@@ -939,6 +941,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Amico's README gave two costs that hold only while a branch is short: a
+  `for` as twelve bytes and `>` or `<=` against a name as two bytes more
+  than the other comparisons. Over statements too long for a branch to
+  cross, the branch takes five bytes for two, so a long `for` adds fifteen
+  and a `>` five more. A program of 496 bytes in a `for` was refused as 511
+  where the README promised 508. The README now says what a branch reaches
+  and what the long form costs, and tests hold it to the numbers. Found by
+  Codex in the review of the series.
 - Amico: a line of source ends at either of Unicode's two separators,
   U+2028 and U+2029, as it does at LF, CR LF and CR. They are spaces to the
   compiler's reading of a line as pieces, so `display.data = 1+`, a
