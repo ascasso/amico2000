@@ -32,8 +32,9 @@ const KEY_CODES = [['keypad.ad', 0x10], ['keypad.da', 0x11], ['keypad.inc', 0x12
 // name takes none.
 const PIECE = /\s*(?:([\w$]+(?:\.[\w$]+)*)|(==|!=|>=|<=|\.\.|[=<>+\-*&|^[\](),])|(\S))/y;
 // What is asked of a line as it is read: the term at a place, the mark at a
-// place, where a mark first stands, and the line's own text from one piece to
-// another, spaces and all, which is what a message quotes.
+// place, where a mark first stands, whether a piece stands apart from the
+// next, and the line's own text from one piece to another, spaces and all,
+// which is what a message quotes.
 function pieces(text) {
     const found = [];
     PIECE.lastIndex = 0;
@@ -50,6 +51,8 @@ function pieces(text) {
             return -1;
         },
         slice: (from, to = found.length) => (from < to ? text.slice(found[from].at, found[to - 1].end) : ''),
+        // Whether a piece has a space after it, or is the last of its line.
+        apart: (i) => found[i + 1] === undefined || found[i + 1].at > found[i].end,
         // A name and an empty pair of brackets, and nothing else.
         calls(name) { return found.length === 3 && this.term(0) === name && this.mark(1) === '(' && this.mark(2) === ')'; }
     };
@@ -453,7 +456,7 @@ function compile(source) {
         const alone = (word) => L.length === 1 && first === word;
         // `else if` is an `else` with a condition of its own. It leaves the
         // `if` open, and one `end` closes the whole chain.
-        const elseIf = first === 'else' && L.term(1) === 'if';
+        const elseIf = first === 'else' && L.term(1) === 'if' && L.apart(1);
         if (alone('else') || alone('end') || elseIf) {
             const block = blocks.at(-1);
             if (!block) fail('Unexpected ' + (elseIf ? 'else' : text));
@@ -538,19 +541,20 @@ function compile(source) {
         // anything else is asked of it. An assignment is a name, perhaps an
         // index in brackets, one `=`, which is not the `==` of a comparison,
         // and something after it, so `x == 1` is none. `if` and `const` are
-        // whole terms, so `if.scan()` is neither. A line that is no statement
-        // is told so wherever it stands: a misspelt `end` after `stop` was
-        // once called unreachable, which it is, and which is not what is
-        // wrong with it.
+        // whole terms with a space after them, so `if.scan()` is neither and
+        // `if()` is neither. A line that is no statement is told so wherever
+        // it stands: a misspelt `end` after `stop` was once called
+        // unreachable, which it is, and which is not what is wrong with it.
         const indexed = L.mark(1) === '[';
         const close = indexed ? L.find([']'], 2) : 0;
         const assign = first !== undefined && close >= 0 && L.mark(close + 1) === '=' && L.length > close + 2
             ? [text, first, indexed ? L.slice(2, close) : undefined, L.slice(close + 2)] : null;
-        const isIf = first === 'if';
-        const isConst = first === 'const';
-        const isByte = first === 'byte';
-        const isCall = first === 'call';
-        const isFor = first === 'for';
+        const begins = (word) => first === word && L.apart(0);
+        const isIf = begins('if');
+        const isConst = begins('const');
+        const isByte = begins('byte');
+        const isCall = begins('call');
+        const isFor = begins('for');
         // `break` and `next` concern the loop they are in: the innermost.
         const jumps = alone('break') || alone('next');
         const around = jumps ? blocks.findLast((block) => block.kind === 'loop' || block.kind === 'for') : undefined;

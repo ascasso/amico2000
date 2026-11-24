@@ -271,6 +271,14 @@ test('a line that is no statement is called that, wherever it stands', () => {
         assert.throws(() => compile(line), new RegExp('^Error: Line 1: Unknown statement: ' + line.replace(/[.()]/g, '\\$&')));
         assert.throws(() => compile('stop\n' + line), /^Error: Line 2: Unknown statement/);
     }
+    // A word that begins a statement has a space after it, or ends its
+    // line. With a bracket hard against it, it begins none: such a line was
+    // told to move above the first statement, or that it could not be
+    // reached, neither of which would mend it.
+    for (const line of ['if()', 'byte()', 'const()', 'call()', 'for()', 'if(display.low == 1)', 'else if(display.low == 1)']) {
+        assert.throws(() => compile('x = 1\n' + line), new RegExp('^Error: Line 2: Unknown statement: ' + line.replace(/[.()]/g, '\\$&')), line);
+        assert.throws(() => compile('stop\n' + line), /^Error: Line 2: Unknown statement/, line);
+    }
     // A real statement in the same place is still unreachable.
     assert.throws(() => compile('a = 1\nif a == 1\nstop\na = 2\nend'), /^Error: Line 4: Unreachable statement/);
     assert.throws(() => compile('stop\ndisplay.scan()'), /^Error: Line 2: Unreachable statement/);

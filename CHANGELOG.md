@@ -930,6 +930,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. They remain in git history.
 
 ### Fixed
+- Amico: a line such as `byte()` or `if()`, a word of the language with a
+  bracket hard against it, is an unknown statement again. Since the compiler
+  began reading a line as pieces, earlier in the same unpushed series, such
+  a line after the first statement was told to move above it, and after a
+  `stop` that it could not be reached; neither would have mended it. Found
+  by Codex in the review of the series.
 - Fixed the README and two of `amicoc`'s messages listing what may stand as
   an operand, or on the right of a comparison, as "literals, variables or
   display fields". A constant and a named location may too, and the
