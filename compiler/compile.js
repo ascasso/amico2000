@@ -8,28 +8,52 @@ const SCAN = 0xff0c;
 const READ_KEY = 0xff57;
 const FIELDS = new Map([['display.data', 0xf9], ['display.low', 0xfa], ['display.high', 0xfb]]);
 const NAME = /^[a-z][a-z0-9_]*$/;
-// A call takes spaces before and inside its brackets, as an operator takes
-// them round it. The dot is part of the name and takes none.
-const SCAN_CALL = /^display\.scan\s*\(\s*\)$/;
-const HOLD_CALL = /^display\.hold\s*\(\s*\)$/;
-const SHOW_CALL = /^display\.show\s*\(\s*\)$/;
 // The monitor's routine D, START, shows the six bytes at $8F-$94 on the six
 // digits as they are, one bit to a segment, where the scan at $FF0C shows
 // three bytes as hex digits. The language names both the bytes and the
 // routine, as it names the three bytes and the routine of the other.
 const SHOW = 0xff7e;
 const SEGMENTS = { where: 0x8f, count: 6 };
-const KEY_CALL = /^keypad\.(read|press)\s*\(\s*\)$/;
 // What the monitor's key routine at $FF57 gives for the keys that are not
 // hex digits, and for no key at all. A hex key's code is its own digit.
 const KEY_CODES = [['keypad.ad', 0x10], ['keypad.da', 0x11], ['keypad.inc', 0x12],
     ['keypad.run', 0x13], ['keypad.reg', 0x14], ['keypad.none', 0x15]];
-// A term of a table's declaration: a number or a name, and a name may have
-// dots in it, as keypad.none has. A dot needs something on both its sides,
-// so that the two dots of the range are never taken into a term.
-const TERM = '[\\w$]+(?:\\.[\\w$]+)*';
-const TABLE = new RegExp('^const\\s+(\\w+)\\s*=\\s*table\\s+byte\\s*\\[\\s*(\\w+)\\s+in\\s+(' + TERM +
-    ')\\s*\\.\\.\\s*(' + TERM + ')\\s*\\]\\s*=\\s*(' + TERM + ')(?:\\s*([*+-])\\s*(' + TERM + '))?$');
+// A line is read as the pieces it is made of, and there are three kinds.
+// - A term is a number or a name: letters, digits, `_` and `$`, and a dot
+//   where it has one of those on both its sides. So display.data and
+//   keypad.none are one term each, and the two dots of a range are never
+//   taken into one.
+// - A mark is an operator, a bracket or a comma. Those of two characters are
+//   looked for first, so that `==` is never two `=`.
+// - Any other character is a piece of its own, for whichever statement meets
+//   it to refuse.
+// Spaces only part one piece from the next: a call takes them before and
+// inside its brackets, as an operator takes them round it, and the dot of a
+// name takes none.
+const PIECE = /\s*(?:([\w$]+(?:\.[\w$]+)*)|(==|!=|>=|<=|\.\.|[=<>+\-*&|^[\](),])|(\S))/y;
+// What is asked of a line as it is read: the term at a place, the mark at a
+// place, where a mark first stands, and the line's own text from one piece to
+// another, spaces and all, which is what a message quotes.
+function pieces(text) {
+    const found = [];
+    PIECE.lastIndex = 0;
+    for (let match; (match = PIECE.exec(text)) !== null;) {
+        const written = match[1] ?? match[2] ?? match[3];
+        found.push({ text: written, term: match[1] !== undefined, at: PIECE.lastIndex - written.length, end: PIECE.lastIndex });
+    }
+    return {
+        length: found.length,
+        term: (i) => (found[i] && found[i].term ? found[i].text : undefined),
+        mark: (i) => (found[i] && !found[i].term ? found[i].text : undefined),
+        find(marks, from = 0, to = found.length) {
+            for (let i = from; i < to; i++) if (!found[i].term && marks.includes(found[i].text)) return i;
+            return -1;
+        },
+        slice: (from, to = found.length) => (from < to ? text.slice(found[from].at, found[to - 1].end) : ''),
+        // A name and an empty pair of brackets, and nothing else.
+        calls(name) { return found.length === 3 && this.term(0) === name && this.mark(1) === '(' && this.mark(2) === ')'; }
+    };
+}
 const RESERVED = new Set(['if', 'else', 'end', 'loop', 'stop', 'const', 'table', 'byte', 'in', 'display', 'keypad', 'call']);
 const ARITHMETIC = new Map([['+', 'ADC'], ['-', 'SBC'], ['&', 'AND'], ['|', 'ORA'], ['^', 'EOR']]);
 const FALSE_BRANCH = new Map([['<', 'BCS'], ['>=', 'BCC'], ['==', 'BNE'], ['!=', 'BEQ']]);
@@ -150,9 +174,9 @@ function compile(source) {
         inA = null;
     }
     function expression(text) {
-        const call = KEY_CALL.exec(text);
-        if (call) {
-            if (call[1] === 'press') {
+        const E = pieces(text);
+        if (E.calls('keypad.press') || E.calls('keypad.read')) {
+            if (E.calls('keypad.press')) {
                 needsPress = true;
                 emit('JSR', 'abs', 'wait_press');
             } else {
@@ -166,9 +190,12 @@ function compile(source) {
             inA = null;
             return;
         }
-        // A space may stand before the index, as it may when the same byte is
-        // on the left of an `=`.
-        const lookup = /^([a-z][a-z0-9_.]*)\s*\[\s*([^\]]+?)\s*\]$/.exec(text);
+        // A read by index: a name, and between brackets that close the
+        // expression whatever says which byte. A space may stand before the
+        // index, as it may when the same byte is on the left of an `=`.
+        const close = E.find([']']);
+        const lookup = /^[a-z][a-z0-9_.]*$/.test(E.term(0) ?? '') && E.mark(1) === '[' && close > 2 && close === E.length - 1
+            ? [text, E.term(0), E.slice(2, close)] : null;
         if (lookup && places.has(lookup[1])) {
             const at = element(lookup[1], lookup[2]);
             if (at.index !== undefined) {
@@ -195,18 +222,24 @@ function compile(source) {
             inA = null;
             return;
         }
-        const pair = /^([\w.$]+)\s*([+&|^-])\s*([\w.$]+)$/.exec(text);
+        // One operation: a term, an operator, a term.
+        const pair = E.length === 3 && E.term(0) !== undefined && ARITHMETIC.has(E.mark(1)) && E.term(2) !== undefined;
         if (!pair) { load(text); return; }
-        load(pair[1]);
-        if (pair[2] === '+') emit('CLC');
-        if (pair[2] === '-') emit('SEC');
-        emit(ARITHMETIC.get(pair[2]), ...operand(pair[3]));
+        load(E.term(0));
+        if (E.mark(1) === '+') emit('CLC');
+        if (E.mark(1) === '-') emit('SEC');
+        emit(ARITHMETIC.get(E.mark(1)), ...operand(E.term(2)));
         inA = null;
     }
-    function declarePlace(text) {
-        const match = /^byte\s+(\w+)(?:\s*\[\s*([^\]]*?)\s*\])?\s+at\s+(\S+)$/.exec(text);
-        if (!match) fail('Expected byte name at address, or byte name[count] at address');
-        const [, name, counted, written] = match;
+    // byte name at address, or byte name[count] at address.
+    function declarePlace(L) {
+        const row = L.mark(2) === '[';
+        const close = row ? L.find([']'], 3) : 1;
+        // The address is whatever follows `at`, and is one run of characters.
+        const written = close > 0 && L.term(close + 1) === 'at' ? L.slice(close + 2) : '';
+        if (L.term(1) === undefined || !written || /\s/.test(written)) fail('Expected byte name at address, or byte name[count] at address');
+        const name = L.term(1);
+        const counted = row ? L.slice(3, close) : undefined;
         if (places.has(name)) fail('Memory name declared twice: ' + name);
         if (tables.has(name)) fail(name + ' is already a table');
         if (constants.has(name)) fail(name + ' is already a constant');
@@ -232,10 +265,13 @@ function compile(source) {
         }
         places.set(name, { where, count });
     }
-    function declareConstant(text) {
-        const match = /^const\s+(\w+)\s*=\s*([\w.$]+)$/.exec(text);
-        if (!match) fail('Expected const name = byte, or const name = table byte with a formula or with its bytes');
-        const [, name, written] = match;
+    // const name = byte.
+    function declareConstant(L) {
+        if (L.length !== 4 || L.term(1) === undefined || L.mark(2) !== '=' || L.term(3) === undefined) {
+            fail('Expected const name = byte, or const name = table byte with a formula or with its bytes');
+        }
+        const name = L.term(1);
+        const written = L.term(3);
         if (constants.has(name)) fail('Constant declared twice: ' + name);
         if (tables.has(name)) fail(name + ' is already a table');
         if (places.has(name)) fail(name + ' is already a memory name');
@@ -268,15 +304,23 @@ function compile(source) {
         if (bytes.length > 256) fail('A table holds 256 bytes at most, and this one has ' + bytes.length);
         tables.set(name, { label: 'data_' + name, bytes, line, used: false });
     }
-    function declareTable(text) {
-        const list = /^const\s+(\w+)\s*=\s*table\s+byte\s*=\s*(.*)$/.exec(text);
-        if (list) {
-            declareWrittenTable(list[1], list[2]);
+    // const name = table byte = byte, byte, ... or
+    // const name = table byte [n in 0..last] = term, or term operator term.
+    // The caller has found `const name = table` already.
+    function declareTable(L) {
+        const name = L.term(1);
+        if (L.term(4) === 'byte' && L.mark(5) === '=') {
+            declareWrittenTable(name, L.slice(6));
             return;
         }
-        const match = TABLE.exec(text);
-        if (!match) fail('Expected const name = table byte [n in 0..last] = formula, or const name = table byte = byte, byte, ...');
-        const [, name, index, first, limit, lhs, op, rhs] = match;
+        const one = L.length === 14;
+        const two = L.length === 16 && ['*', '+', '-'].includes(L.mark(14)) && L.term(15) !== undefined;
+        if (!(one || two) || L.term(4) !== 'byte' || L.mark(5) !== '[' || L.term(6) === undefined || L.term(7) !== 'in' ||
+            L.term(8) === undefined || L.mark(9) !== '..' || L.term(10) === undefined || L.mark(11) !== ']' ||
+            L.mark(12) !== '=' || L.term(13) === undefined) {
+            fail('Expected const name = table byte [n in 0..last] = formula, or const name = table byte = byte, byte, ...');
+        }
+        const [index, first, limit, lhs, op, rhs] = [L.term(6), L.term(8), L.term(10), L.term(13), L.mark(14), L.term(15)];
         // Zero however it is written: $0 and 00 are the byte the README means.
         if (number(first) !== 0) fail("A table's index starts at 0, not at " + first);
         tableName(name);
@@ -299,8 +343,35 @@ function compile(source) {
         }
         tables.set(name, { label: 'data_' + name, bytes, line, used: false });
     }
+    // A comparison: what is compared, how, and with what, from one place in a
+    // line to another. CMP wants the left side in A and the right side as one
+    // operand, so the left may be anything an expression may and the right is
+    // one term.
+    function comparison(L, from, to) {
+        const at = L.find([...FALSE_BRANCH.keys()], from, to);
+        const clean = (written) => !/[<>=!]/.test(written);
+        // When the operator is one of the four and only the right side is too
+        // much, say that: naming the operators again sends the reader to look
+        // at the one thing that is right. That holds only if what stands
+        // before the operator is clean: in `if 0 =< 2` the `<` is found, and
+        // it is the operator that is wrong.
+        if (at > from && clean(L.slice(from, at))) {
+            if (at + 1 === to) fail('A comparison needs a value on its right');
+            // One run of letters, digits, dots and `$` is meant as one value,
+            // whatever it turns out to be: `.0` is refused as a value is.
+            const right = L.slice(at + 1, to);
+            if (/^[\w.$]+$/.test(right)) return { left: L.slice(from, at), op: L.mark(at), right };
+            if (clean(right)) {
+                fail('The right side of a comparison is a single value; write an operation, a read by index or a key read on the left');
+            }
+        }
+        fail('Expected an unsigned comparison using <, >=, == or !=');
+    }
     function statement(text) {
-        if (text === 'else' || text === 'end') {
+        const L = pieces(text);
+        const first = L.term(0);
+        const alone = (word) => L.length === 1 && first === word;
+        if (alone('else') || alone('end')) {
             const block = blocks.at(-1);
             if (!block) fail('Unexpected ' + text);
             if (text === 'else') {
@@ -328,81 +399,72 @@ function compile(source) {
             return;
         }
         // What a line is goes by its shape alone, and is settled before
-        // anything else is asked of it. An assignment has one `=` after its
-        // name, not the two of a comparison, so `x == 1` is none; `if` and
-        // `const` are whole words with a space after them, so `if.scan()` is
-        // neither. A line that is no statement is told so wherever it stands:
-        // a misspelt `end` after `stop` was once called unreachable, which it
-        // is, and which is not what is wrong with it.
-        const assign = /^([\w.]+)(?:\s*\[\s*([^\]]*?)\s*\])?\s*=(?!=)\s*(.+)$/.exec(text);
-        const isIf = /^if(?:\s|$)/.test(text);
-        const isConst = /^const(?:\s|$)/.test(text);
-        const isByte = /^byte(?:\s|$)/.test(text);
-        const isCall = /^call(?:\s|$)/.test(text);
+        // anything else is asked of it. An assignment is a name, perhaps an
+        // index in brackets, one `=`, which is not the `==` of a comparison,
+        // and something after it, so `x == 1` is none. `if` and `const` are
+        // whole terms, so `if.scan()` is neither. A line that is no statement
+        // is told so wherever it stands: a misspelt `end` after `stop` was
+        // once called unreachable, which it is, and which is not what is
+        // wrong with it.
+        const indexed = L.mark(1) === '[';
+        const close = indexed ? L.find([']'], 2) : 0;
+        const assign = first !== undefined && close >= 0 && L.mark(close + 1) === '=' && L.length > close + 2
+            ? [text, first, indexed ? L.slice(2, close) : undefined, L.slice(close + 2)] : null;
+        const isIf = first === 'if';
+        const isConst = first === 'const';
+        const isByte = first === 'byte';
+        const isCall = first === 'call';
+        const scans = L.calls('display.scan');
+        const holds = L.calls('display.hold');
+        const shows = L.calls('display.show');
         // `if = 1` and `const = 1` assign to a word of the language. Say so
         // before the line is read as a comparison or a declaration gone wrong.
         if (assign && RESERVED.has(assign[1])) variable(assign[1]);
-        if (!assign && !isIf && !isConst && !isByte && !isCall && text !== 'loop' && text !== 'stop' && !SCAN_CALL.test(text) && !HOLD_CALL.test(text) && !SHOW_CALL.test(text)) {
+        if (!assign && !isIf && !isConst && !isByte && !isCall && !alone('loop') && !alone('stop') && !scans && !holds && !shows) {
             fail('Unknown statement: ' + text);
         }
         if (!reachable) fail('Unreachable statement');
         if (isByte) {
             if (started) fail('Declare constants, tables and memory names before the first statement');
-            declarePlace(text);
+            declarePlace(L);
             return;
         }
         if (isConst) {
             if (started) fail('Declare constants, tables and memory names before the first statement');
             // The word after the `=` says which it is, so that a table
             // written wrongly is told about tables.
-            if (/^const\s+\w+\s*=\s*table\b/.test(text)) declareTable(text);
-            else declareConstant(text);
+            if (L.term(1) !== undefined && L.mark(2) === '=' && L.term(3) === 'table') declareTable(L);
+            else declareConstant(L);
             return;
         }
         started = true;
-        if (text === 'loop') {
+        if (alone('loop')) {
             const start = label();
             blocks.push({ kind: 'loop', start, line });
             mark(start);
             forget();
         } else if (isIf) {
-            const test = /^if\s+(.+?)\s*(>=|==|!=|<)\s*([\w.$]+)$/.exec(text);
-            if (!test) {
-                // CMP wants the left side in A and the right side as one operand.
-                // When the operator is one of the four and only the right side
-                // is too much, say that: naming the operators again sends the
-                // reader to look at the one thing that is right.
-                // That holds only if what stands before the operator is clean:
-                // in `if 0 =< 2` the `<` is found, and it is the operator that
-                // is wrong.
-                const loose = /^if\s+(.+?)\s*(>=|==|!=|<(?!=))\s*(.*)$/.exec(text);
-                if (loose && !/[<>=!]/.test(loose[1])) {
-                    if (!loose[3]) fail('A comparison needs a value on its right');
-                    if (!/[<>=!]/.test(loose[3])) {
-                        fail('The right side of a comparison is a single value; write an operation, a read by index or a key read on the left');
-                    }
-                }
-                fail('Expected an unsigned comparison using <, >=, == or !=');
-            }
-            expression(test[1].trim());
-            emit('CMP', ...operand(test[3]));
+            const test = comparison(L, 1, L.length);
+            expression(test.left);
+            emit('CMP', ...operand(test.right));
             const otherwise = label();
-            emit(FALSE_BRANCH.get(test[2]), 'rel', otherwise);
+            emit(FALSE_BRANCH.get(test.op), 'rel', otherwise);
             blocks.push({ kind: 'if', entry: new Set(defined), otherwise, end: label(), line });
-        } else if (text === 'stop') {
+        } else if (alone('stop')) {
             emit('JMP', 'abs', 0xfe22);
             reachable = false;
-        } else if (SCAN_CALL.test(text)) {
+        } else if (scans) {
             scan();
-        } else if (SHOW_CALL.test(text)) {
+        } else if (shows) {
             // A call like any other: START leaves Port A an output, and the
             // last digit lit, so nothing is known when it comes back.
             emit('JSR', 'abs', SHOW);
             forget();
         } else if (isCall) {
-            const match = /^call\s+(\S+)$/.exec(text);
-            if (!match) fail('Expected call and an address, such as call $FF7E');
-            emit('JSR', 'abs', address(match[1]));
+            // The address is whatever follows, and is one run of characters.
+            const written = L.slice(1);
+            if (!written || /\s/.test(written)) fail('Expected call and an address, such as call $FF7E');
+            emit('JSR', 'abs', address(written));
             // The routine is somebody else's. Nothing is known when it comes
             // back: not A, and not which way it has left Port A, so the next
             // key read sets that again. Nor the decimal flag: RTS brings the
@@ -411,7 +473,7 @@ function compile(source) {
             // key the same code. So it is cleared, as at the program's start.
             emit('CLD');
             forget();
-        } else if (HOLD_CALL.test(text)) {
+        } else if (holds) {
             // Scan until RES. `stop` hands the board to the monitor, which puts
             // its own address and data on the displays; this keeps what the
             // program put there. It is `loop`, `display.scan()`, `end` in one

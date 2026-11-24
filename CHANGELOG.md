@@ -444,6 +444,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Amico's compiler reads a line as pieces, where it had one regular
+  expression for each kind of statement: terms, which are numbers and names,
+  marks, which are operators, brackets and commas, and anything else a
+  character at a time. A statement is then known by its pieces. Nothing a
+  program compiles to has changed: the old compiler and the new were run
+  side by side on 20,000 valid programs and 600,000 edited ones, and every
+  source both accept gives the same bytes, the same listing and the same
+  warnings. A malformed line may be refused in other words than before, and
+  `byte row[6]at $8f`, with no space after the bracket, is now taken, as
+  `x[0]=5` always was. It is the groundwork for conditions joined by `and`
+  and `or`, which one regular expression could not have read.
 - Corrected statements that the day's work on Amico had left untrue. The
   sum was said to compile to "the manual's ten bytes with a `CLD` in
   front"; they are the manual's ten, with the `CLC` after the load where
