@@ -22,7 +22,7 @@
 //
 //     AMICO_STATEMENTS=6 node --test tests/compiler-assignment.test.js
 //
-// which takes a little over a minute. It was one reviewer's harness in the
+// which takes about a minute and a half. It was one reviewer's harness in the
 // check of 2026-11-23 (AGENTS.md, A Review by Several Agents), run then to
 // seven statements with one name and to six with two. That was before
 // there was a `for`, a `break` or a `next`; with them there are many more

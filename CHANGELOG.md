@@ -483,6 +483,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- `NextSession.md` and `AGENTS.md` say what Amico now has. Item 13 marks
+  `for`, `break`, `next` and the richer conditions done, records how the
+  small print of `for` was settled, which the owner has not yet seen, lists
+  three places where the code could be tighter, and names decimal mode as
+  the next step. `AGENTS.md` says that the compiler reads a line as pieces
+  and is to go on doing so, what the oracle now covers, and that each new
+  construct has defects planted against its tests.
 - Two of Amico's examples are written with its new words. The matchstick
   game accepts a move with one condition, `if take >= 1 and take <= 3 and
   take < left`, where it had three `if`s one inside another, and its two

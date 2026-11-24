@@ -1222,8 +1222,12 @@ item before changing the language.
 under Node on another computer and produces a listing, a binary or an
 `.amtape` image for the board:
 
-- `compile.js` reads a program a line at a time, checks it and makes 6502
-  instructions as records.
+- `compile.js` reads a program a line at a time, each line as the pieces
+  it is made of (`pieces()`: terms, marks and anything else), checks it and
+  makes 6502 instructions as records. Keep it reading a line that way: a
+  statement is known by its pieces, not by a regular expression for the
+  whole line, which is what it had until conditions joined by `and` and
+  `or` could not be read so.
 - `emit.js` drops a store that nothing reads, gives the variables their
   places in page zero from `$20`, lays the code out from `$0200`, turns a
   branch that cannot reach into the inverse branch around a `JMP`, and
@@ -1242,12 +1246,20 @@ under Node on another computer and produces a listing, a binary or an
   gains a construct, the interpreter and the generator beside it gain it
   too, or the construct goes untested.
 - `tests/compiler-assignment.test.js` tries every small nesting of `if`,
-  `else`, `loop` and `stop`, and again with `display.hold()` for `stop`,
-  against an oracle for the two flow rules: a name assigned on every path
-  before it is read, and no statement out of reach. It expects the compiler's messages for those two, "Unreachable
-  statement" and "assigned variable"; reword them there too. A new way
-  for control to move needs its edges in that oracle: `for`, `break` and
-  `next`, when they are built.
+  `else`, `else if`, `loop`, `for`, `break`, `next` and `stop`, and again
+  with `display.hold()` for `stop`, against an oracle for the two flow
+  rules: a name assigned on every path before it is read, and no statement
+  out of reach. It expects the compiler's messages for those two,
+  "Unreachable statement" and "assigned variable", and for two mistakes of
+  placing, "there is none round it" and "already counting"; reword them
+  there too. A new way for control to move needs its edges in that oracle:
+  subroutines and the routine for HLT, when they are built.
+- **Test the tests.** Each construct added on 2026-11-23 had defects
+  planted in a scratch copy of the compiler, one at a time, to see the
+  tests fail: fifty-one for the loops and the conditions. Three were not
+  caught at first, and each showed a test that was missing. Do the same
+  for the next construct: a test that passes with its fix taken out is no
+  test of it.
 
 What an agent has to know before touching it:
 

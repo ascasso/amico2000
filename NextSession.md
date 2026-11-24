@@ -83,8 +83,9 @@ below, each marked as coming from it.
   the page. Codex built it on 2026-11-23. The same day it was checked and
   mended, and given its first additions: constants, tables written out,
   names for memory locations and rows of bytes, and calls, so that it now
-  reaches the whole board. Item 13 has what the owner settled, what is
-  built and what is next.
+  reaches the whole board; then `for`, `break` and `next`, and conditions
+  with `>`, `<=`, `and`, `or` and `else if`. Item 13 has what the owner
+  settled, what is built and what is next.
 - **Keys:** all 23 work. HLT is the NMI line and halts a running program,
   which RUN then resumes. The NOR/SS slide switch works too: at SS each RUN
   executes one instruction.
@@ -500,7 +501,8 @@ on 2026-11-23 and its place is the owner's to give.
         the guide's two LED programs, or the manual's first program, the
         sum, whose result it works out and stores nowhere.
       - Nothing leaves a `loop`, and there is no `and` or `else if`: the
-        matchstick game needs three nested `if`s to accept a move.
+        matchstick game needs three nested `if`s to accept a move (it has
+        all of them now, and the game one condition).
       - It hides what the 6502 is good at: decimal mode, indexing, carry. A
         24-hour clock written in it is 140 bytes; the May 1979 article's is
         63, and three in page zero.
@@ -543,7 +545,21 @@ on 2026-11-23 and its place is the owner's to give.
         `loop` with `if ... break` in it. Not chosen: `while` and
         `repeat 6`, which the agent had first proposed and then
         recommended against; `until` at the foot of a loop; `break` alone;
-        and `loop 60` and `loop while` with `leave` and `again`.
+        and `loop 60` and `loop while` with `leave` and `again`. **Done**,
+        all three. The small print of `for` was the agent's to settle, and
+        the owner has not yet seen it settled:
+        - its two ends are literals or constants, never variables: the
+          language has no run-time checks, and with both ends known the
+          loop always runs at least once and nothing can go wrong on the
+          board. A count that varies is a `loop` with a `break`;
+        - it counts down when the first value is the greater, `for i in
+          5..0`, with no word for it;
+        - when the loop has run its course its name is one step past the
+          last value, 6 after `0..5`, and a byte wraps; left by `break`,
+          the name keeps the value it had;
+        - inside its own loop the name cannot be assigned, and it is a
+          variable of the program's own, not a display field or a named
+          location.
       - From the agent's recap, which the owner liked as a whole and did not
         take one by one. The first four are the small fixes the owner said
         to start with:
@@ -557,12 +573,22 @@ on 2026-11-23 and its place is the owner's to give.
           end with its result showing. **Done**;
         - the README saying what `stop` and HLT do to the displays.
           **Done**, each with a test that pins it;
-        - `and`, `or`, `else if`, `>` and `<=`;
+        - `and`, `or`, `else if`, `>` and `<=`. **Done.** `and` and `or`
+          cannot be mixed in one condition, since the language has no
+          brackets and no precedence; they are tried in order and no
+          further than it takes. `x > 255` and `x <= 255` are refused, as
+          deciding nothing;
         - shifts, `a << 1` and `a >> 1`;
         - a key read or a table read as an operand
           (`k = keypad.read() & 15`);
         - tighter code, `INC` and `DEC` for `x = x + 1` and no `CMP #0`
-          after an operation that set the flags.
+          after an operation that set the flags. Three more places were
+          seen while the loops were built, none of them done: an `if`
+          with only a `break`, a `next` or a `stop` in it is a branch over
+          a jump, five bytes where a hand writes a branch of two; after
+          such an `if` the accumulator still holds what it held, and is
+          loaded again; and a store into a row by the index that was just
+          used to read loads X a second time.
     - **Stays out**, a list the owner approved:
       - anything wider than a byte, carry, pointers;
       - more than one operation on a line, parentheses, precedence;
@@ -607,9 +633,11 @@ on 2026-11-23 and its place is the owner's to give.
         was not tried.
     - **Open.** The alphabet for `table segments`. The form of the HLT
       routine. What the image of a long program puts in the IRQ vector
-      (item 6). And the small print of `for`, to be settled when it is
-      built: whether its ends may be variables, whether it may count
-      down, and what its name holds once the loop is over.
+      (item 6). And whether the owner wants the small print of `for`
+      otherwise than the agent settled it, above: ends that may be
+      variables would be the change most likely to be asked for, and
+      would need a decision on what a loop does when its first value
+      turns out the greater.
     - **How to steer it:** by the project's own programs. The manual's sum
       (Tabella 7), the word on the displays, the guide's LED counter, the
       sliding text, the 1979 clock and 21 fiammiferi. Amico is good enough
@@ -629,14 +657,15 @@ on 2026-11-23 and its place is the owner's to give.
       warning, the names for constants and keys, `display.hold()`, and the
       README saying what `stop` and HLT do to the displays. **Done.** Then
       memory names, calls and written-out tables. **Done**, with the rows
-      of bytes. Then `for`, `break` and `next`, and the richer conditions:
-      **next**. Then decimal. The compiler reads a line with one regular
-      expression for each kind of statement. That stretched to rows of
-      bytes, with an index allowed on the left of `=`; it will not stretch
-      to `and` and `or`, so a small tokenizer still comes before the
-      conditions. One unit to a commit, each with its test, and the
-      finished series to reviewers on other models before it is pushed
-      (`AGENTS.md`, A Review by Several Agents).
+      of bytes. Then `for`, `break` and `next`, and the richer conditions.
+      **Done**, after the compiler was first made to read a line as
+      pieces, which changed no program's bytes. Then decimal: **next**.
+      After it, in no settled order: subroutines, the routine for HLT,
+      words on the displays as a table, shifts, a key read or a table
+      read as an operand, tighter code, and the listing as Tavola A. One
+      unit to a commit, each with its test, and the finished series to
+      reviewers on other models before it is pushed (`AGENTS.md`, A
+      Review by Several Agents).
     - **A check of the compiler as it stands**, read only, which the owner
       asked for on 2026-11-23 before anything was built on it. Five
       reviewers, each with its own angle and its own model: four Claude
