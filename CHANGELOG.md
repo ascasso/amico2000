@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subtracted in a block has to be two decimal digits itself, so `x + 10` is
   refused there and ten is written `$10`. A block cannot be inside another,
   and `decimal` joins the words that cannot be names.
+- Amico has a fifth example, `compiler/examples/clock.amico`: a clock after
+  the one in Sperimentare of May 1979, with hours, minutes and seconds on
+  the six digits, counted in a `decimal` block. The time to start from is
+  keyed into `0000` to `0002`, as the article has it. On the emulated board
+  one of its seconds is 1,000,002 cycles, and a line of the program is there
+  to set it by on a board whose crystal is less exact. It is 90 bytes; the
+  article's is 63 and three in page zero, and the same clock written in
+  Amico before it had `for` and `decimal` came to 140.
 - Amico has `else if`: an `if` can go on to try other conditions before its
   `else` or its `end`, and one `end` closes the whole chain. The conditions
   are tried in order and the statements under the first that holds are run.

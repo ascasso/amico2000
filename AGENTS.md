@@ -1252,12 +1252,14 @@ under Node on another computer and produces a listing, a binary or an
   statement out of reach. It expects the compiler's messages for those two,
   "Unreachable statement" and "assigned variable", and for three mistakes of
   placing, "there is none round it", "already counting" and "in decimal
-  already"; reword them there too. A new way for control to move needs its edges in that oracle:
-  subroutines and the routine for HLT, when they are built.
+  already"; reword them there too. A new way for control to move needs its
+  edges in that oracle: subroutines and the routine for HLT, when they are
+  built.
 - **Test the tests.** Each construct added on 2026-11-23 had defects
   planted in a scratch copy of the compiler, one at a time, to see the
-  tests fail: fifty-one for the loops and the conditions. Three were not
-  caught at first, and each showed a test that was missing. Do the same
+  tests fail: fifty-one for the loops and the conditions, forty-one for
+  `decimal`. Of the fifty-one, three were not caught at first, and each
+  showed a test that was missing. Do the same
   for the next construct: a test that passes with its fix taken out is no
   test of it. It is not enough by itself; see A Review by Several Agents
   for what a second planter then found.
