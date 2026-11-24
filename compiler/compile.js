@@ -93,7 +93,9 @@ function compile(source) {
     // Whether the 6502's decimal flag is set where the code now being written
     // runs. It is set from a `decimal` to its `end` and nowhere else, so the
     // source says which it is at every instruction, and nothing has to be
-    // found out when the program runs.
+    // found out when the program runs. Two things inside a block run with it clear,
+    // each after a CLD of its own: a routine that may add, and the JMP of a
+    // `break` or a `next` that leaves the block.
     let decimal = false;
     let reachable = true;
     let started = false;
