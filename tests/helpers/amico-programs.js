@@ -29,15 +29,20 @@ const FIELDS = ['display.high', 'display.low', 'display.data'];
 const OPERATORS = ['+', '-', '&', '|', '^'];
 const COMPARISONS = ['<', '>=', '==', '!='];
 
-// xorshift32: small, and the same on every machine.
+// xorshift32: small, and the same on every machine. Seeds are small whole
+// numbers, and xorshift's first outputs from a small state are small too, so
+// the seed is spread over the 32 bits first and a few rounds thrown away.
+// Without that, the first choice a program makes came out the same way for
+// nearly every seed.
 function randomSource(seed) {
-    let state = seed >>> 0 || 1;
+    let state = Math.imul(seed, 0x9e3779b1) >>> 0 || 1;
     const next = () => {
         state ^= state << 13; state >>>= 0;
         state ^= state >>> 17;
         state ^= state << 5; state >>>= 0;
         return state / 4294967296;
     };
+    for (let round = 0; round < 8; round++) next();
     return {
         next,
         between: (low, high) => low + Math.floor(next() * (high - low + 1)),
@@ -79,7 +84,7 @@ function generate(seed, { scans = false, long = false } = {}) {
     }
 
     const tables = [];
-    const tableCount = chance(0.6) ? between(1, 3) : 0;
+    const tableCount = chance(0.8) ? between(1, 3) : 0;
     for (let number = 0; number < tableCount; number++) {
         const last = chance(0.15) ? between(40, 120) : between(0, 20);
         const index = pick(['n', 'i', 'idx']);

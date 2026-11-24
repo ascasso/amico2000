@@ -143,16 +143,16 @@ test('random programs compute on the board what the reference interpreter comput
     }
 
     // A generator can stop making what it was written to make and the test
-    // would go on passing. When it was written, of the programs that ran, 21%
-    // had a long branch, 59% a loop, 71% a table read, 70% an else and 44% ifs
+    // would go on passing. Measured over 20,000 programs, of those that ran 20%
+    // had a long branch, 58% a loop, 56% a table read, 67% an else and 44% ifs
     // four deep, and 74% of those generated fitted the board. The floors are
     // about half of each: there to notice a collapse, not a drift.
     const share = (count) => count / seen.ran;
-    assert.ok(seen.ran / PROGRAMS > 0.4, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
+    assert.ok(seen.ran / PROGRAMS > 0.37, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
-    assert.ok(share(seen.loops) > 0.30, `a loop in only ${seen.loops} of ${seen.ran}`);
-    assert.ok(share(seen.tables) > 0.35, `a table read in only ${seen.tables} of ${seen.ran}`);
-    assert.ok(share(seen.elseArms) > 0.35, `an else in only ${seen.elseArms} of ${seen.ran}`);
+    assert.ok(share(seen.loops) > 0.29, `a loop in only ${seen.loops} of ${seen.ran}`);
+    assert.ok(share(seen.tables) > 0.28, `a table read in only ${seen.tables} of ${seen.ran}`);
+    assert.ok(share(seen.elseArms) > 0.33, `an else in only ${seen.elseArms} of ${seen.ran}`);
     assert.ok(share(seen.deep) > 0.22, `ifs four deep in only ${seen.deep} of ${seen.ran}`);
 });
 
@@ -265,6 +265,59 @@ end`
 
 test('nothing is taken to be in the accumulator across the top of a loop', () => {
     for (const [name, source] of Object.entries(LOOP_HEADS)) {
+        for (const seed of [1, 2, 3, 4]) {
+            const result = compare(source.trim() + '\n', seed);
+            assert.equal(result, null, result && `${name}: ${result.wrong}`);
+        }
+    }
+});
+
+// The same care for the left side of a comparison, which may be an operation
+// or a table read: it leaves its own value in A, and the name that was there
+// before is there no longer. In each of these the arm's first line reads the
+// name A held before the `if`. The random programs meet this seldom, a table
+// read on the left least of all, so a compiler that kept the old name was
+// caught by them only now and then; these catch it every time. Tried on
+// copies with the forgetting taken out after an operation and after a table
+// read.
+const AFTER_A_LEFT_SIDE = {
+    'an operation on the left': `
+y = 7
+x = 3
+if x + 250 >= 9
+    display.data = x
+    display.low = y
+else
+    display.data = y
+end`,
+    'a table read by a literal on the left': `
+const t = table byte [n in 0..7] = n * 3
+y = 7
+if t[2] == 6
+    display.data = y
+else
+    display.low = y
+end`,
+    'a table read by a variable on the left': `
+const t = table byte [n in 0..7] = n * 3
+k = 2
+if t[k] == 6
+    display.data = k
+else
+    display.low = k
+end`,
+    'a table read by a display field on the left': `
+const t = table byte [n in 0..7] = n * 3
+display.low = 5
+if t[display.low] >= 15
+    display.data = display.low
+else
+    display.high = display.low
+end`
+};
+
+test('the left side of a comparison leaves its own value in the accumulator', () => {
+    for (const [name, source] of Object.entries(AFTER_A_LEFT_SIDE)) {
         for (const seed of [1, 2, 3, 4]) {
             const result = compare(source.trim() + '\n', seed);
             assert.equal(result, null, result && `${name}: ${result.wrong}`);

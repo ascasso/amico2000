@@ -390,6 +390,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Mended the random program generator behind
+  `tests/compiler-differential.test.js`. Its seeds are small numbers, and
+  the first choice it made from one came out the same way for nearly every
+  seed, so that nearly every program had tables, by accident. The seed is
+  now spread before use, tables are in four programs of five by choice, and
+  the test's floors are measured again. Four programs written by hand now
+  hold what the accumulator contains after the left side of a comparison,
+  which the random programs caught only now and then.
 - Recorded the owner's choice of words for leaving a loop in Amico, in
   `NextSession.md`, item 13: `for i in 0..5`, `break` and `next`, with
   `loop ... end` staying the endless loop. Nothing is built yet.
