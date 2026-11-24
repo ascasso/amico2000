@@ -1242,9 +1242,9 @@ under Node on another computer and produces a listing, a binary or an
   gains a construct, the interpreter and the generator beside it gain it
   too, or the construct goes untested.
 - `tests/compiler-assignment.test.js` tries every small nesting of `if`,
-  `else`, `loop` and `stop` against an oracle for the two flow rules: a
-  name assigned on every path before it is read, and no statement out of
-  reach. It expects the compiler's messages for those two, "Unreachable
+  `else`, `loop` and `stop`, and again with `display.hold()` for `stop`,
+  against an oracle for the two flow rules: a name assigned on every path
+  before it is read, and no statement out of reach. It expects the compiler's messages for those two, "Unreachable
   statement" and "assigned variable"; reword them there too. A new way
   for control to move needs its edges in that oracle: `for`, `break` and
   `next`, when they are built.
@@ -1271,7 +1271,8 @@ What an agent has to know before touching it:
 - **What it has to keep.** A line of source is a handful of instructions
   that someone could key in, and everything a program runs shows in its
   listing. Generated code starts with `CLD`, sets Port A to input before the
-  key routine, and leaves through `$FE22`: the monitor's faults
+  key routine, and leaves through `$FE22` unless it ends in
+  `display.hold()`, which never leaves: the monitor's faults
   (`docs/monitor-rom-review.md`) allowed for, each held by
   `tests/compiler.test.js`.
 
@@ -1406,7 +1407,12 @@ reproduced every finding before passing any on.
   scratch copy and ran its test, to see the test fail; all did, and it
   found two numbers in a comment and the log that were not true. Ask a
   reviewer of tests for exactly that: a test that passes with its fix
-  taken out is no test of it.
+  taken out is no test of it. The four small features that came next
+  went the same way, this time before their push. Codex's comparison of
+  old and new showed that no program the old compiler took had changed by
+  a byte, and its hunt found that a named constant could cost two bytes
+  more than its number; Opus planted twenty-one breaks and every one was
+  caught.
 - **The owner's Codex.** One instance at a time. Its prompt is plain ASCII,
   the owner's rule for anything handed to another tool, kept in a file and
   given on standard input. The run of 2026-11-23, with the model the

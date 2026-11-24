@@ -407,6 +407,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Corrected two statements that a review of the documents found. The log
+  said a thousand random programs had passed a compiler with a planted
+  defect; that is true of the mended generator, and the old one had caught
+  it three times. `AGENTS.md` said generated code always leaves through
+  `$FE22`, which a program ending in `display.hold()` does not, and its
+  account of the oracle test did not mention `display.hold()`.
 - `compiler/README.md` now warns that HLT gives the three display fields to
   the monitor: it writes the halted address into `display.high` and
   `display.low` and the byte there into `display.data`, and RUN does not
