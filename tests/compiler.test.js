@@ -875,3 +875,49 @@ test('a space may stand before an index, on a read as on a store', () => {
     while (m.cpu.PC !== 0xfe22) m.cpu.step();
     assert.equal(m.cpu.memory[0xf9], 7);
 });
+
+test('nothing is taken as known after a call or after display.show()', () => {
+    const lines = (source) => compile(source).assembly.split('\n');
+    const modeWords = (source) => lines(source).filter(line => line.includes('LDA #$99')).length;
+    // Port A's direction. The scan before it matters: at the very start of a
+    // program the direction is unknown anyway, and a key read sets it whatever
+    // the compiler thinks of the call.
+    assert.equal(modeWords('display.scan()\nk = keypad.read()\ndisplay.data = k'), 0);
+    assert.equal(modeWords('display.scan()\ncall $ff0c\nk = keypad.read()\ndisplay.data = k'), 1);
+    assert.equal(modeWords('display.scan()\ndisplay.show()\nk = keypad.read()\ndisplay.data = k'), 1);
+    // The accumulator: a value assigned before is loaded again after.
+    for (const [routine, address] of [['call $ff7e', '$FF7E'], ['display.show()', '$FF7E'], ['call $ff0c', '$FF0C']]) {
+        const listing = lines('x = 5\n' + routine + '\ndisplay.data = x');
+        const called = listing.findIndex(line => line.includes('JSR ' + address));
+        assert.ok(listing.slice(called).some(line => line.includes('LDA var_x')), routine);
+    }
+    // And on the board: the routine at $FF7E does change A, and the 5 still arrives.
+    const program = compile('x = 5\ndisplay.show()\ndisplay.data = x');
+    const m = bootedMachine();
+    m.loadProgram(program.binary, program.origin);
+    m.cpu.PC = program.origin;
+    while (m.cpu.PC !== 0xfe22) m.cpu.step();
+    assert.equal(m.cpu.memory[0xf9], 5);
+});
+
+test('the edges of where a name may be: $1F and $80 yes, $20 and $7F no, and $FFFF the last byte', () => {
+    const accepted = (source) => assert.ok(compile(source + '\ndisplay.data = 1').binary.length > 4, source);
+    const refused = (source, error) => assert.throws(() => compile(source + '\ndisplay.data = 1'), error, source);
+    accepted('byte p at $1f');
+    accepted('byte p at $80');
+    refused('byte p at $20', /^Error: Line 1: \$20-\$7F is where/);
+    refused('byte p at $7f', /^Error: Line 1: \$20-\$7F is where/);
+    // A row up to $1F, and one from $80.
+    accepted('byte r[2] at $1e');
+    accepted('byte r[4] at $80');
+    refused('byte r[3] at $1e', /^Error: Line 1: \$20-\$7F is where .* r would overlap it/);
+    refused('byte r[2] at $7f', /^Error: Line 1: \$20-\$7F is where/);
+    // One that spans the whole range from outside it.
+    refused('byte r[200] at $10', /^Error: Line 1: \$20-\$7F is where/);
+    // The last byte of memory may be the last byte of a row, and no further.
+    accepted('byte p at $ffff');
+    accepted('byte r[2] at $fffe');
+    refused('byte r[3] at $fffe', /^Error: Line 1: r would run past \$FFFF/);
+    accepted('byte r[256] at $ff00');
+    refused('byte r[256] at $ff01', /^Error: Line 1: r would run past \$FFFF/);
+});

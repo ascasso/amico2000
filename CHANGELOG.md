@@ -442,6 +442,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page 59 clear-range listing as verified from project-owner review.
 
 ### Changed
+- Sharpened the tests of what Amico can now reach, after a review of them
+  showed five breaks they let through. That nothing is taken as known
+  after `call` or `display.show()` was tested only at the start of a
+  program, where nothing is known anyway; it is now tested after a scan,
+  for Port A's direction and for the accumulator. The edges of where a
+  name may be are tested byte by byte: `$1F` and `$80`, a row ending at
+  `$FFFF` and one that would pass it. And the reference interpreter and
+  the random generator have `display.segment` and `display.show()`, which
+  the rule in `AGENTS.md` asks of every new construct.
 - Corrected two statements that a review of the documents found. The log
   said a thousand random programs had passed a compiler with a planted
   defect; that is true of the mended generator, and the old one had caught

@@ -13,12 +13,14 @@
 // fields and whatever locations and rows it has named with `byte ... at`.
 // Those are
 // kept as memory, by address, so that two names for one byte are one byte
-// here as on the board. display.scan() changes none of it, so here it does
-// nothing. The key routines are not modelled at all; a test that needs them
-// drives the real monitor.
+// here as on the board. display.scan() and display.show() change none of it,
+// so here they do nothing. The key routines are not modelled at all; a test
+// that needs them drives the real monitor.
 
 // Where the README says the three display fields are.
 const FIELDS = { 'display.high': 0xfb, 'display.low': 0xfa, 'display.data': 0xf9 };
+// The six digits as raw segments: the README has them at $8F-$94, a row.
+const SEGMENTS = { address: 0x8f, count: 6 };
 // The README's names for the codes of the keys that are not hex digits.
 const KEY_NAMES = {
     'keypad.ad': 0x10, 'keypad.da': 0x11, 'keypad.inc': 0x12,
@@ -59,7 +61,7 @@ function parse(source) {
     const constants = new Map(Object.entries(KEY_NAMES));
     // A name the program gives to a memory location: its address, and for a
     // row of bytes how many there are. `count` is null for a single byte.
-    const places = new Map();
+    const places = new Map([['display.segment', SEGMENTS]]);
     const program = { kind: 'program', body: [] };
     const open = [program];
     let into = program.body;
@@ -104,7 +106,7 @@ function parse(source) {
             // Holding the displays computes nothing more: for what a program
             // leaves behind, it is where the program ends.
             into.push({ kind: 'stop' });
-        } else if (line === 'display.scan()') {
+        } else if (line === 'display.scan()' || line === 'display.show()') {
             into.push({ kind: 'scan' });
         } else if ((match = /^([a-z][a-z0-9_.]*)(?:\s*\[\s*(\S+?)\s*\])?\s*=\s*(.+)$/.exec(line))) {
             into.push({ kind: 'assign', name: match[1], index: match[2], value: match[3].trim() });
@@ -156,7 +158,7 @@ function run(source, memory, maxSteps = 200000) {
     }
     function evaluate(expression) {
         let match;
-        if ((match = /^([a-z][a-z0-9_]*)\[\s*(\S+?)\s*\]$/.exec(expression))) {
+        if ((match = /^([a-z][a-z0-9_.]*)\[\s*(\S+?)\s*\]$/.exec(expression))) {
             if (places.has(match[1])) return cells[elementOf(match[1], match[2])];
             const bytes = tables.get(match[1]);
             const index = valueOf(match[2]);

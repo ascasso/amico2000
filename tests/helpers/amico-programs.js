@@ -11,7 +11,8 @@
 // What it leans on: nested `if`s with and without `else`, arms long enough to
 // need a long branch, tables by a formula and written out, read by a literal
 // and by a variable, memory locations and rows of bytes named in page zero
-// and above it, two names for one byte, display
+// and above it, the row of segments the language starts with, two names for
+// one byte, display
 // fields as operands and as targets, constants and the key names standing
 // where a literal may, names that begin like words of the language, literals
 // spelt several ways, and operators written with and without spaces.
@@ -149,6 +150,9 @@ function generate(seed, { scans = false, long = false } = {}) {
             lines.push(`byte ${row.name}[${counted}] at $${row.address.toString(16)}`);
         }
     }
+    // One program in five uses the row the language starts with, which needs
+    // no declaring: the six bytes the monitor shows as segments.
+    if (chance(0.2)) rows.push({ name: 'display.segment', address: 0x8f, length: 6 });
     // What can be read from the first line and is no variable of the program's.
     const fixed = FIELDS.concat(places.map((place) => place.name));
 
@@ -301,7 +305,8 @@ function generate(seed, { scans = false, long = false } = {}) {
         made.depth = Math.max(made.depth, depth);
         for (let i = 0; i < count; i++) {
             if (scans && chance(0.08)) {
-                lines.push(`${indent}display.scan()`);
+                // Either of the monitor's two ways of showing the displays.
+                lines.push(`${indent}${chance(0.3) ? 'display.show()' : 'display.scan()'}`);
                 made.scans++;
             }
             if (depth < 7 && random.next() < (depth < 4 ? 0.36 : 0.15)) {

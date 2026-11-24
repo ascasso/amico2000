@@ -106,9 +106,10 @@ function compare(source, seed) {
             differences.push(`${name} is ${memory[address]} on the board and ${expected.variables.get(name)} by the interpreter`);
         }
     }
-    // display.scan() is the monitor's routine: it keeps a byte at $FC and
-    // uses the stack. Nothing else may be written by anything.
-    const scans = source.includes('display.scan()');
+    // display.scan() and display.show() are the monitor's routines: they
+    // keep a byte at $FC and use the stack. Nothing else may be written by
+    // anything.
+    const scans = /display\.(scan|show)\(\)/.test(source);
     for (let address = 0; address < RAM; address++) {
         if (own.has(address)) continue;
         if (scans && (address === 0xfc || (address >= 0x0100 && address < 0x0200))) continue;
@@ -147,26 +148,29 @@ test('random programs compute on the board what the reference interpreter comput
     }
 
     // A generator can stop making what it was written to make and the test
-    // would go on passing. Measured over 20,000 programs, of those that ran 20%
-    // had a long branch, 58% a loop, 56% a table read, 67% an else, 44% ifs
-    // four deep, 65% a constant or a key's name, 39% a table written out, 50%
-    // a named memory location and 31% a byte of a row read or written, and 73%
-    // of those generated fitted the board. The floors are about half of each:
-    // there to notice a collapse, not a drift.
+    // would go on passing. Measured over 20,000 programs, 74% of those
+    // generated fitted the board, and of those that ran:
+    //   20% had a long branch          64% a constant or a key's name
+    //   57% a loop                     38% a table written out
+    //   53% a table read               51% a named memory location
+    //   66% an else                    40% a byte of a row read or written
+    //   43% ifs four deep
+    // The floors are about half of each: there to notice a collapse, not a
+    // drift.
     const share = (count) => count / seen.ran;
     assert.ok(seen.ran / PROGRAMS > 0.37, `only ${seen.ran} of ${PROGRAMS} programs fitted the board`);
     assert.ok(share(seen.longBranch) > 0.10, `a long branch in only ${seen.longBranch} of ${seen.ran}`);
-    assert.ok(share(seen.loops) > 0.29, `a loop in only ${seen.loops} of ${seen.ran}`);
-    assert.ok(share(seen.tables) > 0.28, `a table read in only ${seen.tables} of ${seen.ran}`);
+    assert.ok(share(seen.loops) > 0.28, `a loop in only ${seen.loops} of ${seen.ran}`);
+    assert.ok(share(seen.tables) > 0.26, `a table read in only ${seen.tables} of ${seen.ran}`);
     assert.ok(share(seen.elseArms) > 0.33, `an else in only ${seen.elseArms} of ${seen.ran}`);
-    assert.ok(share(seen.deep) > 0.22, `ifs four deep in only ${seen.deep} of ${seen.ran}`);
+    assert.ok(share(seen.deep) > 0.21, `ifs four deep in only ${seen.deep} of ${seen.ran}`);
     assert.ok(share(seen.constants) > 0.32, `a constant in only ${seen.constants} of ${seen.ran}`);
     assert.ok(share(seen.written) > 0.19, `a table written out in only ${seen.written} of ${seen.ran}`);
     assert.ok(share(seen.places) > 0.25, `a named memory location in only ${seen.places} of ${seen.ran}`);
-    assert.ok(share(seen.rows) > 0.15, `a row of bytes in only ${seen.rows} of ${seen.ran}`);
+    assert.ok(share(seen.rows) > 0.20, `a row of bytes in only ${seen.rows} of ${seen.ran}`);
 });
 
-test('display.scan() among the statements changes nothing a program can see', () => {
+test('display.scan() and display.show() among the statements change nothing a program can see', () => {
     const programs = Math.max(150, Math.round(PROGRAMS / 10));
     let scans = 0;
     for (let seed = 100001; seed < 100001 + programs; seed++) {
